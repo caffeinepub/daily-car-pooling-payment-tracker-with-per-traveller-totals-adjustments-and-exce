@@ -1,0 +1,77 @@
+{
+  "kind": "implementation_plan",
+  "version": "1.0",
+  "title": "Per-traveller cash payments in Summary + local persistence + CSV export",
+  "requirements": [
+    {
+      "id": "REQ-15",
+      "summary": "Add per-traveller cash payment entry UI and apply recorded payments to reduce pending balance within the selected date range.",
+      "acceptanceCriteria": [
+        "In the Summary view, each traveller shows non-zero Payments when cash payments have been recorded for that traveller within the selected date range.",
+        "Balance in Summary is recalculated as: (tripCount × ratePerTrip) − payments (and continues to update immediately when AM/PM checkboxes are toggled or ratePerTrip changes).",
+        "A user can record a cash payment for a specific traveller (at minimum: amount; date defaults to today; optional note if already supported elsewhere).",
+        "After recording a cash payment, the traveller’s pending Balance decreases immediately without page refresh.",
+        "Cash payment input validates numeric amount > 0 and shows user-facing validation text in English when invalid."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/hooks/useLedgerLocalState.ts",
+          "operation": "modify",
+          "description": "Extend local ledger state to track per-traveller cash payments (amount, date, optional note) and expose actions to add a payment (and optionally delete/reset payments) while keeping state updates immediate for Summary recalculation."
+        },
+        {
+          "path": "frontend/src/features/ledger/LedgerStateContext.tsx",
+          "operation": "modify",
+          "description": "Expand the LedgerStateContext value to include cash payments data and actions (e.g., addCashPayment) so Summary and Export can consume the same source of truth."
+        },
+        {
+          "path": "frontend/src/features/ledger/CashPaymentForm.tsx",
+          "operation": "create",
+          "description": "Create a reusable per-traveller cash payment entry UI (amount required, date defaulting to today, optional note) with English validation messaging for invalid amount (> 0). Use shadcn-ui form inputs/buttons to match existing UI; Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/features/ledger/SummaryPanel.tsx",
+          "operation": "modify",
+          "description": "Integrate cash payments into per-traveller summary calculations by summing recorded payments within the currently selected date range and recomputing Balance = Total Charge − Payments. Render the CashPaymentForm for each traveller (or within each traveller summary block) and update displayed Payments/Balance immediately on add."
+        }
+      ]
+    },
+    {
+      "id": "REQ-16",
+      "summary": "Persist per-traveller cash payments in localStorage alongside existing ledger local state with safe loading and cleanup on traveller removal.",
+      "acceptanceCriteria": [
+        "After adding cash payments and reloading the page, Summary still shows the same Payments and Balance totals for the same date range.",
+        "Removing a traveller removes (or safely ignores) any stored payments associated with that traveller to prevent orphaned data errors.",
+        "If a new localStorage key is introduced for cash payments, the app handles missing/old data safely (no runtime errors on load)."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/hooks/useLedgerLocalState.ts",
+          "operation": "modify",
+          "description": "Add a dedicated localStorage key for cash payments; implement safe load/parse with defaults and optional migration; persist on change; and ensure removeTraveller also removes/filters any payments for that traveller to avoid orphaned payment records."
+        }
+      ]
+    },
+    {
+      "id": "REQ-17",
+      "summary": "Update CSV export Summary section to include recorded per-traveller cash payments and resulting balances for the selected date range.",
+      "acceptanceCriteria": [
+        "Exported CSV “Summary” rows show Payments equal to the sum of recorded cash payments for that traveller within the selected date range.",
+        "Exported CSV “Summary” Balance equals Total Charge − Payments for each traveller.",
+        "Daily Grid export remains unchanged except for any necessary recalculation consistency (no regressions in AM/PM export columns)."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/utils/exportExcel.ts",
+          "operation": "modify",
+          "description": "Update export state shape to include cash payments; compute per-traveller Payments as the sum of recorded cash payments within the selected date range; export Summary rows with correct Payments and Balance while leaving Daily Grid rows/columns unchanged."
+        },
+        {
+          "path": "frontend/src/features/ledger/ExportButton.tsx",
+          "operation": "modify",
+          "description": "Ensure the ledger state passed into export includes cash payments (via updated context typing/shape) so exported CSV Summary reflects recorded payments and balances."
+        }
+      ]
+    }
+  ]
+}

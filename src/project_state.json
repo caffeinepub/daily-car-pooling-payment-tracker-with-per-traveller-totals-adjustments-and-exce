@@ -1,0 +1,198 @@
+{
+  "schemaVersion": "1.0.0",
+  "projectStateVersion": 11,
+  "summary": "Android app for daily car-pooling expense tracking: record traveler payments, compute pending/received totals, allow adjustments, and export reports to Excel.",
+  "architectural_notes": [
+    "Target platform: Android.",
+    "Data model should support multiple trip sessions per day (e.g., Morning/Evening) and per-trip pricing to compute charges from participation.",
+    "Charging rule clarification: each participation checkbox (AM or PM) counts as one trip charged at 200 INR (i.e., AM checked = 200; PM checked = 200; both checked = 400)."
+  ],
+  "known_issues": [],
+  "isFixRequest": false,
+  "existing_features": [
+    {
+      "id": "feature-create-a-mobile-first-android-friendly-ui-to-manage-a-daily-car-pooling-sheet-similar-to-the-uploaded-image-users-can-define-travellers-and-then-enter-daily-trip-participation-and-payment-details",
+      "title": "Create a mobile-first (Android-friendly) UI to manage a daily car-pooling sheet similar to the uploaded image: users can define travellers and then enter daily trip participation and payment details.",
+      "reqIds": [
+        "REQ-1"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-compute-and-display-per-traveller-totals-for-the-selected-date-range-including-amount-pending-balance-amount-received-on-a-selected-date-or-by-date-range-and-the-ability-to-adjust-settle-amounts",
+      "title": "Compute and display per-traveller totals for the selected date range, including: amount pending (balance), amount received on a selected date (or by date range), and the ability to adjust/settle amounts.",
+      "reqIds": [
+        "REQ-3"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-an-entry-workflow-to-record-payments-received-with-date-and-optional-note-and-show-a-simple-payment-history-per-traveller",
+      "title": "Add an entry workflow to record payments received (with date and optional note) and show a simple payment history per traveller.",
+      "reqIds": [
+        "REQ-4"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-provide-report-export-that-users-can-download-in-excel-format-for-a-selected-date-range-including-the-daily-grid-and-per-traveller-totals-charges-payments-adjustments-balance",
+      "title": "Provide report export that users can download in Excel format for a selected date range, including the daily grid and per-traveller totals (charges, payments, adjustments, balance).",
+      "reqIds": [
+        "REQ-5"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-apply-a-coherent-visual-theme-across-the-app-colors-typography-spacing-table-styling-suitable-for-a-finance-tracking-tool-avoiding-blue-purple-as-primary-colors-and-keep-it-consistent-across-all-screens",
+      "title": "Apply a coherent visual theme across the app (colors, typography, spacing, table styling) suitable for a finance/tracking tool, avoiding blue/purple as primary colors, and keep it consistent across all screens.",
+      "reqIds": [
+        "REQ-6"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-generated-static-image-assets-logo-app-icon-and-a-lightweight-illustration-and-render-them-in-the-ui-as-static-files-under-frontend-public-assets-generated",
+      "title": "Add generated static image assets (logo/app icon and a lightweight illustration) and render them in the UI as static files under frontend/public/assets/generated.",
+      "reqIds": [
+        "REQ-7"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-update-the-daily-participation-data-model-to-track-participation-per-traveller-per-date-as-two-independent-trip-flags-morning-and-evening-instead-of-a-single-boolean-for-the-whole-day-ensure-existing-localstorage-data-single-boolean-per-day-is-migrated-safely-on-load-e-g-existing-true-becomes-morning-true-and-evening-false-and-existing-false-becomes-both-false",
+      "title": "Update the daily participation data model to track participation per traveller per date as two independent trip flags: Morning and Evening, instead of a single boolean for the whole day. Ensure existing localStorage data (single boolean per day) is migrated safely on load (e.g., existing `true` becomes Morning=true and Evening=false, and existing `false` becomes both false).",
+      "reqIds": [
+        "REQ-8"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-revise-the-daily-participation-grid-ui-to-allow-marking-morning-and-evening-participation-per-traveller-for-each-date-two-checkboxes-or-equivalent-clear-controls-per-traveller-per-date-weekend-disabling-behavior-must-continue-to-apply-i-e-controls-are-disabled-on-weekends-update-all-user-facing-helper-text-in-this-screen-to-describe-morning-evening-trip-marking-in-english",
+      "title": "Revise the Daily Participation grid UI to allow marking Morning and Evening participation per traveller for each date (two checkboxes or equivalent clear controls per traveller per date). Weekend disabling behavior must continue to apply (i.e., controls are disabled on weekends). Update all user-facing helper text in this screen to describe Morning/Evening trip marking in English.",
+      "reqIds": [
+        "REQ-9"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-change-charging-calculations-to-be-per-trip-morning-evening-at-a-configurable-per-trip-rate-with-a-default-rate-of-200-inr-per-trip-update-the-summary-panel-to-show-trip-counts-and-total-charge-computed-as-tripcount-ratepertrip-for-each-traveller-within-the-selected-date-range-ensure-currency-formatting-remains-inr",
+      "title": "Change charging calculations to be per trip (Morning + Evening) at a configurable per-trip rate, with a default rate of 200 INR per trip. Update the Summary panel to show trip counts and total charge computed as `tripCount * ratePerTrip` for each traveller within the selected date range. Ensure currency formatting remains INR.",
+      "reqIds": [
+        "REQ-10"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-update-csv-export-to-reflect-morning-evening-participation-and-per-trip-charging-the-exported-daily-grid-section-must-include-morning-and-evening-indicators-per-traveller-either-separate-columns-per-traveller-like-name-am-and-name-pm-or-a-clearly-documented-numeric-representation-the-summary-section-must-use-trip-based-totals-trips-travelled-rate-per-trip-total-charge-payments-balance",
+      "title": "Update CSV export to reflect Morning/Evening participation and per-trip charging. The exported 'Daily Grid' section must include Morning and Evening indicators per traveller (either separate columns per traveller like '<Name> (AM)' and '<Name> (PM)', or a clearly documented numeric representation). The 'Summary' section must use trip-based totals (trips travelled, rate per trip, total charge, payments, balance).",
+      "reqIds": [
+        "REQ-11"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-update-user-facing-helper-text-in-the-daily-participation-and-summary-screens-to-explicitly-state-that-each-checked-box-am-or-pm-counts-as-1-trip-and-is-charged-at-200-inr-per-trip",
+      "title": "Update user-facing helper text in the Daily Participation and Summary screens to explicitly state that each checked box (AM or PM) counts as 1 trip and is charged at 200 INR per trip.",
+      "reqIds": [
+        "REQ-12"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-update-the-daily-participation-helper-text-so-it-reflects-the-actual-configured-per-trip-rate-ratepertrip-instead-of-hard-coding-200-and-ensure-the-explanation-matches-how-totals-are-calculated-each-checked-am-pm-box-counts-as-1-trip",
+      "title": "Update the Daily Participation helper text so it reflects the actual configured per-trip rate (ratePerTrip) instead of hard-coding ₹200, and ensure the explanation matches how totals are calculated (each checked AM/PM box counts as 1 trip).",
+      "reqIds": [
+        "REQ-13"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-a-simple-ui-control-to-view-and-change-the-per-trip-rate-used-by-the-am-pm-checkboxes-and-make-sure-summary-and-export-calculations-update-immediately-when-the-rate-changes",
+      "title": "Add a simple UI control to view and change the per-trip rate used by the AM/PM checkboxes, and make sure Summary and Export calculations update immediately when the rate changes.",
+      "reqIds": [
+        "REQ-14"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-a-per-traveller-cash-payment-entry-in-the-ledger-ui-and-automatically-apply-it-to-reduce-that-traveller-s-pending-balance-within-the-currently-selected-date-range",
+      "title": "Add a per-traveller \"cash payment\" entry in the ledger UI and automatically apply it to reduce that traveller’s pending balance (within the currently selected date range).",
+      "reqIds": [
+        "REQ-15"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-persist-recorded-per-traveller-cash-payments-in-localstorage-alongside-the-existing-ledger-local-state-so-that-payments-and-balances-remain-after-reload",
+      "title": "Persist recorded per-traveller cash payments in localStorage alongside the existing ledger local state so that payments and balances remain after reload.",
+      "reqIds": [
+        "REQ-16"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-update-the-csv-export-summary-section-to-include-the-recorded-per-traveller-cash-payments-and-the-resulting-balance-for-the-selected-date-range-instead-of-exporting-payments-as-0",
+      "title": "Update the CSV export Summary section to include the recorded per-traveller cash payments and the resulting balance for the selected date range (instead of exporting Payments as 0).",
+      "reqIds": [
+        "REQ-17"
+      ],
+      "version": 1
+    }
+  ],
+  "new_feature_requests": [
+    {
+      "id": "AR-1",
+      "summary": "Create Android app to enter daily car-pooling travel/payment data per traveller",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-2",
+      "summary": "Show totals per traveller: amount pending and amount received by date",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-3",
+      "summary": "Support adjusting/settling amounts (apply adjustments to traveller balances)",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-4",
+      "summary": "Export/download reports in Excel format",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-6",
+      "summary": "Implement backend data models and APIs to store and retrieve: travellers, daily entries (by date), per-traveller participation markers, and monetary events (charges, payments received, and adjustments).",
+      "reqIds": [
+        "REQ-2"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-7",
+      "summary": "Support splitting daily travel participation into Morning and Evening trips with a per-trip charge rate (e.g., 200 INR per participation)",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-8",
+      "summary": "Auto-update per-traveller summary totals immediately when AM/PM participation checkboxes are changed (no manual refresh)",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-9",
+      "summary": "Add/ensure cash payment entry per traveller and automatically apply it to reduce that traveller's pending balance",
+      "reqIds": [],
+      "status": "pending"
+    }
+  ],
+  "gameProjectType": "none",
+  "projectName": "Daily car-pooling payment tracker with per-traveller totals, adjustments, and Excel export",
+  "clarification_mode": "instant",
+  "clarification_rounds": 0
+}

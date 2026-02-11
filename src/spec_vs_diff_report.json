@@ -1,0 +1,42 @@
+{
+  "kind": "spec_vs_diff_report",
+  "version": "1.0",
+  "generatedAt": "2026-02-11T17:29:49.569Z",
+  "summary": "Diff adds a per-traveller cash payment entry UI (dialog form), stores cash payments in localStorage, applies payments to reduce per-traveller balance within the selected date range in the Summary view, and updates CSV export Summary rows to include Payments and Balance derived from those cash payments. One acceptance criterion (cleanup of payments when removing a traveller) is implied but not fully verifiable due to truncation. The diff also includes an unrelated rate-per-trip localStorage key migration/change not requested.",
+  "missing_requirements": [
+    {
+      "id": "REQ-16",
+      "requirement": "Removing a traveller removes (or safely ignores) any stored payments associated with that traveller to prevent orphaned data errors.",
+      "reason": "The diff for `removeTraveller` is truncated right where cleanup logic would appear, so it cannot be confirmed from the provided evidence that cash payments are removed/ignored when a traveller is removed.",
+      "evidence": [
+        "frontend/src/hooks/useLedgerLocalState.ts (truncated at removeTraveller)"
+      ]
+    }
+  ],
+  "hallucinated_features": [
+    {
+      "description": "Migration/compatibility logic for a renamed rate localStorage key (new `carpool_rate_per_trip` with fallback to old `carpool_rate_per_day`).",
+      "reason": "Not requested by REQ-15/16/17 (which are specifically about cash payments, persistence for those payments, and export updates). This is extra behavior beyond the BuildRequest.",
+      "evidence": [
+        "frontend/src/hooks/useLedgerLocalState.ts (ratePerTrip initialization and old key fallback)"
+      ]
+    },
+    {
+      "description": "Toast notification on successful payment recording (e.g., `toast.success(...)`).",
+      "reason": "BuildRequest did not request toast/notifications for payment entry; only required validation text when invalid and immediate balance update.",
+      "evidence": [
+        "frontend/src/features/ledger/CashPaymentForm.tsx"
+      ]
+    }
+  ],
+  "confidence": 0.72,
+  "changed_files": [
+    "frontend-file-summaries.txt",
+    "frontend/src/features/ledger/CashPaymentForm.tsx",
+    "frontend/src/features/ledger/LedgerStateContext.tsx",
+    "frontend/src/features/ledger/SummaryPanel.tsx",
+    "frontend/src/hooks/useLedgerLocalState.ts",
+    "frontend/src/utils/exportExcel.ts",
+    "project_state.json"
+  ]
+}

@@ -1,0 +1,70 @@
+{
+  "kind": "coverage_report",
+  "version": "1.0",
+  "generatedAt": "2026-02-11T17:29:49.572Z",
+  "sources": {
+    "buildRequest": true,
+    "implementationPlan": true
+  },
+  "requirements": {
+    "total": 3,
+    "implemented": 3,
+    "items": [
+      {
+        "id": "REQ-15",
+        "summary": "Add a per-traveller \"cash payment\" entry in the ledger UI and automatically apply it to reduce that traveller’s pending balance (within the currently selected date range).",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/hooks/useLedgerLocalState.ts",
+          "frontend/src/features/ledger/LedgerStateContext.tsx",
+          "frontend/src/features/ledger/CashPaymentForm.tsx",
+          "frontend/src/features/ledger/SummaryPanel.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/hooks/useLedgerLocalState.ts",
+          "frontend/src/features/ledger/LedgerStateContext.tsx",
+          "frontend/src/features/ledger/CashPaymentForm.tsx",
+          "frontend/src/features/ledger/SummaryPanel.tsx"
+        ]
+      },
+      {
+        "id": "REQ-16",
+        "summary": "Persist recorded per-traveller cash payments in localStorage alongside the existing ledger local state so that payments and balances remain after reload.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/hooks/useLedgerLocalState.ts"
+        ],
+        "matchedFiles": [
+          "frontend/src/hooks/useLedgerLocalState.ts"
+        ]
+      },
+      {
+        "id": "REQ-17",
+        "summary": "Update the CSV export Summary section to include the recorded per-traveller cash payments and the resulting balance for the selected date range (instead of exporting Payments as 0).",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/utils/exportExcel.ts",
+          "frontend/src/features/ledger/ExportButton.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/utils/exportExcel.ts"
+        ]
+      }
+    ]
+  },
+  "changedFiles": [
+    "build-request.json",
+    "feature_evidence.json",
+    "frontend-file-summaries.txt",
+    "frontend-implementation-plan.json",
+    "frontend/src/features/ledger/CashPaymentForm.tsx",
+    "frontend/src/features/ledger/LedgerStateContext.tsx",
+    "frontend/src/features/ledger/SummaryPanel.tsx",
+    "frontend/src/hooks/useLedgerLocalState.ts",
+    "frontend/src/utils/exportExcel.ts",
+    "project_state.json",
+    "scratch/component-selection.json",
+    "spec.md",
+    "spec_vs_diff_report.json"
+  ]
+}

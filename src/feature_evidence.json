@@ -1,0 +1,65 @@
+{
+  "kind": "feature_evidence_report",
+  "features": [
+    {
+      "featureId": "feature-add-a-per-traveller-cash-payment-entry-in-the-ledger-ui-and-automatically-apply-it-to-reduce-that-traveller-s-pending-balance-within-the-currently-selected-date-range",
+      "featureTitle": "Add a per-traveller \"cash payment\" entry in the ledger UI and automatically apply it to reduce that traveller’s pending balance (within the currently selected date range).",
+      "files": [
+        "frontend/src/features/ledger/CashPaymentForm.tsx",
+        "frontend/src/features/ledger/LedgerStateContext.tsx",
+        "frontend/src/features/ledger/SummaryPanel.tsx",
+        "frontend/src/hooks/useLedgerLocalState.ts"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-15"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-persist-recorded-per-traveller-cash-payments-in-localstorage-alongside-the-existing-ledger-local-state-so-that-payments-and-balances-remain-after-reload",
+      "featureTitle": "Persist recorded per-traveller cash payments in localStorage alongside the existing ledger local state so that payments and balances remain after reload.",
+      "files": [
+        "frontend/src/hooks/useLedgerLocalState.ts"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-16"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-update-the-csv-export-summary-section-to-include-the-recorded-per-traveller-cash-payments-and-the-resulting-balance-for-the-selected-date-range-instead-of-exporting-payments-as-0",
+      "featureTitle": "Update the CSV export Summary section to include the recorded per-traveller cash payments and the resulting balance for the selected date range (instead of exporting Payments as 0).",
+      "files": [
+        "frontend/src/utils/exportExcel.ts"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-17"
+      ],
+      "confidence": "high"
+    }
+  ]
+}

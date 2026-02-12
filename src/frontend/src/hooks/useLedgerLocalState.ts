@@ -71,6 +71,21 @@ function getDefaultDateRange(): DateRange {
   return { start, end };
 }
 
+// Deep clone helper to prevent shared references
+function deepCloneDailyData(data: DailyData): DailyData {
+  const cloned: DailyData = {};
+  for (const dateKey in data) {
+    cloned[dateKey] = {};
+    for (const travellerId in data[dateKey]) {
+      cloned[dateKey][travellerId] = {
+        morning: data[dateKey][travellerId].morning,
+        evening: data[dateKey][travellerId].evening,
+      };
+    }
+  }
+  return cloned;
+}
+
 function loadState(): StoredState {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
@@ -127,8 +142,10 @@ export function useLedgerLocalState() {
   useEffect(() => {
     const loaded = loadState();
     setTravellers(loaded.travellers);
-    setDailyData(loaded.dailyData);
-    setDraftDailyData(loaded.dailyData);
+    const loadedDailyData = loaded.dailyData;
+    setDailyData(loadedDailyData);
+    // Deep clone to prevent shared references
+    setDraftDailyData(deepCloneDailyData(loadedDailyData));
     setDateRange({
       start: new Date(loaded.dateRange.start),
       end: new Date(loaded.dateRange.end),
@@ -173,55 +190,66 @@ export function useLedgerLocalState() {
   };
 
   const removeTraveller = (id: string) => {
+    // Remove traveller from the list
     setTravellers(travellers.filter((t) => t.id !== id));
     
-    const newDailyData = { ...dailyData };
-    Object.keys(newDailyData).forEach((dateKey) => {
-      delete newDailyData[dateKey][id];
-    });
-    setDailyData(newDailyData);
-    setDraftDailyData(newDailyData);
-    
+    // Remove traveller-specific cash payments and other pending amounts
     setCashPayments(cashPayments.filter((p) => p.travellerId !== id));
     setOtherPending(otherPending.filter((p) => p.travellerId !== id));
+    
+    // DO NOT remove traveller's entries from dailyData or draftDailyData
+    // This preserves historical trip participation for Overall Summary income calculations
   };
 
   const toggleDraftTrip = (dateKey: string, travellerId: string, period: 'morning' | 'evening') => {
     setDraftDailyData((prev) => {
-      const newData = { ...prev };
+      // Deep clone to ensure immutability
+      const newData = deepCloneDailyData(prev);
+      
       if (!newData[dateKey]) {
         newData[dateKey] = {};
       }
       if (!newData[dateKey][travellerId]) {
         newData[dateKey][travellerId] = { morning: false, evening: false };
       }
+      
+      // Create new TripData object instead of mutating
       newData[dateKey][travellerId] = {
-        ...newData[dateKey][travellerId],
-        [period]: !newData[dateKey][travellerId][period],
+        morning: period === 'morning' ? !newData[dateKey][travellerId].morning : newData[dateKey][travellerId].morning,
+        evening: period === 'evening' ? !newData[dateKey][travellerId].evening : newData[dateKey][travellerId].evening,
       };
+      
       return newData;
     });
   };
 
   const setDraftTripsForAllTravellers = (dateKey: string, morning: boolean, evening: boolean) => {
     setDraftDailyData((prev) => {
-      const newData = { ...prev };
+      // Deep clone to ensure immutability
+      const newData = deepCloneDailyData(prev);
+      
       if (!newData[dateKey]) {
         newData[dateKey] = {};
       }
+      
       travellers.forEach((t) => {
+        // Create new TripData object for each traveller
         newData[dateKey][t.id] = { morning, evening };
       });
+      
       return newData;
     });
   };
 
   const saveDraftDailyData = () => {
-    setDailyData(draftDailyData);
+    // Deep clone draft before saving to prevent future shared references
+    const clonedDraft = deepCloneDailyData(draftDailyData);
+    setDailyData(clonedDraft);
   };
 
   const discardDraftDailyData = () => {
-    setDraftDailyData(dailyData);
+    // Deep clone saved data when discarding to prevent shared references
+    setDraftDailyData(deepCloneDailyData(dailyData));
   };
 
   const hasDraftChanges = (): boolean => {

@@ -2,13 +2,23 @@ import { useInternetIdentity } from '../hooks/useInternetIdentity';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Car, LogIn } from 'lucide-react';
+import InitLoadingScreen from './InitLoadingScreen';
 
 interface AuthGateProps {
   children: React.ReactNode;
 }
 
+/**
+ * Authentication gate that shows login screen for unauthenticated users.
+ * Handles initialization states gracefully with loading screens.
+ */
 export default function AuthGate({ children }: AuthGateProps) {
-  const { identity, login, loginStatus } = useInternetIdentity();
+  const { identity, login, loginStatus, isInitializing } = useInternetIdentity();
+
+  // Show loading screen during Internet Identity initialization
+  if (isInitializing) {
+    return <InitLoadingScreen message="Initializing secure authentication..." />;
+  }
 
   if (!identity) {
     return (

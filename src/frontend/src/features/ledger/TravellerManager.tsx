@@ -6,9 +6,23 @@ import { Input } from '@/components/ui/input';
 import { Plus, Trash2, Edit2, Check, X } from 'lucide-react';
 import EmptyState from '../../components/EmptyState';
 import { Users } from 'lucide-react';
+import { calculateTravellerBalance } from '../../utils/travellerBalance';
+import { toast } from 'sonner';
 
 export default function TravellerManager() {
-  const { travellers, addTraveller, removeTraveller, renameTraveller } = useLedgerState();
+  const { 
+    travellers, 
+    addTraveller, 
+    removeTraveller, 
+    renameTraveller,
+    dateRange,
+    dailyData,
+    ratePerTrip,
+    cashPayments,
+    otherPending,
+    includeSaturday,
+    includeSunday,
+  } = useLedgerState();
   const [newName, setNewName] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
@@ -36,6 +50,32 @@ export default function TravellerManager() {
   const cancelEdit = () => {
     setEditingId(null);
     setEditingName('');
+  };
+
+  const handleDelete = (travellerId: string) => {
+    const traveller = travellers.find((t) => t.id === travellerId);
+    if (!traveller) return;
+
+    // Calculate balance to check if deletion is allowed
+    const balance = calculateTravellerBalance(
+      traveller,
+      dateRange,
+      dailyData,
+      ratePerTrip,
+      cashPayments,
+      otherPending,
+      includeSaturday,
+      includeSunday
+    );
+
+    // Block deletion if traveller owes money
+    if (balance.status === 'Owes') {
+      toast.error('Cannot delete this traveller because they have an outstanding balance.');
+      return;
+    }
+
+    // Allow deletion for Settled or Overpaid
+    removeTraveller(travellerId);
   };
 
   return (
@@ -103,7 +143,7 @@ export default function TravellerManager() {
                       <Edit2 className="h-4 w-4" />
                     </Button>
                     <Button
-                      onClick={() => removeTraveller(t.id)}
+                      onClick={() => handleDelete(t.id)}
                       size="icon"
                       variant="ghost"
                       className="h-8 w-8 text-destructive hover:text-destructive"

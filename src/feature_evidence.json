@@ -2,10 +2,12 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-update-the-ledger-page-so-all-main-sections-travellers-daily-summary-car-overall-are-always-available-as-separate-clearly-clickable-tabs-on-every-screen-size-including-desktop-rather-than-switching-to-a-non-tabbed-multi-column-layout-on-large-screens",
-      "featureTitle": "Update the Ledger page so all main sections (Travellers, Daily, Summary, Car, Overall) are always available as separate, clearly clickable tabs on every screen size (including desktop), rather than switching to a non-tabbed multi-column layout on large screens.",
+      "featureId": "feature-diagnose-and-fix-the-root-cause-of-the-deployed-app-rendering-a-black-screen-so-that-the-initial-ui-reliably-renders-at-minimum-the-unauthenticated-login-screen-from-authgate",
+      "featureTitle": "Diagnose and fix the root cause of the deployed app rendering a black screen so that the initial UI reliably renders (at minimum: the unauthenticated login screen from AuthGate).",
       "files": [
-        "frontend/src/features/ledger/LedgerPage.tsx"
+        "frontend/src/App.tsx",
+        "frontend/src/components/AuthGate.tsx",
+        "frontend/src/components/InitLoadingScreen.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -16,18 +18,16 @@
         "github-export-icp-cli@1.0.0"
       ],
       "testIds": [
-        "REQ-1"
+        "REQ-7"
       ],
       "confidence": "high"
     },
     {
-      "featureId": "feature-add-user-controls-checkboxes-to-enable-disable-tracking-for-saturdays-and-sundays-separately-and-use-these-controls-to-determine-whether-weekend-dates-are-editable-in-the-daily-participation-grid",
-      "featureTitle": "Add user controls (checkboxes) to enable/disable tracking for Saturdays and Sundays separately, and use these controls to determine whether weekend dates are editable in the Daily Participation grid.",
+      "featureId": "feature-add-a-top-level-runtime-error-boundary-and-a-user-facing-fallback-screen-that-appears-if-any-render-time-error-occurs-showing-an-english-error-message-and-a-reload-action-and-logging-the-underlying-error-details-to-the-browser-console",
+      "featureTitle": "Add a top-level runtime error boundary and a user-facing fallback screen that appears if any render-time error occurs, showing an English error message and a 'Reload' action, and logging the underlying error details to the browser console.",
       "files": [
-        "frontend/src/features/ledger/DailyParticipationGrid.tsx",
-        "frontend/src/features/ledger/LedgerStateContext.tsx",
-        "frontend/src/hooks/useLedgerLocalState.ts",
-        "frontend/src/utils/weekendInclusion.ts"
+        "frontend/src/components/RuntimeErrorBoundary.tsx",
+        "frontend/src/components/RuntimeErrorFallback.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -38,16 +38,15 @@
         "github-export-icp-cli@1.0.0"
       ],
       "testIds": [
-        "REQ-2"
+        "REQ-8"
       ],
       "confidence": "high"
     },
     {
-      "featureId": "feature-include-weekend-data-in-summaries-by-calculating-and-displaying-weekday-vs-weekend-trip-counts-and-associated-charges-based-on-the-saturday-sunday-inclusion-toggles-and-ensure-totals-reflect-included-weekend-days",
-      "featureTitle": "Include weekend data in summaries by calculating and displaying weekday vs weekend trip counts (and associated charges) based on the Saturday/Sunday inclusion toggles, and ensure totals reflect included weekend days.",
+      "featureId": "feature-ensure-the-frontend-config-module-required-by-the-auth-actor-hooks-imported-as-config-is-present-and-cannot-crash-the-app-at-runtime-it-must-provide-safe-defaults-and-handle-missing-invalid-environment-config-values-gracefully-e-g-internet-identity-url-derivation-origin-canister-agent-config",
+      "featureTitle": "Ensure the frontend config module required by the auth/actor hooks (imported as '../config') is present and cannot crash the app at runtime: it must provide safe defaults and handle missing/invalid environment/config values gracefully (e.g., Internet Identity URL, derivation origin, canister/agent config).",
       "files": [
-        "frontend/src/features/ledger/OverallSummaryPanel.tsx",
-        "frontend/src/features/ledger/SummaryPanel.tsx"
+        "frontend/src/components/AuthGate.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -58,18 +57,17 @@
         "github-export-icp-cli@1.0.0"
       ],
       "testIds": [
-        "REQ-3"
+        "REQ-9"
       ],
       "confidence": "high"
     },
     {
-      "featureId": "feature-add-report-generation-that-supports-exporting-filtered-reports-to-pdf-and-an-excel-compatible-format-preferably-xlsx-with-multiple-user-selectable-filters-for-what-data-to-include-in-the-report",
-      "featureTitle": "Add report generation that supports exporting filtered reports to PDF and an Excel-compatible format (preferably .xlsx), with multiple user-selectable filters for what data to include in the report.",
+      "featureId": "feature-add-an-explicit-visible-loading-state-for-app-initialization-phases-that-can-otherwise-appear-blank-e-g-while-internetidentityprovider-initializes-and-while-the-caller-profile-query-is-waiting-on-actor-availability",
+      "featureTitle": "Add an explicit, visible loading state for app initialization phases that can otherwise appear blank (e.g., while InternetIdentityProvider initializes and while the caller profile query is waiting on actor availability).",
       "files": [
-        "frontend/src/features/ledger/ExportButton.tsx",
-        "frontend/src/features/ledger/ExportReportDialog.tsx",
-        "frontend/src/features/ledger/LedgerPage.tsx",
-        "frontend/src/utils/exportReport.ts"
+        "frontend/src/App.tsx",
+        "frontend/src/components/AuthGate.tsx",
+        "frontend/src/components/InitLoadingScreen.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -80,28 +78,7 @@
         "github-export-icp-cli@1.0.0"
       ],
       "testIds": [
-        "REQ-4"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-apply-a-cohesive-visual-theme-across-the-updated-tabs-and-new-controls-consistent-spacing-typography-and-component-styling-without-changing-app-functionality-choose-a-distinct-palette-that-is-not-blue-purple-and-use-it-consistently",
-      "featureTitle": "Apply a cohesive visual theme across the updated tabs and new controls (consistent spacing, typography, and component styling) without changing app functionality; choose a distinct palette that is not blue/purple and use it consistently.",
-      "files": [
-        "frontend/src/features/ledger/DailyParticipationGrid.tsx",
-        "frontend/src/features/ledger/ExportReportDialog.tsx",
-        "frontend/src/features/ledger/LedgerPage.tsx"
-      ],
-      "components": [
-        "authorization@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "github-export-icp-cli@1.0.0"
-      ],
-      "testIds": [
-        "REQ-5"
+        "REQ-10"
       ],
       "confidence": "high"
     }

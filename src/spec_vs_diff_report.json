@@ -1,70 +1,51 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-12T05:27:46.708Z",
-  "summary": "REQ-1/2/3/4 appear largely implemented (unified tabs, weekend inclusion toggles with persistence, weekday/weekend summary breakdowns, and a new export dialog with format/section/traveller filters). However, the diff summary is truncated around key areas (Daily grid disabling logic, PDF/XLSX generation details, and the requested cohesive non-blue/purple theme), so some acceptance criteria cannot be fully verified from the provided evidence. Additionally, a few unrelated features/refactors appear to have been introduced (e.g., predefined car expense categories and a custom ID generator).",
+  "generatedAt": "2026-02-12T07:15:00.024Z",
+  "summary": "REQ-8 and REQ-10 appear implemented via a new RuntimeErrorBoundary/fallback UI and explicit initialization loading screens in AuthGate/App. However, the required safe frontend config module (REQ-9) is not evidenced in the diff summary. There are also multiple ledger/UI/styling changes that are not requested by the BuildRequest and may be scope creep.",
   "missing_requirements": [
     {
-      "id": "REQ-2",
-      "requirement": "When a weekend day is excluded, its Daily grid checkboxes are disabled (read-only) similar to current behavior; and the bulk \"Mark all travellers for today\" control respects these weekend toggles (disabled only if today is an excluded weekend day).",
-      "reason": "DailyParticipationGrid.tsx shows weekend toggles and computes `isTodayEditable`, but the provided diff excerpt is truncated before showing checkbox `disabled` bindings for weekend rows and before showing how the bulk toggle button is disabled/enabled based on `isTodayEditable`. This behavior cannot be confirmed from the included evidence.",
+      "id": "REQ-9",
+      "requirement": "Ensure the frontend config module required by the auth/actor hooks (imported as '../config') is present and cannot crash the app at runtime; provide safe defaults and handle missing/invalid environment/config values gracefully (II URL, derivation origin, canister/agent config).",
+      "reason": "The diff summary shows no added/modified config module (e.g., frontend/src/config.ts) or any code explicitly handling missing/invalid environment/config values. The only related note is an unverified description that AuthGate was 'simplified to avoid config dependencies', but no concrete config module implementation is shown.",
       "evidence": [
-        "frontend/src/features/ledger/DailyParticipationGrid.tsx (truncated)",
-        "frontend/src/utils/weekendInclusion.ts"
-      ]
-    },
-    {
-      "id": "REQ-4",
-      "requirement": "Report generation supports exporting filtered reports to PDF and Excel-compatible format (preferably .xlsx), and exported files reflect chosen filters; weekend inclusion is respected in exported summary sections.",
-      "reason": "The UI wires up `exportToPDF` and `exportToXLSX`, but the diff summary only provides substantial implementation evidence for CSV export (and only a truncated portion of exportReport.ts). There is no visible implementation evidence for how PDF/XLSX are generated and whether section/traveller filters + weekend inclusion are applied in those formats.",
-      "evidence": [
-        "frontend/src/features/ledger/ExportReportDialog.tsx (truncated)",
-        "frontend/src/utils/exportReport.ts (truncated)"
-      ]
-    },
-    {
-      "id": "REQ-5",
-      "requirement": "Apply a cohesive visual theme across updated tabs and new controls with a distinct palette that is not primarily blue/purple and use it consistently.",
-      "reason": "The diff summary does not show actual changes to global theme files (e.g., CSS variables/colors) or component-level styling beyond some `bg-accent/30` usage. The `frontend-file-summaries.txt` mentions an amber/warm palette in CSS, but this is not evidence of changes in the diff itself. Therefore the requested theme change cannot be verified as implemented.",
-      "evidence": [
-        "frontend/src/features/ledger/LedgerPage.tsx (truncated)",
-        "frontend/src/features/ledger/DailyParticipationGrid.tsx (truncated)",
-        "frontend-file-summaries.txt"
+        "frontend-file-summaries.txt (no config module listed among modified/added files)",
+        "Modified: frontend/src/components/AuthGate.tsx (no config handling shown in snippet)"
       ]
     }
   ],
   "hallucinated_features": [
     {
-      "description": "Added predefined car expense categories (CNG BRD, CNG AHM, Petrol, Maintenance Cost, Other) and related category selection/validation behavior.",
-      "reason": "REQ-1 through REQ-5 do not request adding predefined categories or changing the car expense input model beyond export inclusion/filtering.",
+      "description": "Added backend candid/IDL interface file in the frontend (backend.idl.ts).",
+      "reason": "BuildRequest focuses on fixing black screen, adding runtime fallback UI, safe config defaults, and loading states. Adding a backend IDL file is not explicitly requested in REQ-7..REQ-10.",
       "evidence": [
-        "frontend/src/features/ledger/CarExpensesPanel.tsx (truncated)"
+        "frontend/src/backend.idl.ts"
       ]
     },
     {
-      "description": "Replaced/implemented a custom ID generator in ledger local state (simple Date.now/Math.random) instead of using uuid.",
-      "reason": "No requirement asks to change ID generation strategy; this is an unrequested refactor/behavior change.",
+      "description": "Multiple ledger feature/UI behavior changes (tabs/navigation unification, unsaved changes guard, traveller deletion guard with outstanding balance checks, success toasts, date range picker behavior, export changes, localStorage persistence changes).",
+      "reason": "Non-goals explicitly exclude adding new ledger features unrelated to fixing the black screen; these appear unrelated to runtime init/black screen/error boundary requirements.",
       "evidence": [
-        "frontend/src/hooks/useLedgerLocalState.ts (truncated)"
+        "frontend-file-summaries.txt (LedgerPage.tsx, TravellerManager.tsx, DailyParticipationGrid.tsx, DateRangePicker.tsx, exportExcel.ts, useLedgerLocalState.ts, SummaryPanel.tsx, etc.)"
+      ]
+    },
+    {
+      "description": "Global styling/theme palette changes (warm neutral/amber OKLCH palette) and Tailwind config changes (fonts/colors/shadows).",
+      "reason": "Not requested by REQ-7..REQ-10 and not necessary to meet the black-screen/error-boundary/loading/config requirements.",
+      "evidence": [
+        "frontend-file-summaries.txt (frontend/index.css, frontend/src/index.css, frontend/tailwind.config.js)"
       ]
     }
   ],
-  "confidence": 0.64,
+  "confidence": 0.72,
   "changed_files": [
     "frontend-file-summaries.txt",
-    "frontend/src/features/ledger/CarExpensesPanel.tsx",
-    "frontend/src/features/ledger/CashPaymentForm.tsx",
-    "frontend/src/features/ledger/DailyParticipationGrid.tsx",
-    "frontend/src/features/ledger/ExportButton.tsx",
-    "frontend/src/features/ledger/ExportReportDialog.tsx",
-    "frontend/src/features/ledger/LedgerPage.tsx",
-    "frontend/src/features/ledger/LedgerStateContext.tsx",
-    "frontend/src/features/ledger/OtherPendingAmountForm.tsx",
-    "frontend/src/features/ledger/OverallSummaryPanel.tsx",
-    "frontend/src/features/ledger/SummaryPanel.tsx",
-    "frontend/src/hooks/useLedgerLocalState.ts",
-    "frontend/src/utils/exportReport.ts",
-    "frontend/src/utils/weekendInclusion.ts",
+    "frontend/src/App.tsx",
+    "frontend/src/backend.idl.ts",
+    "frontend/src/components/AuthGate.tsx",
+    "frontend/src/components/InitLoadingScreen.tsx",
+    "frontend/src/components/RuntimeErrorBoundary.tsx",
+    "frontend/src/components/RuntimeErrorFallback.tsx",
     "project_state.json"
   ]
 }

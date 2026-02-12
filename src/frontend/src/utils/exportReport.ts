@@ -1,6 +1,7 @@
 import { format, parseISO } from 'date-fns';
 import { getDaysInRange, formatDateKey } from './dateRange';
 import { isDateIncluded } from './weekendInclusion';
+import { calculateIncomeFromDailyData } from './tripCalculations';
 import type { Traveller, DateRange, DailyData, CashPayment, OtherPending, CarExpense } from '../hooks/useLedgerLocalState';
 
 interface LedgerState {
@@ -60,6 +61,15 @@ function downloadFile(filename: string, content: string, mimeType: string): void
   URL.revokeObjectURL(url);
 }
 
+function formatINR(amount: number): string {
+  return new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(amount);
+}
+
 export async function exportToCSV(state: LedgerState, filters: ExportFilters): Promise<void> {
   const { travellers, dateRange, dailyData, ratePerTrip, cashPayments, otherPending, carExpenses, includeSaturday, includeSunday } = state;
   const filteredTravellers = filterTravellers(travellers, filters.selectedTravellerIds);
@@ -96,14 +106,13 @@ export async function exportToCSV(state: LedgerState, filters: ExportFilters): P
     sections.push('Daily Grid\n' + arrayToCSV(gridData));
   }
 
-  // Summary
+  // Summary - simplified to show only Total Trips
   if (filters.includeSummary) {
     const summaryData: any[][] = [];
-    summaryData.push(['Traveller', 'Weekday Trips', 'Weekend Trips', 'Total Trips', 'Rate/Trip', 'Total Charge', 'Other Pending', 'Payments', 'Balance']);
+    summaryData.push(['Traveller', 'Total Trips', 'Rate/Trip', 'Total Charge', 'Other Pending', 'Payments', 'Balance']);
 
     filteredTravellers.forEach((t) => {
-      let weekdayTrips = 0;
-      let weekendTrips = 0;
+      let totalTrips = 0;
 
       days.forEach((day) => {
         const dateKey = formatDateKey(day);
@@ -112,19 +121,11 @@ export async function exportToCSV(state: LedgerState, filters: ExportFilters): P
 
         const tripData = dailyData[dateKey]?.[t.id];
         if (tripData) {
-          const dayOfWeek = day.getDay();
-          const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
           const tripCount = (tripData.morning ? 1 : 0) + (tripData.evening ? 1 : 0);
-
-          if (isWeekend) {
-            weekendTrips += tripCount;
-          } else {
-            weekdayTrips += tripCount;
-          }
+          totalTrips += tripCount;
         }
       });
 
-      const totalTrips = weekdayTrips + weekendTrips;
       const totalCharge = totalTrips * ratePerTrip;
 
       const paymentsInRange = cashPayments
@@ -153,7 +154,7 @@ export async function exportToCSV(state: LedgerState, filters: ExportFilters): P
 
       const balance = totalCharge + otherPendingInRange - paymentsInRange;
 
-      summaryData.push([t.name, weekdayTrips, weekendTrips, totalTrips, ratePerTrip, totalCharge, otherPendingInRange, paymentsInRange, balance]);
+      summaryData.push([t.name, totalTrips, ratePerTrip, totalCharge, otherPendingInRange, paymentsInRange, balance]);
     });
 
     sections.push('Summary\n' + arrayToCSV(summaryData));
@@ -185,22 +186,15 @@ export async function exportToCSV(state: LedgerState, filters: ExportFilters): P
     sections.push('Car Expenses\n' + arrayToCSV(expenseData));
   }
 
-  // Overall Summary
+  // Overall Summary - using dailyData-driven calculation
   if (filters.includeOverallSummary) {
-    let totalIncome = 0;
-    days.forEach((day) => {
-      const dateKey = formatDateKey(day);
-      const isIncluded = isDateIncluded(day, includeSaturday, includeSunday);
-      if (!isIncluded) return;
-
-      filteredTravellers.forEach((t) => {
-        const tripData = dailyData[dateKey]?.[t.id];
-        if (tripData) {
-          const tripCount = (tripData.morning ? 1 : 0) + (tripData.evening ? 1 : 0);
-          totalIncome += tripCount * ratePerTrip;
-        }
-      });
-    });
+    const totalIncome = calculateIncomeFromDailyData(
+      dailyData,
+      dateRange,
+      ratePerTrip,
+      includeSaturday,
+      includeSunday
+    );
 
     const totalExpense = carExpenses
       .filter((e) => {
@@ -252,6 +246,9 @@ export async function exportToPDF(state: LedgerState, filters: ExportFilters): P
     tr:nth-child(even) { background-color: #f9f9f9; }
     .summary-box { background: #f5f5f5; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
     .summary-item { display: flex; justify-content: space-between; margin: 5px 0; }
+    .balance-owes { color: #dc2626; font-weight: bold; }
+    .balance-overpaid { color: #16a34a; font-weight: bold; }
+    .balance-settled { color: #000000; font-weight: bold; }
     @media print {
       body { margin: 0; }
       h2 { page-break-before: always; }
@@ -292,13 +289,12 @@ export async function exportToPDF(state: LedgerState, filters: ExportFilters): P
     html += '</tbody></table>';
   }
 
-  // Summary
+  // Summary - simplified to show only Total Trips with colored balances
   if (filters.includeSummary) {
-    html += '<h2>Per-Traveller Summary</h2><table><thead><tr><th>Traveller</th><th>Weekday</th><th>Weekend</th><th>Total</th><th>Charge</th><th>Other</th><th>Payments</th><th>Balance</th></tr></thead><tbody>';
+    html += '<h2>Per-Traveller Summary</h2><table><thead><tr><th>Traveller</th><th>Total Trips</th><th>Charge</th><th>Other</th><th>Payments</th><th>Balance</th></tr></thead><tbody>';
 
     filteredTravellers.forEach((t) => {
-      let weekdayTrips = 0;
-      let weekendTrips = 0;
+      let totalTrips = 0;
 
       days.forEach((day) => {
         const dateKey = formatDateKey(day);
@@ -307,19 +303,11 @@ export async function exportToPDF(state: LedgerState, filters: ExportFilters): P
 
         const tripData = dailyData[dateKey]?.[t.id];
         if (tripData) {
-          const dayOfWeek = day.getDay();
-          const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
           const tripCount = (tripData.morning ? 1 : 0) + (tripData.evening ? 1 : 0);
-
-          if (isWeekend) {
-            weekendTrips += tripCount;
-          } else {
-            weekdayTrips += tripCount;
-          }
+          totalTrips += tripCount;
         }
       });
 
-      const totalTrips = weekdayTrips + weekendTrips;
       const totalCharge = totalTrips * ratePerTrip;
 
       const paymentsInRange = cashPayments
@@ -347,29 +335,54 @@ export async function exportToPDF(state: LedgerState, filters: ExportFilters): P
         .reduce((sum, p) => sum + p.amount, 0);
 
       const balance = totalCharge + otherPendingInRange - paymentsInRange;
+      const balanceClass = balance > 0 ? 'balance-owes' : balance < 0 ? 'balance-overpaid' : 'balance-settled';
 
-      html += `<tr><td>${t.name}</td><td>${weekdayTrips}</td><td>${weekendTrips}</td><td>${totalTrips}</td><td>₹${totalCharge}</td><td>₹${otherPendingInRange}</td><td>₹${paymentsInRange}</td><td>₹${balance}</td></tr>`;
+      html += `<tr>
+        <td>${t.name}</td>
+        <td>${totalTrips}</td>
+        <td>${formatINR(totalCharge)}</td>
+        <td>${formatINR(otherPendingInRange)}</td>
+        <td>${formatINR(paymentsInRange)}</td>
+        <td class="${balanceClass}">${formatINR(balance)}</td>
+      </tr>`;
     });
 
     html += '</tbody></table>';
   }
 
-  // Overall Summary
-  if (filters.includeOverallSummary) {
-    let totalIncome = 0;
-    days.forEach((day) => {
-      const dateKey = formatDateKey(day);
-      const isIncluded = isDateIncluded(day, includeSaturday, includeSunday);
-      if (!isIncluded) return;
+  // Payments
+  if (filters.includePayments) {
+    html += '<h2>Payment History</h2><table><thead><tr><th>Date</th><th>Traveller</th><th>Amount</th><th>Note</th></tr></thead><tbody>';
 
-      filteredTravellers.forEach((t) => {
-        const tripData = dailyData[dateKey]?.[t.id];
-        if (tripData) {
-          const tripCount = (tripData.morning ? 1 : 0) + (tripData.evening ? 1 : 0);
-          totalIncome += tripCount * ratePerTrip;
-        }
-      });
+    const filteredPayments = cashPayments.filter((p) => filters.selectedTravellerIds.includes(p.travellerId));
+    filteredPayments.forEach((p) => {
+      const traveller = travellers.find((t) => t.id === p.travellerId);
+      html += `<tr><td>${p.date}</td><td>${traveller?.name || 'Unknown'}</td><td>${formatINR(p.amount)}</td><td>${p.note || ''}</td></tr>`;
     });
+
+    html += '</tbody></table>';
+  }
+
+  // Car Expenses
+  if (filters.includeCarExpenses) {
+    html += '<h2>Car Expenses</h2><table><thead><tr><th>Date</th><th>Category</th><th>Amount</th><th>Note</th></tr></thead><tbody>';
+
+    carExpenses.forEach((e) => {
+      html += `<tr><td>${e.date}</td><td>${e.category}</td><td>${formatINR(e.amount)}</td><td>${e.note || ''}</td></tr>`;
+    });
+
+    html += '</tbody></table>';
+  }
+
+  // Overall Summary - using dailyData-driven calculation
+  if (filters.includeOverallSummary) {
+    const totalIncome = calculateIncomeFromDailyData(
+      dailyData,
+      dateRange,
+      ratePerTrip,
+      includeSaturday,
+      includeSunday
+    );
 
     const totalExpense = carExpenses
       .filter((e) => {
@@ -385,15 +398,15 @@ export async function exportToPDF(state: LedgerState, filters: ExportFilters): P
     const profitLoss = totalIncome - totalExpense;
 
     html += '<h2>Overall Summary</h2><div class="summary-box">';
-    html += `<div class="summary-item"><strong>Total Income:</strong><span>₹${totalIncome}</span></div>`;
-    html += `<div class="summary-item"><strong>Total Expense:</strong><span>₹${totalExpense}</span></div>`;
-    html += `<div class="summary-item"><strong>Profit/Loss:</strong><span>₹${profitLoss}</span></div>`;
+    html += `<div class="summary-item"><span>Total Income:</span><span>${formatINR(totalIncome)}</span></div>`;
+    html += `<div class="summary-item"><span>Total Expense:</span><span>${formatINR(totalExpense)}</span></div>`;
+    html += `<div class="summary-item"><span>Profit/Loss:</span><span style="font-weight: bold;">${formatINR(profitLoss)}</span></div>`;
     html += '</div>';
   }
 
   html += '</body></html>';
 
-  // Open in new window and trigger print
+  // Open print dialog
   const printWindow = window.open('', '_blank');
   if (printWindow) {
     printWindow.document.write(html);
@@ -406,7 +419,7 @@ export async function exportToPDF(state: LedgerState, filters: ExportFilters): P
 }
 
 export async function exportToXLSX(state: LedgerState, filters: ExportFilters): Promise<void> {
-  // For XLSX, we'll generate an HTML table and download as .xls (Excel-compatible HTML format)
+  // Generate Excel-compatible HTML with inline styles
   const { travellers, dateRange, dailyData, ratePerTrip, cashPayments, otherPending, carExpenses, includeSaturday, includeSunday } = state;
   const filteredTravellers = filterTravellers(travellers, filters.selectedTravellerIds);
   const days = getDaysInRange(dateRange.start, dateRange.end);
@@ -418,29 +431,34 @@ export async function exportToXLSX(state: LedgerState, filters: ExportFilters): 
   <style>
     table { border-collapse: collapse; }
     th, td { border: 1px solid #000; padding: 5px; }
-    th { background-color: #c89664; font-weight: bold; }
+    th { background-color: #c89664; color: white; font-weight: bold; }
+    .balance-owes { color: #dc2626; font-weight: bold; }
+    .balance-overpaid { color: #16a34a; font-weight: bold; }
+    .balance-settled { color: #000000; font-weight: bold; }
   </style>
 </head>
 <body>
+  <h1>Carpool Ledger Report</h1>
+  <p>Period: ${format(dateRange.start, 'MMM dd, yyyy')} - ${format(dateRange.end, 'MMM dd, yyyy')}</p>
 `;
 
   // Daily Grid
   if (filters.includeDailyGrid) {
-    html += '<h2>Daily Grid</h2><table><thead><tr><th>Date</th><th>Day</th>';
+    html += '<h2>Daily Participation Grid</h2><table><thead><tr><th>Date</th><th>Day</th>';
     filteredTravellers.forEach((t) => {
-      html += `<th>${t.name} (AM)</th><th>${t.name} (PM)</th>`;
+      html += `<th>${t.name} AM</th><th>${t.name} PM</th>`;
     });
     html += '</tr></thead><tbody>';
 
     days.forEach((day) => {
       const dateKey = formatDateKey(day);
       const isIncluded = isDateIncluded(day, includeSaturday, includeSunday);
-      html += `<tr><td>${format(day, 'dd-MM')}</td><td>${format(day, 'EEEE')}</td>`;
+      html += `<tr><td>${format(day, 'dd-MM')}</td><td>${format(day, 'EEE')}</td>`;
 
       filteredTravellers.forEach((t) => {
         const tripData = dailyData[dateKey]?.[t.id] || { morning: false, evening: false };
         if (isIncluded) {
-          html += `<td>${tripData.morning ? 1 : 0}</td><td>${tripData.evening ? 1 : 0}</td>`;
+          html += `<td>${tripData.morning ? '1' : '0'}</td><td>${tripData.evening ? '1' : '0'}</td>`;
         } else {
           html += '<td>-</td><td>-</td>';
         }
@@ -452,13 +470,12 @@ export async function exportToXLSX(state: LedgerState, filters: ExportFilters): 
     html += '</tbody></table><br/><br/>';
   }
 
-  // Summary
+  // Summary - simplified to show only Total Trips with colored balances
   if (filters.includeSummary) {
-    html += '<h2>Summary</h2><table><thead><tr><th>Traveller</th><th>Weekday Trips</th><th>Weekend Trips</th><th>Total Trips</th><th>Rate/Trip</th><th>Total Charge</th><th>Other Pending</th><th>Payments</th><th>Balance</th></tr></thead><tbody>';
+    html += '<h2>Per-Traveller Summary</h2><table><thead><tr><th>Traveller</th><th>Total Trips</th><th>Charge</th><th>Other</th><th>Payments</th><th>Balance</th></tr></thead><tbody>';
 
     filteredTravellers.forEach((t) => {
-      let weekdayTrips = 0;
-      let weekendTrips = 0;
+      let totalTrips = 0;
 
       days.forEach((day) => {
         const dateKey = formatDateKey(day);
@@ -467,19 +484,11 @@ export async function exportToXLSX(state: LedgerState, filters: ExportFilters): 
 
         const tripData = dailyData[dateKey]?.[t.id];
         if (tripData) {
-          const dayOfWeek = day.getDay();
-          const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
           const tripCount = (tripData.morning ? 1 : 0) + (tripData.evening ? 1 : 0);
-
-          if (isWeekend) {
-            weekendTrips += tripCount;
-          } else {
-            weekdayTrips += tripCount;
-          }
+          totalTrips += tripCount;
         }
       });
 
-      const totalTrips = weekdayTrips + weekendTrips;
       const totalCharge = totalTrips * ratePerTrip;
 
       const paymentsInRange = cashPayments
@@ -507,8 +516,16 @@ export async function exportToXLSX(state: LedgerState, filters: ExportFilters): 
         .reduce((sum, p) => sum + p.amount, 0);
 
       const balance = totalCharge + otherPendingInRange - paymentsInRange;
+      const balanceClass = balance > 0 ? 'balance-owes' : balance < 0 ? 'balance-overpaid' : 'balance-settled';
 
-      html += `<tr><td>${t.name}</td><td>${weekdayTrips}</td><td>${weekendTrips}</td><td>${totalTrips}</td><td>${ratePerTrip}</td><td>${totalCharge}</td><td>${otherPendingInRange}</td><td>${paymentsInRange}</td><td>${balance}</td></tr>`;
+      html += `<tr>
+        <td>${t.name}</td>
+        <td>${totalTrips}</td>
+        <td>${totalCharge}</td>
+        <td>${otherPendingInRange}</td>
+        <td>${paymentsInRange}</td>
+        <td class="${balanceClass}">${balance}</td>
+      </tr>`;
     });
 
     html += '</tbody></table><br/><br/>';
@@ -516,7 +533,7 @@ export async function exportToXLSX(state: LedgerState, filters: ExportFilters): 
 
   // Payments
   if (filters.includePayments) {
-    html += '<h2>Payments</h2><table><thead><tr><th>Date</th><th>Traveller</th><th>Amount</th><th>Note</th></tr></thead><tbody>';
+    html += '<h2>Payment History</h2><table><thead><tr><th>Date</th><th>Traveller</th><th>Amount</th><th>Note</th></tr></thead><tbody>';
 
     const filteredPayments = cashPayments.filter((p) => filters.selectedTravellerIds.includes(p.travellerId));
     filteredPayments.forEach((p) => {
@@ -538,22 +555,15 @@ export async function exportToXLSX(state: LedgerState, filters: ExportFilters): 
     html += '</tbody></table><br/><br/>';
   }
 
-  // Overall Summary
+  // Overall Summary - using dailyData-driven calculation
   if (filters.includeOverallSummary) {
-    let totalIncome = 0;
-    days.forEach((day) => {
-      const dateKey = formatDateKey(day);
-      const isIncluded = isDateIncluded(day, includeSaturday, includeSunday);
-      if (!isIncluded) return;
-
-      filteredTravellers.forEach((t) => {
-        const tripData = dailyData[dateKey]?.[t.id];
-        if (tripData) {
-          const tripCount = (tripData.morning ? 1 : 0) + (tripData.evening ? 1 : 0);
-          totalIncome += tripCount * ratePerTrip;
-        }
-      });
-    });
+    const totalIncome = calculateIncomeFromDailyData(
+      dailyData,
+      dateRange,
+      ratePerTrip,
+      includeSaturday,
+      includeSunday
+    );
 
     const totalExpense = carExpenses
       .filter((e) => {

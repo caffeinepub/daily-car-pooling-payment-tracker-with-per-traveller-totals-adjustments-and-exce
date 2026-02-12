@@ -9,6 +9,7 @@ import ResponsiveTableShell from '../../components/ResponsiveTableShell';
 import EmptyState from '../../components/EmptyState';
 import { Calendar, Save, ChevronRight } from 'lucide-react';
 import { formatCurrency } from '../../utils/money';
+import { toast } from 'sonner';
 
 interface DailyParticipationGridProps {
   onSaveAndNext?: () => void;
@@ -57,10 +58,12 @@ export default function DailyParticipationGrid({ onSaveAndNext }: DailyParticipa
 
   const handleSave = () => {
     saveDraftDailyData();
+    toast.success('Data saved successfully');
   };
 
   const handleSaveAndNext = () => {
     saveDraftDailyData();
+    toast.success('Data saved successfully');
     if (onSaveAndNext) {
       onSaveAndNext();
     }
@@ -204,34 +207,25 @@ export default function DailyParticipationGrid({ onSaveAndNext }: DailyParticipa
           </table>
         </ResponsiveTableShell>
 
-        {/* Save Actions */}
-        <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t">
+        {/* Save buttons */}
+        <div className="flex flex-col sm:flex-row gap-2 pt-2">
           <Button
             onClick={handleSave}
             disabled={!hasUnsavedChanges}
-            className="flex-1 sm:flex-none"
+            className="flex-1"
           >
-            <Save className="h-4 w-4 mr-2" />
+            <Save className="mr-2 h-4 w-4" />
             Save
           </Button>
-          
-          {onSaveAndNext && (
-            <Button
-              onClick={handleSaveAndNext}
-              disabled={!hasUnsavedChanges}
-              variant="outline"
-              className="flex-1 sm:flex-none"
-            >
-              Save & Next
-              <ChevronRight className="h-4 w-4 ml-2" />
-            </Button>
-          )}
-          
-          {hasUnsavedChanges && (
-            <span className="text-sm text-muted-foreground self-center">
-              You have unsaved changes
-            </span>
-          )}
+          <Button
+            onClick={handleSaveAndNext}
+            disabled={!hasUnsavedChanges}
+            variant="default"
+            className="flex-1"
+          >
+            Save & Next
+            <ChevronRight className="ml-2 h-4 w-4" />
+          </Button>
         </div>
       </CardContent>
     </Card>

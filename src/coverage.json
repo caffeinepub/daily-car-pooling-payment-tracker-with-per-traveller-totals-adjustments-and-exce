@@ -1,93 +1,69 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-12T05:27:46.711Z",
+  "generatedAt": "2026-02-12T07:15:00.028Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 5,
-    "implemented": 5,
+    "total": 4,
+    "implemented": 4,
     "items": [
       {
-        "id": "REQ-1",
-        "summary": "Update the Ledger page so all main sections (Travellers, Daily, Summary, Car, Overall) are always available as separate, clearly clickable tabs on every screen size (including desktop), rather than switching to a non-tabbed multi-column layout on large screens.",
+        "id": "REQ-10",
+        "summary": "Add an explicit, visible loading state for app initialization phases that can otherwise appear blank (e.g., while InternetIdentityProvider initializes and while the caller profile query is waiting on actor availability).",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/features/ledger/LedgerPage.tsx",
-          "frontend/src/features/ledger/LedgerPage.tsx"
+          "frontend/src/components/AuthGate.tsx",
+          "frontend/src/App.tsx",
+          "frontend/src/components/InitLoadingScreen.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/features/ledger/LedgerPage.tsx",
-          "frontend/src/features/ledger/LedgerPage.tsx"
+          "frontend/src/components/AuthGate.tsx",
+          "frontend/src/App.tsx",
+          "frontend/src/components/InitLoadingScreen.tsx"
         ]
       },
       {
-        "id": "REQ-2",
-        "summary": "Add user controls (checkboxes) to enable/disable tracking for Saturdays and Sundays separately, and use these controls to determine whether weekend dates are editable in the Daily Participation grid.",
+        "id": "REQ-7",
+        "summary": "Diagnose and fix the root cause of the deployed app rendering a black screen so that the initial UI reliably renders (at minimum: the unauthenticated login screen from AuthGate).",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/hooks/useLedgerLocalState.ts",
-          "frontend/src/features/ledger/LedgerStateContext.tsx",
-          "frontend/src/utils/weekendInclusion.ts",
-          "frontend/src/features/ledger/DailyParticipationGrid.tsx",
-          "frontend/src/features/ledger/DailyParticipationGrid.tsx"
+          "frontend/src/App.tsx",
+          "frontend/src/components/AuthGate.tsx",
+          "frontend/src/components/InitLoadingScreen.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/hooks/useLedgerLocalState.ts",
-          "frontend/src/features/ledger/LedgerStateContext.tsx",
-          "frontend/src/utils/weekendInclusion.ts",
-          "frontend/src/features/ledger/DailyParticipationGrid.tsx",
-          "frontend/src/features/ledger/DailyParticipationGrid.tsx"
+          "frontend/src/App.tsx",
+          "frontend/src/components/AuthGate.tsx",
+          "frontend/src/components/InitLoadingScreen.tsx"
         ]
       },
       {
-        "id": "REQ-3",
-        "summary": "Include weekend data in summaries by calculating and displaying weekday vs weekend trip counts (and associated charges) based on the Saturday/Sunday inclusion toggles, and ensure totals reflect included weekend days.",
+        "id": "REQ-8",
+        "summary": "Add a top-level runtime error boundary and a user-facing fallback screen that appears if any render-time error occurs, showing an English error message and a 'Reload' action, and logging the underlying error details to the browser console.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/features/ledger/SummaryPanel.tsx",
-          "frontend/src/features/ledger/OverallSummaryPanel.tsx"
+          "frontend/src/components/RuntimeErrorBoundary.tsx",
+          "frontend/src/components/RuntimeErrorFallback.tsx",
+          "frontend/src/main.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/features/ledger/SummaryPanel.tsx",
-          "frontend/src/features/ledger/OverallSummaryPanel.tsx"
+          "frontend/src/components/RuntimeErrorBoundary.tsx",
+          "frontend/src/components/RuntimeErrorFallback.tsx"
         ]
       },
       {
-        "id": "REQ-4",
-        "summary": "Add report generation that supports exporting filtered reports to PDF and an Excel-compatible format (preferably .xlsx), with multiple user-selectable filters for what data to include in the report.",
+        "id": "REQ-9",
+        "summary": "Ensure the frontend config module required by the auth/actor hooks (imported as '../config') is present and cannot crash the app at runtime: it must provide safe defaults and handle missing/invalid environment/config values gracefully (e.g., Internet Identity URL, derivation origin, canister/agent config).",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/package.json",
-          "frontend/src/features/ledger/ExportButton.tsx",
-          "frontend/src/features/ledger/ExportReportDialog.tsx",
-          "frontend/src/utils/exportReport.ts",
-          "frontend/src/utils/exportExcel.ts",
-          "frontend/src/features/ledger/LedgerPage.tsx"
+          "frontend/src/config.ts",
+          "frontend/src/components/AuthGate.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/features/ledger/ExportButton.tsx",
-          "frontend/src/features/ledger/ExportReportDialog.tsx",
-          "frontend/src/utils/exportReport.ts",
-          "frontend/src/features/ledger/LedgerPage.tsx"
-        ]
-      },
-      {
-        "id": "REQ-5",
-        "summary": "Apply a cohesive visual theme across the updated tabs and new controls (consistent spacing, typography, and component styling) without changing app functionality; choose a distinct palette that is not blue/purple and use it consistently.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/features/ledger/LedgerPage.tsx",
-          "frontend/src/features/ledger/DailyParticipationGrid.tsx",
-          "frontend/src/features/ledger/ExportReportDialog.tsx",
-          "frontend/src/index.css"
-        ],
-        "matchedFiles": [
-          "frontend/src/features/ledger/LedgerPage.tsx",
-          "frontend/src/features/ledger/DailyParticipationGrid.tsx",
-          "frontend/src/features/ledger/ExportReportDialog.tsx"
+          "frontend/src/components/AuthGate.tsx"
         ]
       }
     ]
@@ -97,19 +73,12 @@
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/features/ledger/CarExpensesPanel.tsx",
-    "frontend/src/features/ledger/CashPaymentForm.tsx",
-    "frontend/src/features/ledger/DailyParticipationGrid.tsx",
-    "frontend/src/features/ledger/ExportButton.tsx",
-    "frontend/src/features/ledger/ExportReportDialog.tsx",
-    "frontend/src/features/ledger/LedgerPage.tsx",
-    "frontend/src/features/ledger/LedgerStateContext.tsx",
-    "frontend/src/features/ledger/OtherPendingAmountForm.tsx",
-    "frontend/src/features/ledger/OverallSummaryPanel.tsx",
-    "frontend/src/features/ledger/SummaryPanel.tsx",
-    "frontend/src/hooks/useLedgerLocalState.ts",
-    "frontend/src/utils/exportReport.ts",
-    "frontend/src/utils/weekendInclusion.ts",
+    "frontend/src/App.tsx",
+    "frontend/src/backend.idl.ts",
+    "frontend/src/components/AuthGate.tsx",
+    "frontend/src/components/InitLoadingScreen.tsx",
+    "frontend/src/components/RuntimeErrorBoundary.tsx",
+    "frontend/src/components/RuntimeErrorFallback.tsx",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

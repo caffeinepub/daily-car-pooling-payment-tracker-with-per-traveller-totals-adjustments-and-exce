@@ -1,114 +1,90 @@
 {
   "kind": "build_request",
-  "title": "Responsive tab navigation, weekend inclusion controls, and filtered PDF/Excel report export",
-  "priority": "normal",
+  "title": "Fix black screen on app load and add safe runtime fallback UI",
+  "priority": "high",
   "requirements": [
     {
-      "id": "REQ-1",
-      "text": "Update the Ledger page so all main sections (Travellers, Daily, Summary, Car, Overall) are always available as separate, clearly clickable tabs on every screen size (including desktop), rather than switching to a non-tabbed multi-column layout on large screens.",
+      "id": "REQ-7",
+      "text": "Diagnose and fix the root cause of the deployed app rendering a black screen so that the initial UI reliably renders (at minimum: the unauthenticated login screen from AuthGate).",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-2"
+          "msg-3"
         ],
         "quotes": [
-          "if possible saprate clickable tab for all the tabs irespective of screen size"
+          "I am unable to view any content only black screen"
         ]
       },
       "acceptanceCriteria": [
-        "On small and large screens, the UI shows the same set of tabs: Travellers, Daily, Summary, Car, Overall.",
-        "Each tab is independently clickable/tappable regardless of viewport size.",
-        "The previous desktop 3-column layout is replaced (or made optional) so tab navigation is still the primary navigation on desktop.",
-        "Unsaved-changes protection when navigating away from the Daily tab still works (the existing confirmation dialog still appears when draft changes exist)."
+        "On a fresh load (no cached data) the app renders visible UI instead of a blank/black screen.",
+        "If the user is not authenticated, the AuthGate login card is visible and clickable.",
+        "If the user is authenticated, the app proceeds to profile lookup and renders either ProfileSetupModal or LedgerPage.",
+        "No uncaught runtime exceptions occur during initial render (verify in browser console)."
       ]
     },
     {
-      "id": "REQ-2",
-      "text": "Add user controls (checkboxes) to enable/disable tracking for Saturdays and Sundays separately, and use these controls to determine whether weekend dates are editable in the Daily Participation grid.",
+      "id": "REQ-8",
+      "text": "Add a top-level runtime error boundary and a user-facing fallback screen that appears if any render-time error occurs, showing an English error message and a 'Reload' action, and logging the underlying error details to the browser console.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-2"
+          "msg-3"
         ],
         "quotes": [
-          "Also allow to add check box for Saturday-Sunday"
+          "I am unable to view any content only black screen"
         ]
       },
       "acceptanceCriteria": [
-        "The UI includes two independent toggles/checkboxes labeled in English: \"Include Saturday\" and \"Include Sunday\" (or equivalent).",
-        "When a weekend day is excluded, its Daily grid checkboxes are disabled (read-only) similar to current behavior.",
-        "When a weekend day is included, its Daily grid checkboxes are enabled and can be checked/unchecked.",
-        "The bulk \"Mark all travellers for today\" control respects these weekend toggles (disabled only if today is an excluded weekend day).",
-        "The include/exclude weekend selection persists for the user (e.g., via the existing local state persistence pattern)."
+        "If a component throws during render/effects, the app shows a fallback view (not a blank screen) with clear English copy (e.g., 'Something went wrong.').",
+        "Fallback view includes a button that reloads the page.",
+        "The thrown error and component stack (when available) are logged to console for debugging.",
+        "Normal operation is unaffected when no error occurs."
       ]
     },
     {
-      "id": "REQ-3",
-      "text": "Include weekend data in summaries by calculating and displaying weekday vs weekend trip counts (and associated charges) based on the Saturday/Sunday inclusion toggles, and ensure totals reflect included weekend days.",
+      "id": "REQ-9",
+      "text": "Ensure the frontend config module required by the auth/actor hooks (imported as '../config') is present and cannot crash the app at runtime: it must provide safe defaults and handle missing/invalid environment/config values gracefully (e.g., Internet Identity URL, derivation origin, canister/agent config).",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-2"
+          "msg-3"
         ],
         "quotes": [
-          "also calculate data of weekend in the summary also"
+          "I am unable to view any content only black screen"
         ]
       },
       "acceptanceCriteria": [
-        "Summary calculations (per traveller) include trips from included weekend days in totals.",
-        "Summary UI shows a clear breakdown of trip counts for weekdays vs weekend (at minimum: weekday trips and weekend trips).",
-        "Overall Summary calculations (income/profit) include included weekend trips in the income computation.",
-        "If both Saturday and Sunday are excluded, weekend trip counts display as 0 and do not affect totals."
+        "The app does not crash on startup even when optional config values are missing.",
+        "If Internet Identity provider URL is not configured, the login flow still has a valid provider URL (via a safe default) or shows a clear on-screen configuration error instead of a blank screen.",
+        "Any config-loading failures are surfaced via the error boundary fallback (or an explicit in-app error state), not as a black screen."
       ]
     },
     {
-      "id": "REQ-4",
-      "text": "Add report generation that supports exporting filtered reports to PDF and an Excel-compatible format (preferably .xlsx), with multiple user-selectable filters for what data to include in the report.",
+      "id": "REQ-10",
+      "text": "Add an explicit, visible loading state for app initialization phases that can otherwise appear blank (e.g., while InternetIdentityProvider initializes and while the caller profile query is waiting on actor availability).",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-2"
+          "msg-3"
         ],
         "quotes": [
-          "also a pdf report or .xlms report genration with multiple filters"
+          "I am unable to view any content only black screen"
         ]
       },
       "acceptanceCriteria": [
-        "The existing \"Export CSV\" action is replaced or expanded into an export UI that lets the user choose an output format: PDF and Excel-compatible (e.g., XLSX) in addition to the existing CSV if kept.",
-        "The export UI provides multiple filters (at minimum): date range (uses current selected date range), selected travellers (all vs subset), and include/exclude sections (Daily Grid, Per-traveller Summary, Payments, Car Expenses, Overall Summary).",
-        "Exported files reflect the chosen filters (excluded sections/travellers are not present; included sections are present).",
-        "Weekend inclusion (Saturday/Sunday toggles) is respected by calculations shown in the exported summary sections.",
-        "User-facing text for export actions and errors remains in English (e.g., success and failure toasts)."
-      ]
-    },
-    {
-      "id": "REQ-5",
-      "text": "Apply a cohesive visual theme across the updated tabs and new controls (consistent spacing, typography, and component styling) without changing app functionality; choose a distinct palette that is not blue/purple and use it consistently.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-2"
-        ],
-        "quotes": [
-          "Yes apply this UI"
-        ]
-      },
-      "acceptanceCriteria": [
-        "Tabs, weekend toggles, and the export/filter UI share a consistent visual style (spacing, sizing, typography).",
-        "The theme uses a distinct, coherent color direction that is not primarily blue/purple.",
-        "No user-facing text is introduced in a non-English language."
+        "During initialization (before AuthGate can decide what to render), the user sees a loading screen/skeleton instead of a blank view.",
+        "Loading text is in English and does not mention internal implementation details.",
+        "Once initialization completes, the app transitions to the correct UI (login/profile setup/ledger)."
       ]
     }
   ],
   "constraints": [
-    "Do not modify files under frontend/src/components/ui (Shadcn components must be composed, not edited).",
-    "Do not edit frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useInternetIdentity.tsx, frontend/src/hooks/useActor.ts, or frontend/src/main.tsx (immutable paths).",
-    "Keep backend as a single Motoko actor (no multi-canister architecture)."
+    "Do not edit files under frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useInternetIdentity.tsx, or frontend/src/hooks/useActor.ts (immutable paths). Implement fixes by adding/adjusting other modules/components they depend on, or by adding new wrapper components at the app level.",
+    "Keep the backend as a single Motoko actor (no additional backend services)."
   ],
   "nonGoals": [
-    "Adding third-party authentication providers (only Internet Identity is supported).",
-    "Real-time sync or multi-user collaboration for the ledger.",
-    "Generating true macro-enabled Excel (.xlsm) with embedded VBA macros (focus on Excel-compatible export)."
+    "Adding new ledger features unrelated to fixing the black screen.",
+    "Changing authentication provider away from Internet Identity."
   ],
   "imageRequirements": {
     "required": [],

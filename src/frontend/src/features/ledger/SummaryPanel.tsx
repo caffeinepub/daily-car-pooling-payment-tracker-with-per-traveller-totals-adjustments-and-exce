@@ -1,6 +1,4 @@
 import { useLedgerState } from './LedgerStateContext';
-import { getDaysInRange, formatDateKey } from '../../utils/dateRange';
-import { isDateIncluded } from '../../utils/weekendInclusion';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -9,7 +7,7 @@ import { Receipt } from 'lucide-react';
 import { formatCurrency } from '../../utils/money';
 import CashPaymentForm from './CashPaymentForm';
 import OtherPendingAmountForm from './OtherPendingAmountForm';
-import { parseISO } from 'date-fns';
+import { calculateTravellerBalance } from '../../utils/travellerBalance';
 
 export default function SummaryPanel() {
   const { 
@@ -24,8 +22,6 @@ export default function SummaryPanel() {
     includeSaturday,
     includeSunday,
   } = useLedgerState();
-
-  const days = getDaysInRange(dateRange.start, dateRange.end);
 
   if (travellers.length === 0) {
     return (
@@ -45,75 +41,19 @@ export default function SummaryPanel() {
     );
   }
 
-  // Calculate totals based on trips, payments, and other pending within date range
-  const summaries = travellers.map((t) => {
-    let weekdayTrips = 0;
-    let weekendTrips = 0;
-    
-    days.forEach((day) => {
-      const dateKey = formatDateKey(day);
-      const tripData = dailyData[dateKey]?.[t.id];
-      
-      if (tripData) {
-        const isIncluded = isDateIncluded(day, includeSaturday, includeSunday);
-        if (!isIncluded) return;
-        
-        const dayOfWeek = day.getDay();
-        const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-        
-        const tripCount = (tripData.morning ? 1 : 0) + (tripData.evening ? 1 : 0);
-        
-        if (isWeekend) {
-          weekendTrips += tripCount;
-        } else {
-          weekdayTrips += tripCount;
-        }
-      }
-    });
-
-    const totalTrips = weekdayTrips + weekendTrips;
-    const totalCharge = totalTrips * ratePerTrip;
-
-    // Calculate payments within the selected date range
-    const paymentsInRange = cashPayments
-      .filter((p) => {
-        if (p.travellerId !== t.id) return false;
-        try {
-          const paymentDate = parseISO(p.date);
-          return paymentDate >= dateRange.start && paymentDate <= dateRange.end;
-        } catch {
-          return false;
-        }
-      })
-      .reduce((sum, p) => sum + p.amount, 0);
-
-    // Calculate other pending amounts within the selected date range
-    const otherPendingInRange = otherPending
-      .filter((p) => {
-        if (p.travellerId !== t.id) return false;
-        try {
-          const pendingDate = parseISO(p.date);
-          return pendingDate >= dateRange.start && pendingDate <= dateRange.end;
-        } catch {
-          return false;
-        }
-      })
-      .reduce((sum, p) => sum + p.amount, 0);
-
-    const balance = totalCharge + otherPendingInRange - paymentsInRange;
-
-    return {
-      id: t.id,
-      name: t.name,
-      weekdayTrips,
-      weekendTrips,
-      totalTrips,
-      totalCharge,
-      otherPending: otherPendingInRange,
-      payments: paymentsInRange,
-      balance,
-    };
-  });
+  // Calculate summaries using shared utility
+  const summaries = travellers.map((t) => 
+    calculateTravellerBalance(
+      t,
+      dateRange,
+      dailyData,
+      ratePerTrip,
+      cashPayments,
+      otherPending,
+      includeSaturday,
+      includeSunday
+    )
+  );
 
   return (
     <Card>
@@ -126,22 +66,18 @@ export default function SummaryPanel() {
       <CardContent className="space-y-4">
         {summaries.map((s) => (
           <div key={s.id} className="space-y-2">
-            <div className="flex items-center justify-between">
-              <h3 className="font-semibold text-base">{s.name}</h3>
-              <Badge variant={s.balance > 0 ? 'destructive' : s.balance < 0 ? 'default' : 'secondary'}>
-                {s.balance > 0 ? 'Owes' : s.balance < 0 ? 'Overpaid' : 'Settled'} {formatCurrency(Math.abs(s.balance))}
+            {/* Responsive header with name and badge */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+              <h3 className="font-semibold text-base break-words">{s.name}</h3>
+              <Badge 
+                variant={s.status === 'Owes' ? 'destructive' : s.status === 'Overpaid' ? 'default' : 'secondary'}
+                className="self-start sm:self-auto whitespace-nowrap"
+              >
+                {s.status} {formatCurrency(Math.abs(s.balance))}
               </Badge>
             </div>
 
             <div className="text-sm space-y-1 text-muted-foreground">
-              <div className="flex justify-between">
-                <span>Weekday Trips:</span>
-                <span className="font-medium text-foreground">{s.weekdayTrips}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Weekend Trips:</span>
-                <span className="font-medium text-foreground">{s.weekendTrips}</span>
-              </div>
               <div className="flex justify-between">
                 <span>Total Trips:</span>
                 <span className="font-medium text-foreground">{s.totalTrips}</span>
@@ -164,7 +100,8 @@ export default function SummaryPanel() {
 
             <Separator className="my-2" />
 
-            <div className="flex gap-2">
+            {/* Responsive action buttons */}
+            <div className="flex flex-col sm:flex-row gap-2">
               <CashPaymentForm travellerId={s.id} travellerName={s.name} onSubmit={addCashPayment} />
               <OtherPendingAmountForm travellerId={s.id} travellerName={s.name} onSubmit={addOtherPending} />
             </div>

@@ -1,161 +1,106 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Ledger: always-on tabs, weekend inclusion controls, and filtered PDF/XLSX exports",
+  "title": "Stabilize initial render, add runtime error fallback, and harden auth/actor config",
   "requirements": [
     {
-      "id": "REQ-1",
-      "summary": "Make Ledger sections always accessible via consistent clickable tabs on all screen sizes while preserving Daily unsaved-changes protection.",
+      "id": "REQ-7",
+      "summary": "Fix the initial black screen by preventing startup-time crashes and ensuring AuthGate (or a visible init state) always renders on first load.",
       "acceptanceCriteria": [
-        "On small and large screens, the UI shows the same set of tabs: Travellers, Daily, Summary, Car, Overall.",
-        "Each tab is independently clickable/tappable regardless of viewport size.",
-        "The previous desktop 3-column layout is replaced (or made optional) so tab navigation is still the primary navigation on desktop.",
-        "Unsaved-changes protection when navigating away from the Daily tab still works (the existing confirmation dialog still appears when draft changes exist)."
+        "On a fresh load (no cached data) the app renders visible UI instead of a blank/black screen.",
+        "If the user is not authenticated, the AuthGate login card is visible and clickable.",
+        "If the user is authenticated, the app proceeds to profile lookup and renders either ProfileSetupModal or LedgerPage.",
+        "No uncaught runtime exceptions occur during initial render (verify in browser console)."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/features/ledger/LedgerPage.tsx",
+          "path": "frontend/src/App.tsx",
           "operation": "modify",
-          "description": "Replace the desktop multi-column layout with the same shadcn/ui Tabs-based navigation used on mobile so tabs are the primary navigation on all viewport sizes; ensure the tab triggers are always visible/clickable and keep tab set consistent (Travellers, Daily, Summary, Car, Overall). Verify the component's usage instructions before implementing."
+          "description": "Ensure the root UI always renders something visible during startup: integrate an explicit initialization/loading view while authenticated profile lookup is in progress; avoid returning empty content in any initial state; keep existing AuthGate flow intact so the unauthenticated login card is the minimum visible UI."
         },
         {
-          "path": "frontend/src/features/ledger/LedgerPage.tsx",
+          "path": "frontend/src/components/AuthGate.tsx",
           "operation": "modify",
-          "description": "Update the tab-change logic so the unsaved-changes confirmation dialog triggers whenever leaving the Daily tab (not only on mobile), and ensure the pending-tab flow still navigates correctly after discard. Verify the component's usage instructions before implementing."
-        }
-      ]
-    },
-    {
-      "id": "REQ-2",
-      "summary": "Add persisted Include Saturday / Include Sunday controls and use them to enable/disable weekend editing in the Daily grid (including bulk actions).",
-      "acceptanceCriteria": [
-        "The UI includes two independent toggles/checkboxes labeled in English: \"Include Saturday\" and \"Include Sunday\" (or equivalent).",
-        "When a weekend day is excluded, its Daily grid checkboxes are disabled (read-only) similar to current behavior.",
-        "When a weekend day is included, its Daily grid checkboxes are enabled and can be checked/unchecked.",
-        "The bulk \"Mark all travellers for today\" control respects these weekend toggles (disabled only if today is an excluded weekend day).",
-        "The include/exclude weekend selection persists for the user (e.g., via the existing local state persistence pattern)."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/hooks/useLedgerLocalState.ts",
-          "operation": "modify",
-          "description": "Add two persisted boolean preferences (includeSaturday/includeSunday) using the existing localStorage persistence pattern, and expose getters/setters from the ledger local state hook."
+          "description": "Make AuthGate resilient and always visible: add handling for Internet Identity initialization and missing Internet Identity provider configuration (show a clear on-screen configuration error instead of attempting login). Use shadcn-ui Card/Button styling already present; verify the component's usage instructions before implementing."
         },
         {
-          "path": "frontend/src/features/ledger/LedgerStateContext.tsx",
-          "operation": "modify",
-          "description": "Extend the LedgerStateContextValue typing to include the weekend inclusion preferences and setters so they are available across ledger panels."
-        },
-        {
-          "path": "frontend/src/utils/weekendInclusion.ts",
+          "path": "frontend/src/components/InitLoadingScreen.tsx",
           "operation": "create",
-          "description": "Add shared helper(s) to classify a date as weekday/Saturday/Sunday and to determine whether a given date should be editable/included based on includeSaturday/includeSunday, to avoid duplicated logic across grid/summary/export."
-        },
-        {
-          "path": "frontend/src/features/ledger/DailyParticipationGrid.tsx",
-          "operation": "modify",
-          "description": "Add two shadcn/ui Checkbox controls labeled \"Include Saturday\" and \"Include Sunday\" (with consistent spacing/typography), wired to persisted ledger preferences. Verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/features/ledger/DailyParticipationGrid.tsx",
-          "operation": "modify",
-          "description": "Update per-day and 'today bulk' disabled logic so only excluded weekend days are read-only (Saturday depends on Include Saturday, Sunday depends on Include Sunday), while weekdays remain editable; apply the same logic to row styling/opacity. Verify the component's usage instructions before implementing."
+          "description": "Add a simple, user-facing initialization/loading screen used during auth/provider initialization and during authenticated bootstrapping phases, so no phase appears blank. Use shadcn-ui Card/Skeleton/Button as appropriate; verify the component's usage instructions before implementing."
         }
       ]
     },
     {
-      "id": "REQ-3",
-      "summary": "Include weekend data in summaries with weekday vs weekend trip/charge breakdowns, respecting weekend inclusion toggles and keeping totals correct.",
+      "id": "REQ-8",
+      "summary": "Add a top-level error boundary with a user-facing fallback screen that logs errors and offers a reload action.",
       "acceptanceCriteria": [
-        "Summary calculations (per traveller) include trips from included weekend days in totals.",
-        "Summary UI shows a clear breakdown of trip counts for weekdays vs weekend (at minimum: weekday trips and weekend trips).",
-        "Overall Summary calculations (income/profit) include included weekend trips in the income computation.",
-        "If both Saturday and Sunday are excluded, weekend trip counts display as 0 and do not affect totals."
+        "If a component throws during render/effects, the app shows a fallback view (not a blank screen) with clear English copy (e.g., 'Something went wrong.').",
+        "Fallback view includes a button that reloads the page.",
+        "The thrown error and component stack (when available) are logged to console for debugging.",
+        "Normal operation is unaffected when no error occurs."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/features/ledger/SummaryPanel.tsx",
-          "operation": "modify",
-          "description": "Update per-traveller calculations to compute weekdayTrips and weekendTrips (and totals/charges) using the shared weekend inclusion helper and the user's Include Saturday/Sunday settings; show a clear weekday vs weekend breakdown in the Summary UI while keeping existing payments/other pending behavior intact. Verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/features/ledger/OverallSummaryPanel.tsx",
-          "operation": "modify",
-          "description": "Update overall income computations to count trips only on included dates (weekdays + included weekend days) using the shared weekend inclusion helper and user toggles, so totals/profit reflect included weekend trips. Verify the component's usage instructions before implementing."
-        }
-      ]
-    },
-    {
-      "id": "REQ-4",
-      "summary": "Replace/expand CSV export into a filtered export UI supporting PDF and Excel-compatible (XLSX preferred) outputs, with selectable filters and weekend-toggle-aware calculations.",
-      "acceptanceCriteria": [
-        "The existing \"Export CSV\" action is replaced or expanded into an export UI that lets the user choose an output format: PDF and Excel-compatible (e.g., XLSX) in addition to the existing CSV if kept.",
-        "The export UI provides multiple filters (at minimum): date range (uses current selected date range), selected travellers (all vs subset), and include/exclude sections (Daily Grid, Per-traveller Summary, Payments, Car Expenses, Overall Summary).",
-        "Exported files reflect the chosen filters (excluded sections/travellers are not present; included sections are present).",
-        "Weekend inclusion (Saturday/Sunday toggles) is respected by calculations shown in the exported summary sections.",
-        "User-facing text for export actions and errors remains in English (e.g., success and failure toasts)."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/package.json",
-          "operation": "modify",
-          "description": "Add client-side export dependencies to support PDF and XLSX generation (e.g., a PDF generation library and an XLSX writer), and ensure they are used only in the export flow."
-        },
-        {
-          "path": "frontend/src/features/ledger/ExportButton.tsx",
-          "operation": "modify",
-          "description": "Replace the single-action CSV export button with an export dialog/popover UI that lets the user choose format (CSV/PDF/XLSX) and configure filters (traveller subset, section inclusion toggles) while keeping English labels and toast-based success/failure messaging. Verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/features/ledger/ExportReportDialog.tsx",
+          "path": "frontend/src/components/RuntimeErrorBoundary.tsx",
           "operation": "create",
-          "description": "Create a dedicated export UI component (Dialog-based) composed from shadcn/ui primitives (Dialog, Checkbox, Select/Radio, Buttons, etc.) to gather format + filters and call the export utility. Verify the component's usage instructions before implementing."
+          "description": "Implement a top-level React error boundary that catches render-time errors, logs error details (including component stack when available) to the browser console, and renders a fallback UI with English copy and a Reload action. Use shadcn-ui components for consistent UI; verify the component's usage instructions before implementing."
         },
         {
-          "path": "frontend/src/utils/exportReport.ts",
+          "path": "frontend/src/components/RuntimeErrorFallback.tsx",
           "operation": "create",
-          "description": "Implement filtered report generation utilities that can produce CSV, XLSX, and PDF outputs from the current ledger state; apply selected filters (date range from current selection, traveller subset, included sections) and ensure weekend inclusion toggles are respected in summary/overall calculations."
+          "description": "Create the fallback screen UI used by the error boundary: clear English message ('Something went wrong.'), optional short guidance, and a Reload button that triggers a full page reload. Use shadcn-ui Button/Card (and optionally EmptyState) for layout; verify the component's usage instructions before implementing."
         },
         {
-          "path": "frontend/src/utils/exportExcel.ts",
+          "path": "frontend/src/main.tsx",
           "operation": "modify",
-          "description": "Refactor or delegate existing CSV generation logic into the new filtered export utility so legacy behavior is preserved when CSV is selected, while enabling section/traveller filtering and weekend-toggle-aware calculations."
-        },
-        {
-          "path": "frontend/src/features/ledger/LedgerPage.tsx",
-          "operation": "modify",
-          "description": "Wire the new export dialog/button behavior into the Ledger toolbar area so the export UI is reachable wherever the Ledger page is used, with no orphaned components. Verify the component's usage instructions before implementing."
+          "description": "Wrap the app providers/root (<QueryClientProvider>, <InternetIdentityProvider>, <App>) with the new RuntimeErrorBoundary so any startup/render error shows the fallback instead of a black screen."
         }
       ]
     },
     {
-      "id": "REQ-5",
-      "summary": "Apply a cohesive non-blue/purple visual theme to tabs, weekend toggles, and export/filter UI using existing styling entry points and consistent component composition.",
+      "id": "REQ-9",
+      "summary": "Provide a safe frontend config module (imported as '../config') with defaults and guardrails so auth/actor hooks cannot crash the app when config/env values are missing or invalid.",
       "acceptanceCriteria": [
-        "Tabs, weekend toggles, and the export/filter UI share a consistent visual style (spacing, sizing, typography).",
-        "The theme uses a distinct, coherent color direction that is not primarily blue/purple.",
-        "No user-facing text is introduced in a non-English language."
+        "The app does not crash on startup even when optional config values are missing.",
+        "If Internet Identity provider URL is not configured, the login flow still has a valid provider URL (via a safe default) or shows a clear on-screen configuration error instead of a blank screen.",
+        "Any config-loading failures are surfaced via the error boundary fallback (or an explicit in-app error state), not as a black screen."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/features/ledger/LedgerPage.tsx",
-          "operation": "modify",
-          "description": "Unify tab styling (TabsList/TabsTrigger sizing, spacing, typography) so the tab navigation looks consistent across screen sizes and matches the updated theme. Verify the component's usage instructions before implementing."
+          "path": "frontend/src/config.ts",
+          "operation": "create",
+          "description": "Create the missing '../config' module exporting loadConfig() and createActorWithConfig() with safe defaults and defensive validation. Ensure loadConfig never crashes the app on missing/invalid values (return defaults or throw a clear Error that will be caught by the runtime error boundary). Ensure createActorWithConfig safely constructs an actor configuration for authenticated/anonymous usage and surfaces misconfiguration as a user-visible error via the boundary rather than a silent blank screen."
         },
         {
-          "path": "frontend/src/features/ledger/DailyParticipationGrid.tsx",
+          "path": "frontend/src/components/AuthGate.tsx",
           "operation": "modify",
-          "description": "Align the weekend inclusion controls and bulk action row styling with the same spacing/typography used elsewhere in the Ledger (cards, section headers), maintaining English-only UI text. Verify the component's usage instructions before implementing."
+          "description": "Add an explicit configuration guard for the Internet Identity provider URL used by the login flow: if the provider URL is missing/invalid, render a clear in-app configuration error state (English copy) rather than calling login and risking a blank screen. Use shadcn-ui Card/Button for the error state; verify the component's usage instructions before implementing."
+        }
+      ]
+    },
+    {
+      "id": "REQ-10",
+      "summary": "Add explicit, visible loading states for initialization phases (InternetIdentityProvider init and actor/profile query gating) that otherwise look blank.",
+      "acceptanceCriteria": [
+        "During initialization (before AuthGate can decide what to render), the user sees a loading screen/skeleton instead of a blank view.",
+        "Loading text is in English and does not mention internal implementation details.",
+        "Once initialization completes, the app transitions to the correct UI (login/profile setup/ledger)."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/AuthGate.tsx",
+          "operation": "modify",
+          "description": "Use InternetIdentityProvider state (e.g., isInitializing/loginStatus) to render InitLoadingScreen while the auth client initializes, instead of rendering nothing/blank. Keep the existing unauthenticated login card as the next state. Use shadcn-ui components; verify the component's usage instructions before implementing."
         },
         {
-          "path": "frontend/src/features/ledger/ExportReportDialog.tsx",
+          "path": "frontend/src/App.tsx",
           "operation": "modify",
-          "description": "Ensure the export dialog/filter controls use consistent layout, spacing, and button styling aligned with the app theme, and avoid introducing non-English strings. Verify the component's usage instructions before implementing."
+          "description": "Add an authenticated initialization state: while actor/profile lookup is pending (e.g., useGetCallerUserProfile isLoading and identity exists), render InitLoadingScreen (or an inline loading section) so the UI never appears blank before showing ProfileSetupModal or LedgerPage."
         },
         {
-          "path": "frontend/src/index.css",
+          "path": "frontend/src/components/InitLoadingScreen.tsx",
           "operation": "modify",
-          "description": "Apply small theme-level adjustments (using existing Tailwind/shadcn variable-driven styling) to support consistent appearance of tabs and controls; keep the palette distinct and not primarily blue/purple."
+          "description": "Refine the loading screen copy and presentation to be clear English, generic (no internal implementation details), and reusable for both auth initialization and post-login bootstrapping. Use shadcn-ui components; verify the component's usage instructions before implementing."
         }
       ]
     }

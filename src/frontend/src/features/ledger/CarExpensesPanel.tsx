@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useLedgerState } from './LedgerStateContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -18,6 +18,7 @@ const PREDEFINED_CATEGORIES = [
   'CNG AHM',
   'Petrol',
   'Maintenance Cost',
+  'Toll',
   'Other',
 ];
 
@@ -30,6 +31,13 @@ export default function CarExpensesPanel() {
   const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [note, setNote] = useState('');
   const [error, setError] = useState('');
+
+  // Auto-fill amount when Toll is selected
+  useEffect(() => {
+    if (category === 'Toll' && !amount) {
+      setAmount('30');
+    }
+  }, [category, amount]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

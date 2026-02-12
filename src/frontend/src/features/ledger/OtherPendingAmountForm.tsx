@@ -4,18 +4,18 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Wallet, Plus } from 'lucide-react';
+import { Plus, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
-import type { CashPayment } from '../../hooks/useLedgerLocalState';
+import type { OtherPending } from '../../hooks/useLedgerLocalState';
 
-interface CashPaymentFormProps {
+interface OtherPendingAmountFormProps {
   travellerId: string;
   travellerName: string;
-  onSubmit: (payment: Omit<CashPayment, 'id'>) => void;
+  onSubmit: (pending: Omit<OtherPending, 'id'>) => void;
 }
 
-export default function CashPaymentForm({ travellerId, travellerName, onSubmit }: CashPaymentFormProps) {
+export default function OtherPendingAmountForm({ travellerId, travellerName, onSubmit }: OtherPendingAmountFormProps) {
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState('');
   const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
@@ -39,7 +39,7 @@ export default function CashPaymentForm({ travellerId, travellerName, onSubmit }
       date,
       note: note || undefined,
     });
-    toast.success(`Payment of ₹${numAmount} recorded for ${travellerName}`);
+    toast.success(`Other pending amount of ₹${numAmount} added for ${travellerName}`);
     
     // Reset form
     setAmount('');
@@ -53,17 +53,17 @@ export default function CashPaymentForm({ travellerId, travellerName, onSubmit }
       <DialogTrigger asChild>
         <Button variant="outline" size="sm" className="w-full">
           <Plus className="mr-2 h-3 w-3" />
-          Add Payment
+          Add Other Pending
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Wallet className="h-5 w-5" />
-            Record Cash Payment
+            <FileText className="h-5 w-5" />
+            Add Other Pending Amount
           </DialogTitle>
           <DialogDescription>
-            Record a cash payment for {travellerName}
+            Add an additional pending amount for {travellerName}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
@@ -88,7 +88,7 @@ export default function CashPaymentForm({ travellerId, travellerName, onSubmit }
               {error && <p className="text-sm text-destructive">{error}</p>}
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="date">Payment Date</Label>
+              <Label htmlFor="date">Date</Label>
               <Input
                 id="date"
                 type="date"
@@ -100,7 +100,7 @@ export default function CashPaymentForm({ travellerId, travellerName, onSubmit }
               <Label htmlFor="note">Note (optional)</Label>
               <Textarea
                 id="note"
-                placeholder="Add a note about this payment"
+                placeholder="Add a note about this pending amount"
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
                 rows={3}
@@ -111,7 +111,7 @@ export default function CashPaymentForm({ travellerId, travellerName, onSubmit }
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
               Cancel
             </Button>
-            <Button type="submit">Record Payment</Button>
+            <Button type="submit">Add Pending</Button>
           </DialogFooter>
         </form>
       </DialogContent>

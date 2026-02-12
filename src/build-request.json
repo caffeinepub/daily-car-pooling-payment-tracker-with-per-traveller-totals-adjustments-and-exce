@@ -1,86 +1,117 @@
 {
   "kind": "build_request",
-  "title": "Add per-traveller cash payments and apply them to pending balance in Summary + Export",
+  "title": "Responsive tab navigation, weekend inclusion controls, and filtered PDF/Excel report export",
   "priority": "normal",
   "requirements": [
     {
-      "id": "REQ-15",
-      "text": "Add a per-traveller \"cash payment\" entry in the ledger UI and automatically apply it to reduce that traveller’s pending balance (within the currently selected date range).",
+      "id": "REQ-1",
+      "text": "Update the Ledger page so all main sections (Travellers, Daily, Summary, Car, Overall) are always available as separate, clearly clickable tabs on every screen size (including desktop), rather than switching to a non-tabbed multi-column layout on large screens.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-3"
+          "msg-2"
         ],
         "quotes": [
-          "also inclide Traveller pay amount in cash adjust them with pending amount for respective user"
+          "if possible saprate clickable tab for all the tabs irespective of screen size"
         ]
       },
       "acceptanceCriteria": [
-        "In the Summary view, each traveller shows non-zero Payments when cash payments have been recorded for that traveller within the selected date range.",
-        "Balance in Summary is recalculated as: (tripCount × ratePerTrip) − payments (and continues to update immediately when AM/PM checkboxes are toggled or ratePerTrip changes).",
-        "A user can record a cash payment for a specific traveller (at minimum: amount; date defaults to today; optional note if already supported elsewhere).",
-        "After recording a cash payment, the traveller’s pending Balance decreases immediately without page refresh.",
-        "Cash payment input validates numeric amount > 0 and shows user-facing validation text in English when invalid."
+        "On small and large screens, the UI shows the same set of tabs: Travellers, Daily, Summary, Car, Overall.",
+        "Each tab is independently clickable/tappable regardless of viewport size.",
+        "The previous desktop 3-column layout is replaced (or made optional) so tab navigation is still the primary navigation on desktop.",
+        "Unsaved-changes protection when navigating away from the Daily tab still works (the existing confirmation dialog still appears when draft changes exist)."
       ]
     },
     {
-      "id": "REQ-16",
-      "text": "Persist recorded per-traveller cash payments in localStorage alongside the existing ledger local state so that payments and balances remain after reload.",
+      "id": "REQ-2",
+      "text": "Add user controls (checkboxes) to enable/disable tracking for Saturdays and Sundays separately, and use these controls to determine whether weekend dates are editable in the Daily Participation grid.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-3"
+          "msg-2"
         ],
         "quotes": [
-          "also inclide Traveller pay amount in cash adjust them with pending amount for respective user"
+          "Also allow to add check box for Saturday-Sunday"
         ]
       },
       "acceptanceCriteria": [
-        "After adding cash payments and reloading the page, Summary still shows the same Payments and Balance totals for the same date range.",
-        "Removing a traveller removes (or safely ignores) any stored payments associated with that traveller to prevent orphaned data errors.",
-        "If a new localStorage key is introduced for cash payments, the app handles missing/old data safely (no runtime errors on load)."
+        "The UI includes two independent toggles/checkboxes labeled in English: \"Include Saturday\" and \"Include Sunday\" (or equivalent).",
+        "When a weekend day is excluded, its Daily grid checkboxes are disabled (read-only) similar to current behavior.",
+        "When a weekend day is included, its Daily grid checkboxes are enabled and can be checked/unchecked.",
+        "The bulk \"Mark all travellers for today\" control respects these weekend toggles (disabled only if today is an excluded weekend day).",
+        "The include/exclude weekend selection persists for the user (e.g., via the existing local state persistence pattern)."
       ]
     },
     {
-      "id": "REQ-17",
-      "text": "Update the CSV export Summary section to include the recorded per-traveller cash payments and the resulting balance for the selected date range (instead of exporting Payments as 0).",
+      "id": "REQ-3",
+      "text": "Include weekend data in summaries by calculating and displaying weekday vs weekend trip counts (and associated charges) based on the Saturday/Sunday inclusion toggles, and ensure totals reflect included weekend days.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-3"
+          "msg-2"
         ],
         "quotes": [
-          "also inclide Traveller pay amount in cash adjust them with pending amount for respective user"
+          "also calculate data of weekend in the summary also"
         ]
       },
       "acceptanceCriteria": [
-        "Exported CSV “Summary” rows show Payments equal to the sum of recorded cash payments for that traveller within the selected date range.",
-        "Exported CSV “Summary” Balance equals Total Charge − Payments for each traveller.",
-        "Daily Grid export remains unchanged except for any necessary recalculation consistency (no regressions in AM/PM export columns)."
+        "Summary calculations (per traveller) include trips from included weekend days in totals.",
+        "Summary UI shows a clear breakdown of trip counts for weekdays vs weekend (at minimum: weekday trips and weekend trips).",
+        "Overall Summary calculations (income/profit) include included weekend trips in the income computation.",
+        "If both Saturday and Sunday are excluded, weekend trip counts display as 0 and do not affect totals."
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "text": "Add report generation that supports exporting filtered reports to PDF and an Excel-compatible format (preferably .xlsx), with multiple user-selectable filters for what data to include in the report.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-2"
+        ],
+        "quotes": [
+          "also a pdf report or .xlms report genration with multiple filters"
+        ]
+      },
+      "acceptanceCriteria": [
+        "The existing \"Export CSV\" action is replaced or expanded into an export UI that lets the user choose an output format: PDF and Excel-compatible (e.g., XLSX) in addition to the existing CSV if kept.",
+        "The export UI provides multiple filters (at minimum): date range (uses current selected date range), selected travellers (all vs subset), and include/exclude sections (Daily Grid, Per-traveller Summary, Payments, Car Expenses, Overall Summary).",
+        "Exported files reflect the chosen filters (excluded sections/travellers are not present; included sections are present).",
+        "Weekend inclusion (Saturday/Sunday toggles) is respected by calculations shown in the exported summary sections.",
+        "User-facing text for export actions and errors remains in English (e.g., success and failure toasts)."
+      ]
+    },
+    {
+      "id": "REQ-5",
+      "text": "Apply a cohesive visual theme across the updated tabs and new controls (consistent spacing, typography, and component styling) without changing app functionality; choose a distinct palette that is not blue/purple and use it consistently.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-2"
+        ],
+        "quotes": [
+          "Yes apply this UI"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Tabs, weekend toggles, and the export/filter UI share a consistent visual style (spacing, sizing, typography).",
+        "The theme uses a distinct, coherent color direction that is not primarily blue/purple.",
+        "No user-facing text is introduced in a non-English language."
       ]
     }
   ],
   "constraints": [
-    "Frontend files under frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useInternetIdentity.tsx, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, and frontend/src/components/ui must not be edited (compose instead).",
-    "Keep the backend as a single Motoko actor; do not introduce additional backend services."
+    "Do not modify files under frontend/src/components/ui (Shadcn components must be composed, not edited).",
+    "Do not edit frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useInternetIdentity.tsx, frontend/src/hooks/useActor.ts, or frontend/src/main.tsx (immutable paths).",
+    "Keep backend as a single Motoko actor (no multi-canister architecture)."
   ],
   "nonGoals": [
-    "Implementing third-party payments or online payment gateways.",
-    "Adding real-time sync across devices/users for cash payments (this request is for in-app entry and calculation).",
-    "Changing the existing AM/PM trip marking behavior or weekend disabling rules."
+    "Adding third-party authentication providers (only Internet Identity is supported).",
+    "Real-time sync or multi-user collaboration for the ledger.",
+    "Generating true macro-enabled Excel (.xlsm) with embedded VBA macros (focus on Excel-compatible export)."
   ],
   "imageRequirements": {
     "required": [],
     "edits": []
-  },
-  "userProfileUpdate": {
-    "goalsToAdd": [],
-    "goalsToRemove": [],
-    "preferencesToAdd": [],
-    "preferencesToRemove": [],
-    "miscToAdd": [],
-    "miscToRemove": [],
-    "fieldsToSet": {},
-    "fieldsToDelete": []
   }
 }

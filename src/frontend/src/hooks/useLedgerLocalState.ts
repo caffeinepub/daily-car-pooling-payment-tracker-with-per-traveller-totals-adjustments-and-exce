@@ -1,14 +1,8 @@
 import { useState, useEffect } from 'react';
-import { startOfWeek, endOfWeek } from 'date-fns';
 
 export interface Traveller {
   id: string;
   name: string;
-}
-
-export interface DateRange {
-  start: Date;
-  end: Date;
 }
 
 export interface TripData {
@@ -22,196 +16,287 @@ export interface DailyData {
   };
 }
 
+export interface DateRange {
+  start: Date;
+  end: Date;
+}
+
 export interface CashPayment {
   id: string;
   travellerId: string;
   amount: number;
-  date: string; // ISO date string
+  date: string;
   note?: string;
 }
 
-const STORAGE_KEY_TRAVELLERS = 'carpool_travellers';
-const STORAGE_KEY_DAILY_DATA = 'carpool_daily_data';
-const STORAGE_KEY_RATE = 'carpool_rate_per_trip';
-const STORAGE_KEY_PAYMENTS = 'carpool_cash_payments';
-
-function loadFromStorage<T>(key: string, defaultValue: T): T {
-  try {
-    const stored = localStorage.getItem(key);
-    return stored ? JSON.parse(stored) : defaultValue;
-  } catch {
-    return defaultValue;
-  }
+export interface OtherPending {
+  id: string;
+  travellerId: string;
+  amount: number;
+  date: string;
+  note?: string;
 }
 
-function saveToStorage<T>(key: string, value: T): void {
-  try {
-    localStorage.setItem(key, JSON.stringify(value));
-  } catch (error) {
-    console.error('Failed to save to localStorage:', error);
-  }
+export interface CarExpense {
+  id: string;
+  date: string;
+  category: string;
+  amount: number;
+  note?: string;
 }
 
-// Migration function to convert old boolean format to new TripData format
-function migrateDailyData(data: any): DailyData {
-  const migrated: DailyData = {};
-  
-  for (const dateKey in data) {
-    migrated[dateKey] = {};
-    for (const travellerId in data[dateKey]) {
-      const value = data[dateKey][travellerId];
-      
-      // Check if it's already in new format
-      if (typeof value === 'object' && value !== null && ('morning' in value || 'evening' in value)) {
-        migrated[dateKey][travellerId] = {
-          morning: value.morning || false,
-          evening: value.evening || false,
-        };
-      } else {
-        // Old format: boolean - convert true to morning=true, evening=false
-        migrated[dateKey][travellerId] = {
-          morning: value === true,
-          evening: false,
-        };
-      }
+const STORAGE_KEY = 'carpool-ledger-state';
+
+interface StoredState {
+  travellers: Traveller[];
+  dailyData: DailyData;
+  dateRange: { start: string; end: string };
+  ratePerTrip: number;
+  cashPayments: CashPayment[];
+  otherPending: OtherPending[];
+  carExpenses: CarExpense[];
+  includeSaturday: boolean;
+  includeSunday: boolean;
+}
+
+// Simple UUID generator
+function generateId(): string {
+  return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+}
+
+function getDefaultDateRange(): DateRange {
+  const today = new Date();
+  const start = new Date(today.getFullYear(), today.getMonth(), 1);
+  const end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+  return { start, end };
+}
+
+function loadState(): StoredState {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      return {
+        ...parsed,
+        includeSaturday: parsed.includeSaturday ?? false,
+        includeSunday: parsed.includeSunday ?? false,
+      };
     }
+  } catch (error) {
+    console.error('Failed to load state:', error);
   }
   
-  return migrated;
+  const defaultRange = getDefaultDateRange();
+  return {
+    travellers: [],
+    dailyData: {},
+    dateRange: {
+      start: defaultRange.start.toISOString(),
+      end: defaultRange.end.toISOString(),
+    },
+    ratePerTrip: 50,
+    cashPayments: [],
+    otherPending: [],
+    carExpenses: [],
+    includeSaturday: false,
+    includeSunday: false,
+  };
+}
+
+function saveState(state: StoredState): void {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch (error) {
+    console.error('Failed to save state:', error);
+  }
 }
 
 export function useLedgerLocalState() {
-  const [travellers, setTravellers] = useState<Traveller[]>(() => loadFromStorage(STORAGE_KEY_TRAVELLERS, []));
-  const [dailyData, setDailyData] = useState<DailyData>(() => {
-    const stored = loadFromStorage(STORAGE_KEY_DAILY_DATA, {});
-    return migrateDailyData(stored);
-  });
-  
-  const [cashPayments, setCashPayments] = useState<CashPayment[]>(() => 
-    loadFromStorage(STORAGE_KEY_PAYMENTS, [])
-  );
-  
-  // Migrate old rate key to new one
-  const [ratePerTrip, setRatePerTrip] = useState<number>(() => {
-    // Try new key first
-    const newRate = localStorage.getItem(STORAGE_KEY_RATE);
-    if (newRate) {
-      try {
-        return JSON.parse(newRate);
-      } catch {
-        // Fall through to old key
-      }
-    }
-    
-    // Try old key
-    const oldRate = localStorage.getItem('carpool_rate_per_day');
-    if (oldRate) {
-      try {
-        return JSON.parse(oldRate);
-      } catch {
-        // Fall through to default
-      }
-    }
-    
-    return 200; // Default to 200 INR per trip
-  });
-  
-  const [dateRange, setDateRange] = useState<DateRange>(() => ({
-    start: startOfWeek(new Date(), { weekStartsOn: 1 }),
-    end: endOfWeek(new Date(), { weekStartsOn: 1 }),
-  }));
+  const [travellers, setTravellers] = useState<Traveller[]>([]);
+  const [dailyData, setDailyData] = useState<DailyData>({});
+  const [draftDailyData, setDraftDailyData] = useState<DailyData>({});
+  const [dateRange, setDateRange] = useState<DateRange>(getDefaultDateRange());
+  const [ratePerTrip, setRatePerTrip] = useState(50);
+  const [cashPayments, setCashPayments] = useState<CashPayment[]>([]);
+  const [otherPending, setOtherPending] = useState<OtherPending[]>([]);
+  const [carExpenses, setCarExpenses] = useState<CarExpense[]>([]);
+  const [includeSaturday, setIncludeSaturday] = useState(false);
+  const [includeSunday, setIncludeSunday] = useState(false);
 
+  // Load state on mount
   useEffect(() => {
-    saveToStorage(STORAGE_KEY_TRAVELLERS, travellers);
-  }, [travellers]);
+    const loaded = loadState();
+    setTravellers(loaded.travellers);
+    setDailyData(loaded.dailyData);
+    setDraftDailyData(loaded.dailyData);
+    setDateRange({
+      start: new Date(loaded.dateRange.start),
+      end: new Date(loaded.dateRange.end),
+    });
+    setRatePerTrip(loaded.ratePerTrip);
+    setCashPayments(loaded.cashPayments);
+    setOtherPending(loaded.otherPending);
+    setCarExpenses(loaded.carExpenses);
+    setIncludeSaturday(loaded.includeSaturday);
+    setIncludeSunday(loaded.includeSunday);
+  }, []);
 
+  // Save state whenever it changes
   useEffect(() => {
-    saveToStorage(STORAGE_KEY_DAILY_DATA, dailyData);
-  }, [dailyData]);
-
-  useEffect(() => {
-    saveToStorage(STORAGE_KEY_RATE, ratePerTrip);
-  }, [ratePerTrip]);
-
-  useEffect(() => {
-    saveToStorage(STORAGE_KEY_PAYMENTS, cashPayments);
-  }, [cashPayments]);
+    const state: StoredState = {
+      travellers,
+      dailyData,
+      dateRange: {
+        start: dateRange.start.toISOString(),
+        end: dateRange.end.toISOString(),
+      },
+      ratePerTrip,
+      cashPayments,
+      otherPending,
+      carExpenses,
+      includeSaturday,
+      includeSunday,
+    };
+    saveState(state);
+  }, [travellers, dailyData, dateRange, ratePerTrip, cashPayments, otherPending, carExpenses, includeSaturday, includeSunday]);
 
   const addTraveller = (name: string) => {
     const newTraveller: Traveller = {
-      id: `t_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      id: generateId(),
       name,
     };
-    setTravellers((prev) => [...prev, newTraveller]);
-  };
-
-  const removeTraveller = (id: string) => {
-    setTravellers((prev) => prev.filter((t) => t.id !== id));
-    // Clean up daily data
-    setDailyData((prev) => {
-      const updated = { ...prev };
-      Object.keys(updated).forEach((dateKey) => {
-        if (updated[dateKey]) {
-          delete updated[dateKey][id];
-        }
-      });
-      return updated;
-    });
-    // Clean up cash payments
-    setCashPayments((prev) => prev.filter((p) => p.travellerId !== id));
+    setTravellers([...travellers, newTraveller]);
   };
 
   const renameTraveller = (id: string, newName: string) => {
-    setTravellers((prev) => prev.map((t) => (t.id === id ? { ...t, name: newName } : t)));
+    setTravellers(travellers.map((t) => (t.id === id ? { ...t, name: newName } : t)));
   };
 
-  const toggleTrip = (dateKey: string, travellerId: string, trip: 'morning' | 'evening') => {
-    setDailyData((prev) => {
-      const updated = { ...prev };
-      if (!updated[dateKey]) {
-        updated[dateKey] = {};
+  const removeTraveller = (id: string) => {
+    setTravellers(travellers.filter((t) => t.id !== id));
+    
+    const newDailyData = { ...dailyData };
+    Object.keys(newDailyData).forEach((dateKey) => {
+      delete newDailyData[dateKey][id];
+    });
+    setDailyData(newDailyData);
+    setDraftDailyData(newDailyData);
+    
+    setCashPayments(cashPayments.filter((p) => p.travellerId !== id));
+    setOtherPending(otherPending.filter((p) => p.travellerId !== id));
+  };
+
+  const toggleDraftTrip = (dateKey: string, travellerId: string, period: 'morning' | 'evening') => {
+    setDraftDailyData((prev) => {
+      const newData = { ...prev };
+      if (!newData[dateKey]) {
+        newData[dateKey] = {};
       }
-      if (!updated[dateKey][travellerId]) {
-        updated[dateKey][travellerId] = { morning: false, evening: false };
+      if (!newData[dateKey][travellerId]) {
+        newData[dateKey][travellerId] = { morning: false, evening: false };
       }
-      
-      updated[dateKey][travellerId] = {
-        ...updated[dateKey][travellerId],
-        [trip]: !updated[dateKey][travellerId][trip],
+      newData[dateKey][travellerId] = {
+        ...newData[dateKey][travellerId],
+        [period]: !newData[dateKey][travellerId][period],
       };
-      
-      return updated;
+      return newData;
     });
   };
 
-  const addCashPayment = (travellerId: string, amount: number, date: string, note?: string) => {
-    const newPayment: CashPayment = {
-      id: `p_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      travellerId,
-      amount,
-      date,
-      note,
-    };
-    setCashPayments((prev) => [...prev, newPayment]);
+  const setDraftTripsForAllTravellers = (dateKey: string, morning: boolean, evening: boolean) => {
+    setDraftDailyData((prev) => {
+      const newData = { ...prev };
+      if (!newData[dateKey]) {
+        newData[dateKey] = {};
+      }
+      travellers.forEach((t) => {
+        newData[dateKey][t.id] = { morning, evening };
+      });
+      return newData;
+    });
   };
 
-  const removeCashPayment = (paymentId: string) => {
-    setCashPayments((prev) => prev.filter((p) => p.id !== paymentId));
+  const saveDraftDailyData = () => {
+    setDailyData(draftDailyData);
+  };
+
+  const discardDraftDailyData = () => {
+    setDraftDailyData(dailyData);
+  };
+
+  const hasDraftChanges = (): boolean => {
+    return JSON.stringify(dailyData) !== JSON.stringify(draftDailyData);
+  };
+
+  const addCashPayment = (payment: Omit<CashPayment, 'id'>) => {
+    const newPayment: CashPayment = {
+      ...payment,
+      id: generateId(),
+    };
+    setCashPayments([...cashPayments, newPayment]);
+  };
+
+  const updateCashPayment = (id: string, updates: Partial<Omit<CashPayment, 'id'>>) => {
+    setCashPayments(cashPayments.map((p) => (p.id === id ? { ...p, ...updates } : p)));
+  };
+
+  const removeCashPayment = (id: string) => {
+    setCashPayments(cashPayments.filter((p) => p.id !== id));
+  };
+
+  const addOtherPending = (pending: Omit<OtherPending, 'id'>) => {
+    const newPending: OtherPending = {
+      ...pending,
+      id: generateId(),
+    };
+    setOtherPending([...otherPending, newPending]);
+  };
+
+  const addCarExpense = (expense: Omit<CarExpense, 'id'>) => {
+    const newExpense: CarExpense = {
+      ...expense,
+      id: generateId(),
+    };
+    setCarExpenses([...carExpenses, newExpense]);
+  };
+
+  const updateCarExpense = (id: string, updates: Partial<Omit<CarExpense, 'id'>>) => {
+    setCarExpenses(carExpenses.map((e) => (e.id === id ? { ...e, ...updates } : e)));
+  };
+
+  const removeCarExpense = (id: string) => {
+    setCarExpenses(carExpenses.filter((e) => e.id !== id));
   };
 
   return {
     travellers,
     addTraveller,
-    removeTraveller,
     renameTraveller,
+    removeTraveller,
+    dailyData,
+    draftDailyData,
+    toggleDraftTrip,
+    setDraftTripsForAllTravellers,
+    saveDraftDailyData,
+    discardDraftDailyData,
+    hasDraftChanges,
     dateRange,
     setDateRange,
-    dailyData,
-    toggleTrip,
     ratePerTrip,
     setRatePerTrip,
     cashPayments,
     addCashPayment,
+    updateCashPayment,
     removeCashPayment,
+    otherPending,
+    addOtherPending,
+    carExpenses,
+    addCarExpense,
+    updateCarExpense,
+    removeCarExpense,
+    includeSaturday,
+    setIncludeSaturday,
+    includeSunday,
+    setIncludeSunday,
   };
 }

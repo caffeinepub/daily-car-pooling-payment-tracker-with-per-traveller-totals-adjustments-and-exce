@@ -1,26 +1,42 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Wallet, Plus } from 'lucide-react';
-import { format } from 'date-fns';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Pencil } from 'lucide-react';
 import { toast } from 'sonner';
 import type { CashPayment } from '../../hooks/useLedgerLocalState';
 
-interface CashPaymentFormProps {
-  travellerId: string;
+interface EditCashPaymentDialogProps {
+  payment: CashPayment;
   travellerName: string;
-  onSubmit: (payment: Omit<CashPayment, 'id'>) => void;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onUpdatePayment: (paymentId: string, patch: Partial<Pick<CashPayment, 'amount' | 'date' | 'note'>>) => void;
 }
 
-export default function CashPaymentForm({ travellerId, travellerName, onSubmit }: CashPaymentFormProps) {
-  const [open, setOpen] = useState(false);
-  const [amount, setAmount] = useState('');
-  const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
-  const [note, setNote] = useState('');
+export default function EditCashPaymentDialog({
+  payment,
+  travellerName,
+  open,
+  onOpenChange,
+  onUpdatePayment,
+}: EditCashPaymentDialogProps) {
+  const [amount, setAmount] = useState(payment.amount.toString());
+  const [date, setDate] = useState(payment.date);
+  const [note, setNote] = useState(payment.note || '');
   const [error, setError] = useState('');
+
+  // Reset form when payment changes or dialog opens
+  useEffect(() => {
+    if (open) {
+      setAmount(payment.amount.toString());
+      setDate(payment.date);
+      setNote(payment.note || '');
+      setError('');
+    }
+  }, [open, payment]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,47 +49,36 @@ export default function CashPaymentForm({ travellerId, travellerName, onSubmit }
       return;
     }
 
-    onSubmit({
-      travellerId,
+    onUpdatePayment(payment.id, {
       amount: numAmount,
       date,
       note: note || undefined,
     });
-    toast.success(`Payment of ₹${numAmount} recorded for ${travellerName}`);
-    
-    // Reset form
-    setAmount('');
-    setDate(format(new Date(), 'yyyy-MM-dd'));
-    setNote('');
-    setOpen(false);
+
+    toast.success(`Payment updated for ${travellerName}`);
+    onOpenChange(false);
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="w-full">
-          <Plus className="mr-2 h-3 w-3" />
-          Add Payment
-        </Button>
-      </DialogTrigger>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Wallet className="h-5 w-5" />
-            Record Cash Payment
+            <Pencil className="h-5 w-5" />
+            Edit Cash Payment
           </DialogTitle>
           <DialogDescription>
-            Record a cash payment for {travellerName}
+            Update the payment details for {travellerName}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="amount">
+              <Label htmlFor="edit-amount">
                 Amount (₹) <span className="text-destructive">*</span>
               </Label>
               <Input
-                id="amount"
+                id="edit-amount"
                 type="number"
                 step="0.01"
                 min="0"
@@ -88,18 +93,18 @@ export default function CashPaymentForm({ travellerId, travellerName, onSubmit }
               {error && <p className="text-sm text-destructive">{error}</p>}
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="date">Payment Date</Label>
+              <Label htmlFor="edit-date">Payment Date</Label>
               <Input
-                id="date"
+                id="edit-date"
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="note">Note (optional)</Label>
+              <Label htmlFor="edit-note">Note (optional)</Label>
               <Textarea
-                id="note"
+                id="edit-note"
                 placeholder="Add a note about this payment"
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
@@ -108,10 +113,10 @@ export default function CashPaymentForm({ travellerId, travellerName, onSubmit }
             </div>
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit">Record Payment</Button>
+            <Button type="submit">Save Changes</Button>
           </DialogFooter>
         </form>
       </DialogContent>

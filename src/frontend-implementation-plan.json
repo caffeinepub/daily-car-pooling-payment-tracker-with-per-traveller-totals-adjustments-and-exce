@@ -1,75 +1,161 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Per-traveller cash payments in Summary + local persistence + CSV export",
+  "title": "Ledger: always-on tabs, weekend inclusion controls, and filtered PDF/XLSX exports",
   "requirements": [
     {
-      "id": "REQ-15",
-      "summary": "Add per-traveller cash payment entry UI and apply recorded payments to reduce pending balance within the selected date range.",
+      "id": "REQ-1",
+      "summary": "Make Ledger sections always accessible via consistent clickable tabs on all screen sizes while preserving Daily unsaved-changes protection.",
       "acceptanceCriteria": [
-        "In the Summary view, each traveller shows non-zero Payments when cash payments have been recorded for that traveller within the selected date range.",
-        "Balance in Summary is recalculated as: (tripCount × ratePerTrip) − payments (and continues to update immediately when AM/PM checkboxes are toggled or ratePerTrip changes).",
-        "A user can record a cash payment for a specific traveller (at minimum: amount; date defaults to today; optional note if already supported elsewhere).",
-        "After recording a cash payment, the traveller’s pending Balance decreases immediately without page refresh.",
-        "Cash payment input validates numeric amount > 0 and shows user-facing validation text in English when invalid."
+        "On small and large screens, the UI shows the same set of tabs: Travellers, Daily, Summary, Car, Overall.",
+        "Each tab is independently clickable/tappable regardless of viewport size.",
+        "The previous desktop 3-column layout is replaced (or made optional) so tab navigation is still the primary navigation on desktop.",
+        "Unsaved-changes protection when navigating away from the Daily tab still works (the existing confirmation dialog still appears when draft changes exist)."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/features/ledger/LedgerPage.tsx",
+          "operation": "modify",
+          "description": "Replace the desktop multi-column layout with the same shadcn/ui Tabs-based navigation used on mobile so tabs are the primary navigation on all viewport sizes; ensure the tab triggers are always visible/clickable and keep tab set consistent (Travellers, Daily, Summary, Car, Overall). Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/features/ledger/LedgerPage.tsx",
+          "operation": "modify",
+          "description": "Update the tab-change logic so the unsaved-changes confirmation dialog triggers whenever leaving the Daily tab (not only on mobile), and ensure the pending-tab flow still navigates correctly after discard. Verify the component's usage instructions before implementing."
+        }
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "summary": "Add persisted Include Saturday / Include Sunday controls and use them to enable/disable weekend editing in the Daily grid (including bulk actions).",
+      "acceptanceCriteria": [
+        "The UI includes two independent toggles/checkboxes labeled in English: \"Include Saturday\" and \"Include Sunday\" (or equivalent).",
+        "When a weekend day is excluded, its Daily grid checkboxes are disabled (read-only) similar to current behavior.",
+        "When a weekend day is included, its Daily grid checkboxes are enabled and can be checked/unchecked.",
+        "The bulk \"Mark all travellers for today\" control respects these weekend toggles (disabled only if today is an excluded weekend day).",
+        "The include/exclude weekend selection persists for the user (e.g., via the existing local state persistence pattern)."
       ],
       "file_operations": [
         {
           "path": "frontend/src/hooks/useLedgerLocalState.ts",
           "operation": "modify",
-          "description": "Extend local ledger state to track per-traveller cash payments (amount, date, optional note) and expose actions to add a payment (and optionally delete/reset payments) while keeping state updates immediate for Summary recalculation."
+          "description": "Add two persisted boolean preferences (includeSaturday/includeSunday) using the existing localStorage persistence pattern, and expose getters/setters from the ledger local state hook."
         },
         {
           "path": "frontend/src/features/ledger/LedgerStateContext.tsx",
           "operation": "modify",
-          "description": "Expand the LedgerStateContext value to include cash payments data and actions (e.g., addCashPayment) so Summary and Export can consume the same source of truth."
+          "description": "Extend the LedgerStateContextValue typing to include the weekend inclusion preferences and setters so they are available across ledger panels."
         },
         {
-          "path": "frontend/src/features/ledger/CashPaymentForm.tsx",
+          "path": "frontend/src/utils/weekendInclusion.ts",
           "operation": "create",
-          "description": "Create a reusable per-traveller cash payment entry UI (amount required, date defaulting to today, optional note) with English validation messaging for invalid amount (> 0). Use shadcn-ui form inputs/buttons to match existing UI; Verify the component's usage instructions before implementing."
+          "description": "Add shared helper(s) to classify a date as weekday/Saturday/Sunday and to determine whether a given date should be editable/included based on includeSaturday/includeSunday, to avoid duplicated logic across grid/summary/export."
         },
+        {
+          "path": "frontend/src/features/ledger/DailyParticipationGrid.tsx",
+          "operation": "modify",
+          "description": "Add two shadcn/ui Checkbox controls labeled \"Include Saturday\" and \"Include Sunday\" (with consistent spacing/typography), wired to persisted ledger preferences. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/features/ledger/DailyParticipationGrid.tsx",
+          "operation": "modify",
+          "description": "Update per-day and 'today bulk' disabled logic so only excluded weekend days are read-only (Saturday depends on Include Saturday, Sunday depends on Include Sunday), while weekdays remain editable; apply the same logic to row styling/opacity. Verify the component's usage instructions before implementing."
+        }
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "summary": "Include weekend data in summaries with weekday vs weekend trip/charge breakdowns, respecting weekend inclusion toggles and keeping totals correct.",
+      "acceptanceCriteria": [
+        "Summary calculations (per traveller) include trips from included weekend days in totals.",
+        "Summary UI shows a clear breakdown of trip counts for weekdays vs weekend (at minimum: weekday trips and weekend trips).",
+        "Overall Summary calculations (income/profit) include included weekend trips in the income computation.",
+        "If both Saturday and Sunday are excluded, weekend trip counts display as 0 and do not affect totals."
+      ],
+      "file_operations": [
         {
           "path": "frontend/src/features/ledger/SummaryPanel.tsx",
           "operation": "modify",
-          "description": "Integrate cash payments into per-traveller summary calculations by summing recorded payments within the currently selected date range and recomputing Balance = Total Charge − Payments. Render the CashPaymentForm for each traveller (or within each traveller summary block) and update displayed Payments/Balance immediately on add."
+          "description": "Update per-traveller calculations to compute weekdayTrips and weekendTrips (and totals/charges) using the shared weekend inclusion helper and the user's Include Saturday/Sunday settings; show a clear weekday vs weekend breakdown in the Summary UI while keeping existing payments/other pending behavior intact. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/features/ledger/OverallSummaryPanel.tsx",
+          "operation": "modify",
+          "description": "Update overall income computations to count trips only on included dates (weekdays + included weekend days) using the shared weekend inclusion helper and user toggles, so totals/profit reflect included weekend trips. Verify the component's usage instructions before implementing."
         }
       ]
     },
     {
-      "id": "REQ-16",
-      "summary": "Persist per-traveller cash payments in localStorage alongside existing ledger local state with safe loading and cleanup on traveller removal.",
+      "id": "REQ-4",
+      "summary": "Replace/expand CSV export into a filtered export UI supporting PDF and Excel-compatible (XLSX preferred) outputs, with selectable filters and weekend-toggle-aware calculations.",
       "acceptanceCriteria": [
-        "After adding cash payments and reloading the page, Summary still shows the same Payments and Balance totals for the same date range.",
-        "Removing a traveller removes (or safely ignores) any stored payments associated with that traveller to prevent orphaned data errors.",
-        "If a new localStorage key is introduced for cash payments, the app handles missing/old data safely (no runtime errors on load)."
+        "The existing \"Export CSV\" action is replaced or expanded into an export UI that lets the user choose an output format: PDF and Excel-compatible (e.g., XLSX) in addition to the existing CSV if kept.",
+        "The export UI provides multiple filters (at minimum): date range (uses current selected date range), selected travellers (all vs subset), and include/exclude sections (Daily Grid, Per-traveller Summary, Payments, Car Expenses, Overall Summary).",
+        "Exported files reflect the chosen filters (excluded sections/travellers are not present; included sections are present).",
+        "Weekend inclusion (Saturday/Sunday toggles) is respected by calculations shown in the exported summary sections.",
+        "User-facing text for export actions and errors remains in English (e.g., success and failure toasts)."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/hooks/useLedgerLocalState.ts",
+          "path": "frontend/package.json",
           "operation": "modify",
-          "description": "Add a dedicated localStorage key for cash payments; implement safe load/parse with defaults and optional migration; persist on change; and ensure removeTraveller also removes/filters any payments for that traveller to avoid orphaned payment records."
-        }
-      ]
-    },
-    {
-      "id": "REQ-17",
-      "summary": "Update CSV export Summary section to include recorded per-traveller cash payments and resulting balances for the selected date range.",
-      "acceptanceCriteria": [
-        "Exported CSV “Summary” rows show Payments equal to the sum of recorded cash payments for that traveller within the selected date range.",
-        "Exported CSV “Summary” Balance equals Total Charge − Payments for each traveller.",
-        "Daily Grid export remains unchanged except for any necessary recalculation consistency (no regressions in AM/PM export columns)."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/utils/exportExcel.ts",
-          "operation": "modify",
-          "description": "Update export state shape to include cash payments; compute per-traveller Payments as the sum of recorded cash payments within the selected date range; export Summary rows with correct Payments and Balance while leaving Daily Grid rows/columns unchanged."
+          "description": "Add client-side export dependencies to support PDF and XLSX generation (e.g., a PDF generation library and an XLSX writer), and ensure they are used only in the export flow."
         },
         {
           "path": "frontend/src/features/ledger/ExportButton.tsx",
           "operation": "modify",
-          "description": "Ensure the ledger state passed into export includes cash payments (via updated context typing/shape) so exported CSV Summary reflects recorded payments and balances."
+          "description": "Replace the single-action CSV export button with an export dialog/popover UI that lets the user choose format (CSV/PDF/XLSX) and configure filters (traveller subset, section inclusion toggles) while keeping English labels and toast-based success/failure messaging. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/features/ledger/ExportReportDialog.tsx",
+          "operation": "create",
+          "description": "Create a dedicated export UI component (Dialog-based) composed from shadcn/ui primitives (Dialog, Checkbox, Select/Radio, Buttons, etc.) to gather format + filters and call the export utility. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/utils/exportReport.ts",
+          "operation": "create",
+          "description": "Implement filtered report generation utilities that can produce CSV, XLSX, and PDF outputs from the current ledger state; apply selected filters (date range from current selection, traveller subset, included sections) and ensure weekend inclusion toggles are respected in summary/overall calculations."
+        },
+        {
+          "path": "frontend/src/utils/exportExcel.ts",
+          "operation": "modify",
+          "description": "Refactor or delegate existing CSV generation logic into the new filtered export utility so legacy behavior is preserved when CSV is selected, while enabling section/traveller filtering and weekend-toggle-aware calculations."
+        },
+        {
+          "path": "frontend/src/features/ledger/LedgerPage.tsx",
+          "operation": "modify",
+          "description": "Wire the new export dialog/button behavior into the Ledger toolbar area so the export UI is reachable wherever the Ledger page is used, with no orphaned components. Verify the component's usage instructions before implementing."
+        }
+      ]
+    },
+    {
+      "id": "REQ-5",
+      "summary": "Apply a cohesive non-blue/purple visual theme to tabs, weekend toggles, and export/filter UI using existing styling entry points and consistent component composition.",
+      "acceptanceCriteria": [
+        "Tabs, weekend toggles, and the export/filter UI share a consistent visual style (spacing, sizing, typography).",
+        "The theme uses a distinct, coherent color direction that is not primarily blue/purple.",
+        "No user-facing text is introduced in a non-English language."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/features/ledger/LedgerPage.tsx",
+          "operation": "modify",
+          "description": "Unify tab styling (TabsList/TabsTrigger sizing, spacing, typography) so the tab navigation looks consistent across screen sizes and matches the updated theme. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/features/ledger/DailyParticipationGrid.tsx",
+          "operation": "modify",
+          "description": "Align the weekend inclusion controls and bulk action row styling with the same spacing/typography used elsewhere in the Ledger (cards, section headers), maintaining English-only UI text. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/features/ledger/ExportReportDialog.tsx",
+          "operation": "modify",
+          "description": "Ensure the export dialog/filter controls use consistent layout, spacing, and button styling aligned with the app theme, and avoid introducing non-English strings. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/index.css",
+          "operation": "modify",
+          "description": "Apply small theme-level adjustments (using existing Tailwind/shadcn variable-driven styling) to support consistent appearance of tabs and controls; keep the palette distinct and not primarily blue/purple."
         }
       ]
     }

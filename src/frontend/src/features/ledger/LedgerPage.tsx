@@ -4,95 +4,137 @@ import TravellerManager from './TravellerManager';
 import DateRangePicker from './DateRangePicker';
 import DailyParticipationGrid from './DailyParticipationGrid';
 import SummaryPanel from './SummaryPanel';
+import CarExpensesPanel from './CarExpensesPanel';
+import OverallSummaryPanel from './OverallSummaryPanel';
 import ExportButton from './ExportButton';
 import RatePerTripControl from './RatePerTripControl';
-import { LedgerStateProvider } from './LedgerStateContext';
+import PaymentHistoryDialog from './PaymentHistoryDialog';
+import ExpenseHistoryDialog from './ExpenseHistoryDialog';
+import { LedgerStateProvider, useLedgerState } from './LedgerStateContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Calendar, Users, Receipt } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Calendar, Users, Receipt, Car, TrendingUp } from 'lucide-react';
 
 function LedgerPageContent() {
-  const [activeTab, setActiveTab] = useState('grid');
+  const [activeTab, setActiveTab] = useState('travellers');
+  const [pendingTab, setPendingTab] = useState<string | null>(null);
+  const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
+  const { hasDraftChanges, discardDraftDailyData } = useLedgerState();
+
+  const handleTabChange = (newTab: string) => {
+    // Check for unsaved changes when leaving the Daily tab
+    if (activeTab === 'grid' && newTab !== 'grid' && hasDraftChanges()) {
+      setPendingTab(newTab);
+      setShowUnsavedDialog(true);
+    } else {
+      setActiveTab(newTab);
+    }
+  };
+
+  const handleDiscardChanges = () => {
+    discardDraftDailyData();
+    if (pendingTab) {
+      setActiveTab(pendingTab);
+    }
+    setShowUnsavedDialog(false);
+    setPendingTab(null);
+  };
+
+  const handleStay = () => {
+    setShowUnsavedDialog(false);
+    setPendingTab(null);
+  };
+
+  const handleSaveAndNext = () => {
+    setActiveTab('summary');
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
       <AppHeader />
 
       <main className="flex-1 container py-6 px-4 space-y-6">
-        {/* Date Range, Rate & Export */}
+        {/* Date Range, Rate, Payment History, Expense History & Export */}
         <div className="flex flex-col gap-4">
           <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
             <DateRangePicker />
-            <ExportButton />
+            <div className="flex gap-2 flex-wrap">
+              <PaymentHistoryDialog />
+              <ExpenseHistoryDialog />
+              <ExportButton />
+            </div>
           </div>
           <div className="flex justify-start">
             <RatePerTripControl />
           </div>
         </div>
 
-        {/* Mobile Tabs */}
-        <div className="lg:hidden">
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="travellers">
-                <Users className="h-4 w-4 mr-2" />
-                Travellers
-              </TabsTrigger>
-              <TabsTrigger value="grid">
-                <Calendar className="h-4 w-4 mr-2" />
-                Daily
-              </TabsTrigger>
-              <TabsTrigger value="summary">
-                <Receipt className="h-4 w-4 mr-2" />
-                Summary
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="travellers" className="mt-4">
-              <TravellerManager />
-            </TabsContent>
-
-            <TabsContent value="grid" className="mt-4">
-              <DailyParticipationGrid />
-            </TabsContent>
-
-            <TabsContent value="summary" className="mt-4">
-              <SummaryPanel />
-            </TabsContent>
-          </Tabs>
-        </div>
-
-        {/* Desktop Layout */}
-        <div className="hidden lg:grid lg:grid-cols-12 gap-6">
-          <div className="lg:col-span-3">
+        {/* Unified Tab Navigation for All Screen Sizes */}
+        <Tabs value={activeTab} onValueChange={handleTabChange}>
+          <TabsList className="grid w-full grid-cols-5 h-auto">
+            <TabsTrigger value="travellers" className="flex flex-col sm:flex-row items-center gap-1 py-2">
+              <Users className="h-4 w-4" />
+              <span className="text-xs sm:text-sm">Travellers</span>
+            </TabsTrigger>
+            <TabsTrigger value="grid" className="flex flex-col sm:flex-row items-center gap-1 py-2">
+              <Calendar className="h-4 w-4" />
+              <span className="text-xs sm:text-sm">Daily</span>
+            </TabsTrigger>
+            <TabsTrigger value="summary" className="flex flex-col sm:flex-row items-center gap-1 py-2">
+              <Receipt className="h-4 w-4" />
+              <span className="text-xs sm:text-sm">Summary</span>
+            </TabsTrigger>
+            <TabsTrigger value="car" className="flex flex-col sm:flex-row items-center gap-1 py-2">
+              <Car className="h-4 w-4" />
+              <span className="text-xs sm:text-sm">Car</span>
+            </TabsTrigger>
+            <TabsTrigger value="overall" className="flex flex-col sm:flex-row items-center gap-1 py-2">
+              <TrendingUp className="h-4 w-4" />
+              <span className="text-xs sm:text-sm">Overall</span>
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="travellers" className="mt-6">
             <TravellerManager />
-          </div>
-
-          <div className="lg:col-span-6">
-            <DailyParticipationGrid />
-          </div>
-
-          <div className="lg:col-span-3">
+          </TabsContent>
+          <TabsContent value="grid" className="mt-6">
+            <DailyParticipationGrid onSaveAndNext={handleSaveAndNext} />
+          </TabsContent>
+          <TabsContent value="summary" className="mt-6">
             <SummaryPanel />
-          </div>
-        </div>
+          </TabsContent>
+          <TabsContent value="car" className="mt-6">
+            <CarExpensesPanel />
+          </TabsContent>
+          <TabsContent value="overall" className="mt-6">
+            <OverallSummaryPanel />
+          </TabsContent>
+        </Tabs>
       </main>
 
-      {/* Footer */}
-      <footer className="border-t py-6 px-4 text-center text-sm text-muted-foreground">
-        <p>
-          © {new Date().getFullYear()} · Built with ❤️ using{' '}
-          <a
-            href={`https://caffeine.ai/?utm_source=Caffeine-footer&utm_medium=referral&utm_content=${encodeURIComponent(
-              window.location.hostname
-            )}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="underline hover:text-foreground transition-colors"
-          >
-            caffeine.ai
-          </a>
-        </p>
-      </footer>
+      {/* Unsaved Changes Dialog */}
+      <AlertDialog open={showUnsavedDialog} onOpenChange={setShowUnsavedDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Unsaved Changes</AlertDialogTitle>
+            <AlertDialogDescription>
+              You have unsaved changes in the Daily grid. Do you want to discard them and continue?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleStay}>Stay</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDiscardChanges}>Discard Changes</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

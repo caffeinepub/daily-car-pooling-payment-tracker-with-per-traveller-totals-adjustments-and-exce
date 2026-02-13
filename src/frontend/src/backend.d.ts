@@ -7,12 +7,9 @@ export interface None {
     __kind__: "None";
 }
 export type Option<T> = Some<T> | None;
-export interface Date_ {
-    day: bigint;
-    month: bigint;
-    year: bigint;
+export interface BackupData {
+    userProfile?: UserProfile;
 }
-export type Amount = bigint;
 export interface UserProfile {
     name: string;
 }
@@ -23,13 +20,14 @@ export enum UserRole {
 }
 export interface backendInterface {
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
-    getAllBalances(): Promise<Array<[Principal, Amount]>>;
-    getBalance(user: Principal): Promise<Amount>;
+    exportBackup(): Promise<BackupData>;
+    getAllBalances(): Promise<Array<[Principal, bigint]>>;
+    getBalance(user: Principal): Promise<bigint>;
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
+    importBackup(backup: BackupData): Promise<void>;
     isCallerAdmin(): Promise<boolean>;
-    recordPayment(eventDate: Date_, amount: Amount, note: string | null): Promise<void>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
-    startCharge(description: string, amount: Amount, participants: Array<Principal>): Promise<void>;
+    startCharge(description: string, amount: bigint, participants: Array<Principal>): Promise<void>;
 }

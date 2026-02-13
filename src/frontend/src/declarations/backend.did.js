@@ -13,23 +13,19 @@ export const UserRole = IDL.Variant({
   'user' : IDL.Null,
   'guest' : IDL.Null,
 });
-export const Amount = IDL.Nat;
 export const UserProfile = IDL.Record({ 'name' : IDL.Text });
-export const Date = IDL.Record({
-  'day' : IDL.Nat,
-  'month' : IDL.Nat,
-  'year' : IDL.Nat,
-});
+export const BackupData = IDL.Record({ 'userProfile' : IDL.Opt(UserProfile) });
 
 export const idlService = IDL.Service({
   '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
   'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
+  'exportBackup' : IDL.Func([], [BackupData], ['query']),
   'getAllBalances' : IDL.Func(
       [],
-      [IDL.Vec(IDL.Tuple(IDL.Principal, Amount))],
+      [IDL.Vec(IDL.Tuple(IDL.Principal, IDL.Nat))],
       ['query'],
     ),
-  'getBalance' : IDL.Func([IDL.Principal], [Amount], ['query']),
+  'getBalance' : IDL.Func([IDL.Principal], [IDL.Nat], ['query']),
   'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
   'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
   'getUserProfile' : IDL.Func(
@@ -37,10 +33,10 @@ export const idlService = IDL.Service({
       [IDL.Opt(UserProfile)],
       ['query'],
     ),
+  'importBackup' : IDL.Func([BackupData], [], []),
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
-  'recordPayment' : IDL.Func([Date, Amount, IDL.Opt(IDL.Text)], [], []),
   'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
-  'startCharge' : IDL.Func([IDL.Text, Amount, IDL.Vec(IDL.Principal)], [], []),
+  'startCharge' : IDL.Func([IDL.Text, IDL.Nat, IDL.Vec(IDL.Principal)], [], []),
 });
 
 export const idlInitArgs = [];
@@ -51,23 +47,19 @@ export const idlFactory = ({ IDL }) => {
     'user' : IDL.Null,
     'guest' : IDL.Null,
   });
-  const Amount = IDL.Nat;
   const UserProfile = IDL.Record({ 'name' : IDL.Text });
-  const Date = IDL.Record({
-    'day' : IDL.Nat,
-    'month' : IDL.Nat,
-    'year' : IDL.Nat,
-  });
+  const BackupData = IDL.Record({ 'userProfile' : IDL.Opt(UserProfile) });
   
   return IDL.Service({
     '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
     'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
+    'exportBackup' : IDL.Func([], [BackupData], ['query']),
     'getAllBalances' : IDL.Func(
         [],
-        [IDL.Vec(IDL.Tuple(IDL.Principal, Amount))],
+        [IDL.Vec(IDL.Tuple(IDL.Principal, IDL.Nat))],
         ['query'],
       ),
-    'getBalance' : IDL.Func([IDL.Principal], [Amount], ['query']),
+    'getBalance' : IDL.Func([IDL.Principal], [IDL.Nat], ['query']),
     'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
     'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
     'getUserProfile' : IDL.Func(
@@ -75,11 +67,11 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Opt(UserProfile)],
         ['query'],
       ),
+    'importBackup' : IDL.Func([BackupData], [], []),
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
-    'recordPayment' : IDL.Func([Date, Amount, IDL.Opt(IDL.Text)], [], []),
     'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
     'startCharge' : IDL.Func(
-        [IDL.Text, Amount, IDL.Vec(IDL.Principal)],
+        [IDL.Text, IDL.Nat, IDL.Vec(IDL.Principal)],
         [],
         [],
       ),

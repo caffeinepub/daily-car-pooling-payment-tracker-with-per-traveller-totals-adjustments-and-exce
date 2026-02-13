@@ -6,8 +6,8 @@ import DailyParticipationGrid from './DailyParticipationGrid';
 import SummaryPanel from './SummaryPanel';
 import CarExpensesPanel from './CarExpensesPanel';
 import OverallSummaryPanel from './OverallSummaryPanel';
+import BackupRestorePanel from './BackupRestorePanel';
 import ClearDataPanel from './ClearDataPanel';
-import SettingsPanel from './SettingsPanel';
 import ExportButton from './ExportButton';
 import RatePerTripControl from './RatePerTripControl';
 import PaymentHistoryDialog from './PaymentHistoryDialog';
@@ -24,13 +24,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Calendar, Users, Receipt, Car, TrendingUp, Trash2, Settings } from 'lucide-react';
+import { Calendar, Users, Receipt, Car, TrendingUp, Database, Trash2 } from 'lucide-react';
 
 function LedgerPageContent() {
   const [activeTab, setActiveTab] = useState('travellers');
   const [pendingTab, setPendingTab] = useState<string | null>(null);
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
-  const { hasDraftChanges, discardDraftDailyData, isLoading } = useLedgerState();
+  const { hasDraftChanges, discardDraftDailyData } = useLedgerState();
 
   const handleTabChange = (newTab: string) => {
     // Check for unsaved changes when leaving the Daily tab
@@ -59,20 +59,6 @@ function LedgerPageContent() {
   const handleSaveAndNext = () => {
     setActiveTab('summary');
   };
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex flex-col">
-        <AppHeader />
-        <main className="flex-1 container py-6 px-4 flex items-center justify-center">
-          <div className="text-center space-y-4">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-            <p className="text-muted-foreground">Loading your ledger data...</p>
-          </div>
-        </main>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -117,9 +103,9 @@ function LedgerPageContent() {
               <TrendingUp className="h-4 w-4" />
               <span className="text-xs sm:text-sm">Overall</span>
             </TabsTrigger>
-            <TabsTrigger value="settings" className="flex flex-col sm:flex-row items-center gap-1 py-2">
-              <Settings className="h-4 w-4" />
-              <span className="text-xs sm:text-sm">Settings</span>
+            <TabsTrigger value="backup" className="flex flex-col sm:flex-row items-center gap-1 py-2">
+              <Database className="h-4 w-4" />
+              <span className="text-xs sm:text-sm">Backup</span>
             </TabsTrigger>
             <TabsTrigger value="clear" className="flex flex-col sm:flex-row items-center gap-1 py-2">
               <Trash2 className="h-4 w-4" />
@@ -141,8 +127,8 @@ function LedgerPageContent() {
           <TabsContent value="overall" className="mt-6">
             <OverallSummaryPanel />
           </TabsContent>
-          <TabsContent value="settings" className="mt-6">
-            <SettingsPanel />
+          <TabsContent value="backup" className="mt-6">
+            <BackupRestorePanel />
           </TabsContent>
           <TabsContent value="clear" className="mt-6">
             <ClearDataPanel />

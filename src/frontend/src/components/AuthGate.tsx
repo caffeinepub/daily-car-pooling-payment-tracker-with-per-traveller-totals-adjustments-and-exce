@@ -21,8 +21,7 @@ export default function AuthGate({ children }: AuthGateProps) {
             <div>
               <CardTitle className="text-2xl">Carpool Ledger</CardTitle>
               <CardDescription className="mt-2">
-                Track daily carpooling expenses, manage traveller balances, and export reports. 
-                Your data syncs across all devices.
+                Track daily carpooling expenses, manage traveller balances, and export reports
               </CardDescription>
             </div>
           </CardHeader>

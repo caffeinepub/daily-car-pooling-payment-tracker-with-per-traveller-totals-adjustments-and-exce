@@ -1,93 +1,114 @@
 {
   "kind": "build_request",
-  "title": "Fix ledger backup/export by persisting ledger state in canister and exporting full raw records",
-  "priority": "high",
+  "title": "Add Backup & Restore tab to export/import all stored app data (JSON, merge restore)",
+  "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Implement canister-backed persistence for the full LedgerState (travellers, daily participation history, dateRange, ratePerTrip, cashPayments, otherPending, carExpenses, includeSaturday/includeSunday) keyed to the authenticated caller, so data is not stored only in browser memory.",
-      "target": "backend",
+      "text": "Add a new Ledger page tab named \"Backup & Restore\" positioned immediately before the existing \"Clear Data\" tab in the tab bar, and render a new panel for this tab.",
+      "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-4",
-          "msg-6"
+          "msg-1"
         ],
         "quotes": [
-          "Might be data is storing in browser memory i dont know you machanism",
-          "it is not backing up data of Travellers, Daily Participation history, summary, car expense, overall summary"
+          "Just provide a machanism to Backup and restore all the data present\ncreate a tab before clear data",
+          "Backup & Restore"
         ]
       },
       "acceptanceCriteria": [
-        "Backend exposes stable storage for ledger data per caller (Internet Identity principal).",
-        "After refresh/sign-out/sign-in on the same identity, previously entered travellers, daily participation, payments, other pending, car expenses, and settings reload from the canister (not empty)."
+        "Ledger page shows a new tab label \"Backup & Restore\" in the TabsList before the \"Clear Data\" tab.",
+        "Selecting \"Backup & Restore\" displays a dedicated panel; existing tabs (Travellers/Daily/Summary/Car Expense/Overall/Clear Data) continue to work as before."
       ]
     },
     {
       "id": "REQ-2",
-      "text": "Add backend methods for ledger backup/restore so the export contains the full raw records exactly as stored: loadLedgerState, saveLedgerState, exportLedgerData (returns LedgerState), restoreLedgerData (accepts LedgerState), and clearAllLedgerData (or equivalent) for the caller.",
-      "target": "backend",
+      "text": "Implement \"Backup\" export that downloads a JSON file containing all stored app data, including (at minimum) the locally stored ledger state under the existing localStorage key \"carpool-ledger-state\" and the authenticated caller's user profile stored in the backend (if present).",
+      "target": "both",
       "source": {
         "messageIds": [
-          "msg-3",
-          "msg-4"
+          "msg-1"
         ],
         "quotes": [
-          "yes backup file is created but no data in it attaching content of file",
-          "2 - automatically"
+          "JSON file",
+          "all stored data in the app"
         ]
       },
       "acceptanceCriteria": [
-        "exportLedgerData returns non-empty arrays/objects when the caller has stored data (e.g., travellers.length > 0 after adding travellers).",
-        "restoreLedgerData overwrites the caller’s stored ledger with the uploaded LedgerState and subsequent export returns the restored data.",
-        "Backend enforces that callers can only load/save/export/restore/clear their own ledger data."
+        "Backup panel includes a clear action (e.g., button) to download a .json file.",
+        "The exported JSON includes the full ledger local state (travellers, dailyData, dateRange, ratePerTrip, cashPayments, otherPending, carExpenses, includeSaturday, includeSunday) sourced from the same data used by the app (localStorage key \"carpool-ledger-state\").",
+        "The exported JSON includes the current caller user profile data returned by backend getCallerUserProfile (or null/omitted when no profile exists).",
+        "Export works while authenticated; failures show an English error message/toast without crashing the app."
       ]
     },
     {
       "id": "REQ-3",
-      "text": "Wire the frontend ledger data layer to the backend by replacing the current placeholder implementations in frontend/src/hooks/useLedgerQueries.ts (which currently return null or an empty LedgerBackup) with real actor calls to the new backend methods.",
-      "target": "frontend",
+      "text": "Implement \"Restore\" import that accepts a user-selected JSON file and restores data by merging it with existing stored data (do not clear existing data during restore).",
+      "target": "both",
       "source": {
         "messageIds": [
-          "msg-3"
+          "msg-1"
         ],
         "quotes": [
-          "yes backup file is created but no data in it attaching content of file"
+          "merge with existing data"
         ]
       },
       "acceptanceCriteria": [
-        "useLoadLedgerState returns the caller’s persisted LedgerState from the canister (not always null).",
-        "useSaveLedgerState persists changes to the canister (no longer just console logging).",
-        "useExportLedgerBackup exports a JSON file whose data fields match the caller’s stored ledger and are not empty when data exists.",
-        "useRestoreLedgerBackup sends the uploaded backup to the backend and refreshes the UI from canister data."
+        "Backup panel includes a file input (accepting .json) and a restore action.",
+        "On selecting an invalid JSON file or invalid schema, the UI shows an English error message/toast and does not modify existing data.",
+        "On successful restore, existing data remains present and backup data is merged in (no destructive overwrite/clear of collections).",
+        "After restore, the UI updates immediately to reflect the merged state across all relevant screens/tabs without requiring a refresh."
       ]
     },
     {
       "id": "REQ-4",
-      "text": "Ensure all destructive 'Clear Data' actions clear canister-backed data as well (not only React local state), so exports after clearing do not include cleared records.",
-      "target": "both",
+      "text": "Define and apply deterministic merge rules for restoring ledger local state so that repeated restores are idempotent and do not create duplicate records.",
+      "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-6"
+          "msg-1"
         ],
         "quotes": [
-          "Might be data is storing in browser memory i dont know you machanism"
+          "merge with existing data",
+          "all stored data in the app"
         ]
       },
       "acceptanceCriteria": [
-        "After using 'Clear All Ledger Data', exporting a backup produces an empty/default LedgerState for the caller.",
-        "After using each targeted clear option (daily participation only, cash payments only, other pending only, car expenses only), exporting a backup reflects only that dataset being cleared while other datasets remain intact."
+        "Travellers: merge by traveller.id; if an id already exists locally, keep the local record; otherwise add the backup record.",
+        "Cash payments / other pending / car expenses: merge by item.id using the same rule (keep local on id conflict; add missing).",
+        "dailyData: merge by dateKey then travellerId; for conflicts, set each boolean (morning/evening) to true if either local or backup is true (logical OR).",
+        "Settings fields (dateRange, ratePerTrip, includeSaturday, includeSunday): restore must not delete other data; if the restore applies these fields, their behavior must be documented in the UI (e.g., a short note in the panel describing whether settings will be taken from the backup or kept local).",
+        "After merge, both saved dailyData and draftDailyData remain consistent (draft reflects the merged saved data unless the user currently has unsaved draft changes, in which case restore must require confirmation before applying)."
+      ]
+    },
+    {
+      "id": "REQ-5",
+      "text": "During restore, merge the caller user profile from the backup with the existing backend-stored profile using non-destructive behavior: do not clear an existing profile; only save the backup profile if the caller currently has no profile.",
+      "target": "backend",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "all stored data in the app",
+          "merge with existing data"
+        ]
+      },
+      "acceptanceCriteria": [
+        "If getCallerUserProfile returns null and the backup includes a profile object, the app saves it via saveCallerUserProfile.",
+        "If getCallerUserProfile already returns a profile, restore does not overwrite it.",
+        "Any backend error during profile restore is surfaced as an English error message/toast and does not prevent local ledger data restore from completing."
       ]
     }
   ],
   "constraints": [
-    "Backend must remain a single Motoko actor in backend/main.mo (no additional backend services).",
-    "Do not edit any files under frontend/src/components/ui or any paths listed as immutable in SYSTEM_CONTEXT.",
-    "Use English for any user-facing text."
+    "Do not edit files under frontend/src/components/ui (Shadcn UI sources). Compose existing UI components instead.",
+    "Do not modify immutable frontend paths listed in SYSTEM_CONTEXT (e.g., frontend/src/hooks/useInternetIdentity.ts(x), frontend/src/hooks/useActor.ts, frontend/src/main.tsx)."
   ],
   "nonGoals": [
-    "Adding third-party storage, external databases, or cloud sync outside the canister.",
-    "Changing the JSON backup file structure (keep LedgerBackup { version, exportedAt, data }).",
-    "Adding new report/CSV export formats beyond fixing backup/export of raw records."
+    "Adding third-party cloud backup providers (e.g., Google Drive/Dropbox).",
+    "Implementing real-time sync or multi-device auto-sync.",
+    "Implementing a full backend backup of unrelated canister state not used by the current UI flows."
   ],
   "imageRequirements": {
     "required": [],

@@ -1,69 +1,38 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-13T06:43:03.114Z",
-  "summary": "The diff does not implement the requested canister-backed LedgerState persistence, backup/export/restore methods, or the frontend wiring. The only visible backend changes relate to access control/user profiles, balances, and charge entries, and project_state.json updates.",
+  "generatedAt": "2026-02-13T12:17:19.941Z",
+  "summary": "Diff adds a new \"Backup & Restore\" ledger tab/panel, JSON export/import utilities with merge logic, React Query hooks for backend backup endpoints, and backend Motoko exportBackup/importBackup with non-destructive profile restore. Most requested functionality appears implemented, but some REQ-4 UI/documentation and draft-vs-saved consistency aspects can’t be fully verified from the truncated diff.",
   "missing_requirements": [
     {
-      "id": "REQ-1",
-      "requirement": "Implement canister-backed persistence for the full LedgerState keyed to the authenticated caller (Internet Identity principal), so ledger data reloads after refresh/sign-in.",
-      "reason": "No LedgerState type/storage keyed by caller is shown, and no stable persistence for travellers/daily participation/dateRange/ratePerTrip/cashPayments/otherPending/carExpenses/includeSaturday/includeSunday is present in the visible backend changes.",
+      "id": "REQ-4",
+      "requirement": "Settings fields (dateRange, ratePerTrip, includeSaturday, includeSunday): if restore applies these fields, their behavior must be documented in the UI (note describing whether settings are taken from backup or kept local).",
+      "reason": "BackupRestorePanel.tsx is truncated before the explanatory UI content; no visible evidence that settings-restore behavior is documented.",
       "evidence": [
-        "backend/main.mo (truncated)"
-      ]
-    },
-    {
-      "id": "REQ-2",
-      "requirement": "Add backend methods for ledger backup/restore: loadLedgerState, saveLedgerState, exportLedgerData (returns LedgerState), restoreLedgerData (accepts LedgerState), and clearAllLedgerData (or equivalent) per caller with access isolation.",
-      "reason": "None of the required ledger backup/restore/export/clear methods are present in the visible backend diff, and nothing indicates per-caller ledger state export/restore.",
-      "evidence": [
-        "backend/main.mo (truncated)"
-      ]
-    },
-    {
-      "id": "REQ-3",
-      "requirement": "Replace placeholder implementations in frontend/src/hooks/useLedgerQueries.ts with real actor calls to the new backend ledger methods (load/save/export/restore).",
-      "reason": "No frontend files were modified; frontend/src/hooks/useLedgerQueries.ts is not changed in this diff.",
-      "evidence": [
-        "File diff summary: Modified files only include backend/main.mo and project_state.json"
+        "frontend/src/features/ledger/BackupRestorePanel.tsx (truncated)"
       ]
     },
     {
       "id": "REQ-4",
-      "requirement": "Ensure destructive 'Clear Data' actions clear canister-backed data as well, including targeted clears (daily participation only, cash payments only, other pending only, car expenses only) and clear-all.",
-      "reason": "No backend clear methods for ledger datasets are shown, and no frontend wiring changes are included to invoke such canister clears.",
+      "requirement": "After merge, both saved dailyData and draftDailyData remain consistent (draft reflects merged saved data unless the user currently has unsaved draft changes, in which case restore must require confirmation before applying).",
+      "reason": "Confirmation-before-restore is evidenced in the panel, but the state-layer behavior ensuring draftDailyData is updated to reflect merged saved data after restore (when no unsaved draft changes) is not visible in the truncated useLedgerLocalState.ts / mergeRestoreFromBackup implementation.",
       "evidence": [
-        "backend/main.mo (truncated)",
-        "File diff summary: no relevant frontend changes"
+        "frontend/src/features/ledger/BackupRestorePanel.tsx",
+        "frontend/src/hooks/useLedgerLocalState.ts (truncated)"
       ]
     }
   ],
-  "hallucinated_features": [
-    {
-      "description": "User profile management methods (getCallerUserProfile, getUserProfile, saveCallerUserProfile) with authorization checks.",
-      "reason": "Not requested by the BuildRequest, which focuses on ledger persistence and backup/export/restore.",
-      "evidence": [
-        "backend/main.mo (truncated)"
-      ]
-    },
-    {
-      "description": "Balance and charge-entry functionality (pendingBalances, startCharge, entries, MonetaryEvent/TravelEntry types).",
-      "reason": "Not requested; BuildRequest requires persisting and exporting LedgerState for a ledger UI, not implementing admin charge/balance logic.",
-      "evidence": [
-        "backend/main.mo (truncated)"
-      ]
-    },
-    {
-      "description": "Modification of project_state.json to add/track feature requests/architectural notes.",
-      "reason": "Not requested as part of implementing the ledger persistence/export fix; it is ancillary metadata not mentioned in constraints/requirements.",
-      "evidence": [
-        "project_state.json"
-      ]
-    }
-  ],
-  "confidence": 0.78,
+  "hallucinated_features": [],
+  "confidence": 0.64,
   "changed_files": [
     "backend/main.mo",
+    "frontend-file-summaries.txt",
+    "frontend/src/features/ledger/BackupRestorePanel.tsx",
+    "frontend/src/features/ledger/LedgerPage.tsx",
+    "frontend/src/features/ledger/LedgerStateContext.tsx",
+    "frontend/src/hooks/useLedgerLocalState.ts",
+    "frontend/src/hooks/useQueries.ts",
+    "frontend/src/utils/backupRestore.ts",
     "project_state.json"
   ]
 }

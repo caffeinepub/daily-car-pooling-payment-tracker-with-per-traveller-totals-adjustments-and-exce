@@ -1,51 +1,80 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-13T06:43:03.117Z",
+  "generatedAt": "2026-02-13T12:17:19.944Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 4,
-    "implemented": 0,
+    "total": 5,
+    "implemented": 4,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Implement canister-backed persistence for the full LedgerState (travellers, daily participation history, dateRange, ratePerTrip, cashPayments, otherPending, carExpenses, includeSaturday/includeSunday) keyed to the authenticated caller, so data is not stored only in browser memory.",
-        "status": "unknown",
-        "plannedFiles": [],
-        "matchedFiles": []
+        "summary": "Add a new Ledger page tab named \"Backup & Restore\" positioned immediately before the existing \"Clear Data\" tab in the tab bar, and render a new panel for this tab.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/features/ledger/LedgerPage.tsx",
+          "frontend/src/features/ledger/BackupRestorePanel.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/features/ledger/LedgerPage.tsx",
+          "frontend/src/features/ledger/BackupRestorePanel.tsx"
+        ]
       },
       {
         "id": "REQ-2",
-        "summary": "Add backend methods for ledger backup/restore so the export contains the full raw records exactly as stored: loadLedgerState, saveLedgerState, exportLedgerData (returns LedgerState), restoreLedgerData (accepts LedgerState), and clearAllLedgerData (or equivalent) for the caller.",
-        "status": "unknown",
-        "plannedFiles": [],
-        "matchedFiles": []
+        "summary": "Implement \"Backup\" export that downloads a JSON file containing all stored app data, including (at minimum) the locally stored ledger state under the existing localStorage key \"carpool-ledger-state\" and the authenticated caller's user profile stored in the backend (if present).",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/features/ledger/BackupRestorePanel.tsx",
+          "frontend/src/utils/backupRestore.ts",
+          "frontend/src/hooks/useLedgerLocalState.ts"
+        ],
+        "matchedFiles": [
+          "frontend/src/features/ledger/BackupRestorePanel.tsx",
+          "frontend/src/utils/backupRestore.ts",
+          "frontend/src/hooks/useLedgerLocalState.ts"
+        ]
       },
       {
         "id": "REQ-3",
-        "summary": "Wire the frontend ledger data layer to the backend by replacing the current placeholder implementations in frontend/src/hooks/useLedgerQueries.ts (which currently return null or an empty LedgerBackup) with real actor calls to the new backend methods.",
-        "status": "missing",
+        "summary": "Implement \"Restore\" import that accepts a user-selected JSON file and restores data by merging it with existing stored data (do not clear existing data during restore).",
+        "status": "implemented",
         "plannedFiles": [
-          "frontend/src/backend.d.ts",
-          "frontend/src/hooks/useLedgerQueries.ts",
+          "frontend/src/features/ledger/BackupRestorePanel.tsx",
+          "frontend/src/utils/backupRestore.ts",
           "frontend/src/hooks/useLedgerLocalState.ts",
-          "frontend/src/features/ledger/SettingsPanel.tsx"
+          "frontend/src/features/ledger/LedgerStateContext.tsx"
         ],
-        "matchedFiles": []
+        "matchedFiles": [
+          "frontend/src/features/ledger/BackupRestorePanel.tsx",
+          "frontend/src/utils/backupRestore.ts",
+          "frontend/src/hooks/useLedgerLocalState.ts",
+          "frontend/src/features/ledger/LedgerStateContext.tsx"
+        ]
       },
       {
         "id": "REQ-4",
-        "summary": "Ensure all destructive 'Clear Data' actions clear canister-backed data as well (not only React local state), so exports after clearing do not include cleared records.",
-        "status": "missing",
+        "summary": "Define and apply deterministic merge rules for restoring ledger local state so that repeated restores are idempotent and do not create duplicate records.",
+        "status": "implemented",
         "plannedFiles": [
-          "frontend/src/backend.d.ts",
-          "frontend/src/hooks/useLedgerQueries.ts",
+          "frontend/src/utils/backupRestore.ts",
           "frontend/src/hooks/useLedgerLocalState.ts",
-          "frontend/src/features/ledger/ClearDataPanel.tsx"
+          "frontend/src/features/ledger/BackupRestorePanel.tsx"
         ],
+        "matchedFiles": [
+          "frontend/src/utils/backupRestore.ts",
+          "frontend/src/hooks/useLedgerLocalState.ts",
+          "frontend/src/features/ledger/BackupRestorePanel.tsx"
+        ]
+      },
+      {
+        "id": "REQ-5",
+        "summary": "During restore, merge the caller user profile from the backup with the existing backend-stored profile using non-destructive behavior: do not clear an existing profile; only save the backup profile if the caller currently has no profile.",
+        "status": "unknown",
+        "plannedFiles": [],
         "matchedFiles": []
       }
     ]
@@ -54,7 +83,18 @@
     "backend/main.mo",
     "build-request.json",
     "feature_evidence.json",
+    "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
+    "frontend/src/backend.d.ts",
+    "frontend/src/backend.ts",
+    "frontend/src/declarations/backend.did.d.ts",
+    "frontend/src/declarations/backend.did.js",
+    "frontend/src/features/ledger/BackupRestorePanel.tsx",
+    "frontend/src/features/ledger/LedgerPage.tsx",
+    "frontend/src/features/ledger/LedgerStateContext.tsx",
+    "frontend/src/hooks/useLedgerLocalState.ts",
+    "frontend/src/hooks/useQueries.ts",
+    "frontend/src/utils/backupRestore.ts",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

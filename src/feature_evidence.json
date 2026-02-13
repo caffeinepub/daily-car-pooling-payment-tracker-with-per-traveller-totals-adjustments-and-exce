@@ -1,4 +1,89 @@
 {
   "kind": "feature_evidence_report",
-  "features": []
+  "features": [
+    {
+      "featureId": "feature-add-a-new-ledger-page-tab-named-backup-restore-positioned-immediately-before-the-existing-clear-data-tab-in-the-tab-bar-and-render-a-new-panel-for-this-tab",
+      "featureTitle": "Add a new Ledger page tab named \"Backup & Restore\" positioned immediately before the existing \"Clear Data\" tab in the tab bar, and render a new panel for this tab.",
+      "files": [
+        "frontend/src/features/ledger/BackupRestorePanel.tsx",
+        "frontend/src/features/ledger/LedgerPage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-1"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-implement-backup-export-that-downloads-a-json-file-containing-all-stored-app-data-including-at-minimum-the-locally-stored-ledger-state-under-the-existing-localstorage-key-carpool-ledger-state-and-the-authenticated-caller-s-user-profile-stored-in-the-backend-if-present",
+      "featureTitle": "Implement \"Backup\" export that downloads a JSON file containing all stored app data, including (at minimum) the locally stored ledger state under the existing localStorage key \"carpool-ledger-state\" and the authenticated caller's user profile stored in the backend (if present).",
+      "files": [
+        "frontend/src/features/ledger/BackupRestorePanel.tsx",
+        "frontend/src/hooks/useLedgerLocalState.ts",
+        "frontend/src/utils/backupRestore.ts"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-2"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-implement-restore-import-that-accepts-a-user-selected-json-file-and-restores-data-by-merging-it-with-existing-stored-data-do-not-clear-existing-data-during-restore",
+      "featureTitle": "Implement \"Restore\" import that accepts a user-selected JSON file and restores data by merging it with existing stored data (do not clear existing data during restore).",
+      "files": [
+        "frontend/src/features/ledger/BackupRestorePanel.tsx",
+        "frontend/src/features/ledger/LedgerStateContext.tsx",
+        "frontend/src/hooks/useLedgerLocalState.ts",
+        "frontend/src/utils/backupRestore.ts"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-3"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-define-and-apply-deterministic-merge-rules-for-restoring-ledger-local-state-so-that-repeated-restores-are-idempotent-and-do-not-create-duplicate-records",
+      "featureTitle": "Define and apply deterministic merge rules for restoring ledger local state so that repeated restores are idempotent and do not create duplicate records.",
+      "files": [
+        "frontend/src/features/ledger/BackupRestorePanel.tsx",
+        "frontend/src/hooks/useLedgerLocalState.ts",
+        "frontend/src/utils/backupRestore.ts"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-4"
+      ],
+      "confidence": "high"
+    }
+  ]
 }

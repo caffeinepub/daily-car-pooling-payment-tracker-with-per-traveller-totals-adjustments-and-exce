@@ -1,57 +1,65 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "New project",
+  "summary": "Add a Backup & Restore feature for all stored app data.",
   "architectural_notes": [
-    "Ensure all app data (Travellers, Daily Participation, summaries/overall summary, Car Expenses, etc.) is persisted in the canister (not only frontend/browser state).",
-    "Backup/export should read from canister storage and export full raw records automatically (no user selection)."
+    "Backup should export all stored data in the app as a JSON file.",
+    "Restore should import JSON and merge with existing data.",
+    "Add a new \"Backup & Restore\" tab before the existing \"Clear Data\" option."
   ],
-  "known_issues": [
-    "Backup file is generated but exported data arrays/records are empty (e.g., travellers=[], carExpenses=[]), suggesting backup is not reading persisted data (possibly data only in browser memory)."
+  "known_issues": [],
+  "isFixRequest": false,
+  "existing_features": [
+    {
+      "id": "feature-add-a-new-ledger-page-tab-named-backup-restore-positioned-immediately-before-the-existing-clear-data-tab-in-the-tab-bar-and-render-a-new-panel-for-this-tab",
+      "title": "Add a new Ledger page tab named \"Backup & Restore\" positioned immediately before the existing \"Clear Data\" tab in the tab bar, and render a new panel for this tab.",
+      "reqIds": [
+        "REQ-1"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-implement-backup-export-that-downloads-a-json-file-containing-all-stored-app-data-including-at-minimum-the-locally-stored-ledger-state-under-the-existing-localstorage-key-carpool-ledger-state-and-the-authenticated-caller-s-user-profile-stored-in-the-backend-if-present",
+      "title": "Implement \"Backup\" export that downloads a JSON file containing all stored app data, including (at minimum) the locally stored ledger state under the existing localStorage key \"carpool-ledger-state\" and the authenticated caller's user profile stored in the backend (if present).",
+      "reqIds": [
+        "REQ-2"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-implement-restore-import-that-accepts-a-user-selected-json-file-and-restores-data-by-merging-it-with-existing-stored-data-do-not-clear-existing-data-during-restore",
+      "title": "Implement \"Restore\" import that accepts a user-selected JSON file and restores data by merging it with existing stored data (do not clear existing data during restore).",
+      "reqIds": [
+        "REQ-3"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-define-and-apply-deterministic-merge-rules-for-restoring-ledger-local-state-so-that-repeated-restores-are-idempotent-and-do-not-create-duplicate-records",
+      "title": "Define and apply deterministic merge rules for restoring ledger local state so that repeated restores are idempotent and do not create duplicate records.",
+      "reqIds": [
+        "REQ-4"
+      ],
+      "version": 1
+    }
   ],
-  "isFixRequest": true,
-  "existing_features": [],
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "Fix backup/export so it includes all Travellers, Daily Participation history, summaries (including overall), and Car Expenses by exporting full raw records automatically (currently file is created but data is empty).",
+      "summary": "Add a \"Backup & Restore\" tab (placed before \"Clear Data\") that can export all stored app data to a JSON file and restore by importing JSON with merge behavior.",
       "reqIds": [],
       "status": "pending"
     },
     {
-      "id": "AR-2",
-      "summary": "Implement canister-backed persistence for the full LedgerState (travellers, daily participation history, dateRange, ratePerTrip, cashPayments, otherPending, carExpenses, includeSaturday/includeSunday) keyed to the authenticated caller, so data is not stored only in browser memory.",
+      "id": "AR-6",
+      "summary": "During restore, merge the caller user profile from the backup with the existing backend-stored profile using non-destructive behavior: do not clear an existing profile; only save the backup profile if the caller currently has no profile.",
       "reqIds": [
-        "REQ-1"
-      ],
-      "status": "pending"
-    },
-    {
-      "id": "AR-3",
-      "summary": "Add backend methods for ledger backup/restore so the export contains the full raw records exactly as stored: loadLedgerState, saveLedgerState, exportLedgerData (returns LedgerState), restoreLedgerData (accepts LedgerState), and clearAllLedgerData (or equivalent) for the caller.",
-      "reqIds": [
-        "REQ-2"
-      ],
-      "status": "pending"
-    },
-    {
-      "id": "AR-4",
-      "summary": "Wire the frontend ledger data layer to the backend by replacing the current placeholder implementations in frontend/src/hooks/useLedgerQueries.ts (which currently return null or an empty LedgerBackup) with real actor calls to the new backend methods.",
-      "reqIds": [
-        "REQ-3"
-      ],
-      "status": "pending"
-    },
-    {
-      "id": "AR-5",
-      "summary": "Ensure all destructive 'Clear Data' actions clear canister-backed data as well (not only React local state), so exports after clearing do not include cleared records.",
-      "reqIds": [
-        "REQ-4"
+        "REQ-5"
       ],
       "status": "pending"
     }
   ],
-  "projectName": "Fix ledger backup/export by persisting ledger state in canister and exporting full raw records",
+  "projectName": "Add Backup & Restore tab to export/import all stored app data (JSON, merge restore)",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

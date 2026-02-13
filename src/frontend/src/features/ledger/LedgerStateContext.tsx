@@ -7,7 +7,8 @@ import type {
   CashPayment,
   OtherPending,
   CarExpense,
-} from '../../types/ledger';
+} from '../../hooks/useLedgerLocalState';
+import type { LocalLedgerState } from '../../utils/backupRestore';
 
 interface LedgerStateContextValue {
   travellers: Traveller[];
@@ -44,8 +45,8 @@ interface LedgerStateContextValue {
   clearCashPayments: () => void;
   clearOtherPending: () => void;
   clearCarExpenses: () => void;
-  refreshFromCanister: () => void;
-  isLoading: boolean;
+  getPersistedState: () => LocalLedgerState;
+  mergeRestoreFromBackup: (backupState: LocalLedgerState) => void;
 }
 
 const LedgerStateContext = createContext<LedgerStateContextValue | null>(null);

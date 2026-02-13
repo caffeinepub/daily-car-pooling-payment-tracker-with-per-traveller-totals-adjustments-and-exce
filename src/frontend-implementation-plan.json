@@ -1,67 +1,112 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Persisted ledger backup/export: wire frontend ledger queries to canister-backed storage and clear actions",
+  "title": "Backup & Restore tab (JSON export/import with deterministic merge)",
   "requirements": [
     {
-      "id": "REQ-3",
-      "summary": "Replace placeholder ledger query/mutation hooks with real backend actor calls for load/save/export/restore and ensure UI refreshes from canister state.",
+      "id": "REQ-1",
+      "summary": "Add a new \"Backup & Restore\" tab to the Ledger page before the existing \"Clear Data\" tab and render a dedicated panel.",
       "acceptanceCriteria": [
-        "useLoadLedgerState returns the caller’s persisted LedgerState from the canister (not always null).",
-        "useSaveLedgerState persists changes to the canister (no longer just console logging).",
-        "useExportLedgerBackup exports a JSON file whose data fields match the caller’s stored ledger and are not empty when data exists.",
-        "useRestoreLedgerBackup sends the uploaded backup to the backend and refreshes the UI from canister data."
+        "Ledger page shows a new tab label \"Backup & Restore\" in the TabsList before the \"Clear Data\" tab.",
+        "Selecting \"Backup & Restore\" displays a dedicated panel; existing tabs (Travellers/Daily/Summary/Car Expense/Overall/Clear Data) continue to work as before."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/backend.d.ts",
+          "path": "frontend/src/features/ledger/LedgerPage.tsx",
           "operation": "modify",
-          "description": "Extend the typed backendInterface to include the new ledger-related backend capabilities (loadLedgerState, saveLedgerState, exportLedgerData, restoreLedgerData, clearAllLedgerData and any additional clear variants required by the UI) so frontend actor calls compile cleanly."
+          "description": "Insert a new TabsTrigger/TabsContent for \"Backup & Restore\" immediately before the existing Clear Data tab; adjust tab grid layout (currently grid-cols-6) to account for the added tab and wire the new panel component so it is reachable in-app."
         },
         {
-          "path": "frontend/src/hooks/useLedgerQueries.ts",
+          "path": "frontend/src/features/ledger/BackupRestorePanel.tsx",
+          "operation": "create",
+          "description": "Create the new Ledger tab panel UI for Backup & Restore, including section headings, explanatory notes (including settings restore behavior), and space for backup download + restore upload/confirm flows. Compose existing shadcn/ui components (do not edit frontend/src/components/ui)."
+        }
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "summary": "Implement Backup export to download a JSON file containing the full local ledger state plus the caller user profile from the backend when available.",
+      "acceptanceCriteria": [
+        "Backup panel includes a clear action (e.g., button) to download a .json file.",
+        "The exported JSON includes the full ledger local state (travellers, dailyData, dateRange, ratePerTrip, cashPayments, otherPending, carExpenses, includeSaturday, includeSunday) sourced from the same data used by the app (localStorage key \"carpool-ledger-state\").",
+        "The exported JSON includes the current caller user profile data returned by backend getCallerUserProfile (or null/omitted when no profile exists).",
+        "Export works while authenticated; failures show an English error message/toast without crashing the app."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/features/ledger/BackupRestorePanel.tsx",
           "operation": "modify",
-          "description": "Implement useLoadLedgerState/useSaveLedgerState/useExportLedgerBackup/useRestoreLedgerBackup using real actor calls (no placeholder null/empty backups), keep the existing LedgerBackup JSON structure { version, exportedAt, data }, and ensure React Query invalidation keeps the UI synced after mutations."
+          "description": "Implement the \"Backup\" action: read the persisted ledger JSON from localStorage key \"carpool-ledger-state\" (fallback to in-memory context state if needed), fetch backend backup/profile via the actor (e.g., exportBackup and/or getCallerUserProfile), and trigger a client-side .json download. Show English toast/errors on failures and handle authorization failures gracefully. Use the authorization component’s frontend guidance for authenticated actor calls and error handling; verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/utils/backupRestore.ts",
+          "operation": "create",
+          "description": "Add shared helpers for backup export: building a deterministic export payload, generating a filename, and downloading JSON via Blob + anchor click (similar approach to existing CSV download utilities)."
         },
         {
           "path": "frontend/src/hooks/useLedgerLocalState.ts",
           "operation": "modify",
-          "description": "Ensure local ledger state initialization and refresh flow correctly reflects canister-backed data by leveraging the updated query hooks; keep refreshFromCanister behavior aligned with query invalidation so restore/load updates are reflected after sign-in and after restore."
+          "description": "Add a small, safe accessor helper that returns the currently persisted StoredState representation (aligned with the localStorage \"carpool-ledger-state\" shape) so Backup export can reliably include the same persisted fields used by the app."
+        }
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "summary": "Implement Restore import from a user-selected JSON file that merges backup data into existing stored data without clearing existing data and updates the UI immediately.",
+      "acceptanceCriteria": [
+        "Backup panel includes a file input (accepting .json) and a restore action.",
+        "On selecting an invalid JSON file or invalid schema, the UI shows an English error message/toast and does not modify existing data.",
+        "On successful restore, existing data remains present and backup data is merged in (no destructive overwrite/clear of collections).",
+        "After restore, the UI updates immediately to reflect the merged state across all relevant screens/tabs without requiring a refresh."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/features/ledger/BackupRestorePanel.tsx",
+          "operation": "modify",
+          "description": "Add restore UI: file input accepting .json, a restore button, validation feedback, and (when required) a confirmation dialog for applying restore while there are unsaved Daily draft changes. On restore: parse JSON, validate schema, merge into local ledger state via a context action, and invoke backend importBackup for profile merge (do not block local restore on backend failures; surface backend issues as English toasts). Use the authorization component’s frontend guidance for authenticated actor calls and error handling; verify the component's usage instructions before implementing."
         },
         {
-          "path": "frontend/src/features/ledger/SettingsPanel.tsx",
+          "path": "frontend/src/utils/backupRestore.ts",
           "operation": "modify",
-          "description": "Ensure backup export/restore flows rely on the updated query hooks: export should download the full raw records returned by the backend, and restore should trigger a canister refresh (invalidate ledger queries and call refreshFromCanister) so the UI reflects restored data immediately."
+          "description": "Implement JSON parsing + schema validation helpers for the expected backup shape; ensure invalid files do not mutate state. Include merge orchestration helpers that return either a merged result or a validation error message."
+        },
+        {
+          "path": "frontend/src/hooks/useLedgerLocalState.ts",
+          "operation": "modify",
+          "description": "Add an imperative restore/merge method (e.g., mergeRestoreFromBackup) that applies a computed merged StoredState to React state so the UI updates immediately across all tabs; ensure localStorage persistence continues to work via the existing save effect."
+        },
+        {
+          "path": "frontend/src/features/ledger/LedgerStateContext.tsx",
+          "operation": "modify",
+          "description": "Expose the new restore/merge method (and any needed helpers like hasDraftChanges/discardDraftDailyData already present) through the LedgerStateContext so BackupRestorePanel can apply restores and force immediate UI updates."
         }
       ]
     },
     {
       "id": "REQ-4",
-      "summary": "Update all 'Clear Data' actions so they clear canister-backed ledger data (not only local React state) and exports reflect cleared datasets.",
+      "summary": "Define deterministic, idempotent merge rules for restoring local ledger state and handle settings + draftDailyData consistency with confirmation when needed.",
       "acceptanceCriteria": [
-        "After using 'Clear All Ledger Data', exporting a backup produces an empty/default LedgerState for the caller.",
-        "After using each targeted clear option (daily participation only, cash payments only, other pending only, car expenses only), exporting a backup reflects only that dataset being cleared while other datasets remain intact."
+        "Travellers: merge by traveller.id; if an id already exists locally, keep the local record; otherwise add the backup record.",
+        "Cash payments / other pending / car expenses: merge by item.id using the same rule (keep local on id conflict; add missing).",
+        "dailyData: merge by dateKey then travellerId; for conflicts, set each boolean (morning/evening) to true if either local or backup is true (logical OR).",
+        "Settings fields (dateRange, ratePerTrip, includeSaturday, includeSunday): restore must not delete other data; if the restore applies these fields, their behavior must be documented in the UI (e.g., a short note in the panel describing whether settings will be taken from the backup or kept local).",
+        "After merge, both saved dailyData and draftDailyData remain consistent (draft reflects the merged saved data unless the user currently has unsaved draft changes, in which case restore must require confirmation before applying)."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/backend.d.ts",
+          "path": "frontend/src/utils/backupRestore.ts",
           "operation": "modify",
-          "description": "Add/align typed declarations for any targeted clear backend capabilities used by the UI (daily participation only, cash payments only, other pending only, car expenses only), ensuring the frontend can call these functions without type errors."
-        },
-        {
-          "path": "frontend/src/hooks/useLedgerQueries.ts",
-          "operation": "modify",
-          "description": "Add/implement React Query mutations for destructive clear actions (clearAll and targeted clears) using actor calls, and invalidate the ledgerState query on success so subsequent exports/loads reflect cleared canister data."
+          "description": "Implement pure, deterministic merge functions for each data slice: travellers/items merged by id (keep local on conflicts), dailyData merged by dateKey+travellerId with boolean OR, and a clear policy for settings restoration (e.g., default keep-local with an explicit option to apply-from-backup). Ensure the merge result is idempotent for repeated restores."
         },
         {
           "path": "frontend/src/hooks/useLedgerLocalState.ts",
           "operation": "modify",
-          "description": "Update the clearAllLedgerData/clearDailyData/clearCashPayments/clearOtherPending/clearCarExpenses actions to call the corresponding canister-backed clear mutations first (or in tandem), then update local state and trigger a refresh from canister so the UI and exports remain consistent."
+          "description": "Ensure restore application keeps dailyData and draftDailyData consistent: if there are no unsaved draft changes, set draftDailyData to the merged saved dailyData (deep-cloned); if there are unsaved draft changes, require an explicit confirmation flow from the caller before applying restore that would overwrite the draft."
         },
         {
-          "path": "frontend/src/features/ledger/ClearDataPanel.tsx",
+          "path": "frontend/src/features/ledger/BackupRestorePanel.tsx",
           "operation": "modify",
-          "description": "Wire Clear Data UI actions to the updated canister-clearing ledger state actions (instead of only clearing local state) and keep existing confirmation/toast UX in English while ensuring exports after clearing match the canister state."
+          "description": "Document (in-panel) the settings merge behavior (dateRange, ratePerTrip, includeSaturday, includeSunday), and implement the required confirmation UX when the user has unsaved Daily draft changes before applying restore."
         }
       ]
     }

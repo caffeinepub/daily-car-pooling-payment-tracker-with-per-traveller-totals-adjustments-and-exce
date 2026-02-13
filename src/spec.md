@@ -1,12 +1,15 @@
 # Specification
 
 ## Summary
-**Goal:** Fix ledger backup/export so it includes the caller’s full stored ledger data by persisting LedgerState in the canister and wiring frontend backup/restore to real backend APIs.
+**Goal:** Add a “Backup & Restore” tab that lets users export all app data to JSON and restore it later by merging (non-destructively) into existing data.
 
 **Planned changes:**
-- Add canister-backed persistence for the full LedgerState per authenticated caller (Internet Identity principal) so ledger data survives refresh/sign-out/sign-in.
-- Implement backend methods to load/save/export/restore/clear the caller’s ledger data, with export returning the full raw LedgerState exactly as stored.
-- Replace placeholder frontend ledger query/mutation hooks in `frontend/src/hooks/useLedgerQueries.ts` with actor calls to the new backend methods (load, save, export, restore).
-- Update “Clear Data” actions to clear canister-backed data (full clear and targeted clears) so subsequent exports reflect the cleared datasets correctly.
+- Add a new Ledger tab labeled “Backup & Restore” placed immediately before “Clear Data”, with a dedicated panel.
+- Implement “Backup” export to download a JSON file containing the full local ledger state from localStorage key `carpool-ledger-state` plus the authenticated caller’s backend user profile (if present).
+- Implement “Restore” import from a user-selected `.json` file, validating JSON/schema and merging into existing local data without clearing it; update UI immediately after restore.
+- Apply deterministic, idempotent merge rules for local ledger data (merge by ids for lists; merge `dailyData` by dateKey+travellerId with boolean OR behavior).
+- During restore, merge backend user profile non-destructively: only save the backup profile if the caller has no existing profile; surface backend errors without blocking local restore.
+- Add clear English error/toast messaging for backup/restore failures and invalid inputs, without crashing the app.
+- Document in the Backup & Restore panel how settings fields (e.g., dateRange, ratePerTrip, includeSaturday/includeSunday) are handled during restore and handle draft-vs-saved consistency with confirmation if there are unsaved draft changes.
 
-**User-visible outcome:** Ledger entries and settings persist across sessions for the same identity, backups export complete non-empty raw records when data exists, restores correctly overwrite stored data, and clearing data is reflected in exports.
+**User-visible outcome:** Users can open “Backup & Restore” to download a JSON backup of their ledger data (and profile when available) and later restore from a JSON file to merge data into their current ledger without losing existing entries.

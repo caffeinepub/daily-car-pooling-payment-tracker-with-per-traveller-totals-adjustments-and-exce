@@ -2,47 +2,56 @@
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
   "summary": "New project",
-  "architectural_notes": [],
+  "architectural_notes": [
+    "Ensure all app data (Travellers, Daily Participation, summaries/overall summary, Car Expenses, etc.) is persisted in the canister (not only frontend/browser state).",
+    "Backup/export should read from canister storage and export full raw records automatically (no user selection)."
+  ],
   "known_issues": [
-    "App shows only a black screen; user unable to view any content after deployment."
+    "Backup file is generated but exported data arrays/records are empty (e.g., travellers=[], carExpenses=[]), suggesting backup is not reading persisted data (possibly data only in browser memory)."
   ],
   "isFixRequest": true,
-  "existing_features": [
+  "existing_features": [],
+  "new_feature_requests": [
     {
-      "id": "feature-diagnose-and-fix-the-root-cause-of-the-deployed-app-rendering-a-black-screen-so-that-the-initial-ui-reliably-renders-at-minimum-the-unauthenticated-login-screen-from-authgate",
-      "title": "Diagnose and fix the root cause of the deployed app rendering a black screen so that the initial UI reliably renders (at minimum: the unauthenticated login screen from AuthGate).",
-      "reqIds": [
-        "REQ-7"
-      ],
-      "version": 1
+      "id": "AR-1",
+      "summary": "Fix backup/export so it includes all Travellers, Daily Participation history, summaries (including overall), and Car Expenses by exporting full raw records automatically (currently file is created but data is empty).",
+      "reqIds": [],
+      "status": "pending"
     },
     {
-      "id": "feature-add-a-top-level-runtime-error-boundary-and-a-user-facing-fallback-screen-that-appears-if-any-render-time-error-occurs-showing-an-english-error-message-and-a-reload-action-and-logging-the-underlying-error-details-to-the-browser-console",
-      "title": "Add a top-level runtime error boundary and a user-facing fallback screen that appears if any render-time error occurs, showing an English error message and a 'Reload' action, and logging the underlying error details to the browser console.",
+      "id": "AR-2",
+      "summary": "Implement canister-backed persistence for the full LedgerState (travellers, daily participation history, dateRange, ratePerTrip, cashPayments, otherPending, carExpenses, includeSaturday/includeSunday) keyed to the authenticated caller, so data is not stored only in browser memory.",
       "reqIds": [
-        "REQ-8"
+        "REQ-1"
       ],
-      "version": 1
+      "status": "pending"
     },
     {
-      "id": "feature-ensure-the-frontend-config-module-required-by-the-auth-actor-hooks-imported-as-config-is-present-and-cannot-crash-the-app-at-runtime-it-must-provide-safe-defaults-and-handle-missing-invalid-environment-config-values-gracefully-e-g-internet-identity-url-derivation-origin-canister-agent-config",
-      "title": "Ensure the frontend config module required by the auth/actor hooks (imported as '../config') is present and cannot crash the app at runtime: it must provide safe defaults and handle missing/invalid environment/config values gracefully (e.g., Internet Identity URL, derivation origin, canister/agent config).",
+      "id": "AR-3",
+      "summary": "Add backend methods for ledger backup/restore so the export contains the full raw records exactly as stored: loadLedgerState, saveLedgerState, exportLedgerData (returns LedgerState), restoreLedgerData (accepts LedgerState), and clearAllLedgerData (or equivalent) for the caller.",
       "reqIds": [
-        "REQ-9"
+        "REQ-2"
       ],
-      "version": 1
+      "status": "pending"
     },
     {
-      "id": "feature-add-an-explicit-visible-loading-state-for-app-initialization-phases-that-can-otherwise-appear-blank-e-g-while-internetidentityprovider-initializes-and-while-the-caller-profile-query-is-waiting-on-actor-availability",
-      "title": "Add an explicit, visible loading state for app initialization phases that can otherwise appear blank (e.g., while InternetIdentityProvider initializes and while the caller profile query is waiting on actor availability).",
+      "id": "AR-4",
+      "summary": "Wire the frontend ledger data layer to the backend by replacing the current placeholder implementations in frontend/src/hooks/useLedgerQueries.ts (which currently return null or an empty LedgerBackup) with real actor calls to the new backend methods.",
       "reqIds": [
-        "REQ-10"
+        "REQ-3"
       ],
-      "version": 1
+      "status": "pending"
+    },
+    {
+      "id": "AR-5",
+      "summary": "Ensure all destructive 'Clear Data' actions clear canister-backed data as well (not only React local state), so exports after clearing do not include cleared records.",
+      "reqIds": [
+        "REQ-4"
+      ],
+      "status": "pending"
     }
   ],
-  "new_feature_requests": [],
-  "projectName": "Fix black screen on app load and add safe runtime fallback UI",
+  "projectName": "Fix ledger backup/export by persisting ledger state in canister and exporting full raw records",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

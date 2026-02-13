@@ -1,16 +1,19 @@
 import { useState } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import AppHeader from '../../components/AppHeader';
 import TravellerManager from './TravellerManager';
 import DateRangePicker from './DateRangePicker';
 import DailyParticipationGrid from './DailyParticipationGrid';
 import SummaryPanel from './SummaryPanel';
-import RatePerTripControl from './RatePerTripControl';
 import CarExpensesPanel from './CarExpensesPanel';
 import OverallSummaryPanel from './OverallSummaryPanel';
+import ClearDataPanel from './ClearDataPanel';
+import SettingsPanel from './SettingsPanel';
+import ExportButton from './ExportButton';
+import RatePerTripControl from './RatePerTripControl';
 import PaymentHistoryDialog from './PaymentHistoryDialog';
 import ExpenseHistoryDialog from './ExpenseHistoryDialog';
-import ExportButton from './ExportButton';
-import { useLedgerState } from './LedgerStateContext';
+import { LedgerStateProvider, useLedgerState } from './LedgerStateContext';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,16 +24,17 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Calendar, Users, Receipt, Car, TrendingUp, Trash2, Settings } from 'lucide-react';
 
-export default function LedgerPage() {
+function LedgerPageContent() {
   const [activeTab, setActiveTab] = useState('travellers');
-  const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
   const [pendingTab, setPendingTab] = useState<string | null>(null);
-  const { hasDraftChanges } = useLedgerState();
+  const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
+  const { hasDraftChanges, discardDraftDailyData, isLoading } = useLedgerState();
 
   const handleTabChange = (newTab: string) => {
-    // Check if leaving Daily tab with unsaved changes
-    if (activeTab === 'daily' && hasDraftChanges()) {
+    // Check for unsaved changes when leaving the Daily tab
+    if (activeTab === 'grid' && newTab !== 'grid' && hasDraftChanges()) {
       setPendingTab(newTab);
       setShowUnsavedDialog(true);
     } else {
@@ -38,75 +42,113 @@ export default function LedgerPage() {
     }
   };
 
-  const confirmTabChange = () => {
+  const handleDiscardChanges = () => {
+    discardDraftDailyData();
     if (pendingTab) {
       setActiveTab(pendingTab);
-      setPendingTab(null);
     }
     setShowUnsavedDialog(false);
+    setPendingTab(null);
   };
 
-  const cancelTabChange = () => {
-    setPendingTab(null);
+  const handleStay = () => {
     setShowUnsavedDialog(false);
+    setPendingTab(null);
   };
 
   const handleSaveAndNext = () => {
-    // Navigate to Summary tab after saving
     setActiveTab('summary');
   };
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <AppHeader />
+        <main className="flex-1 container py-6 px-4 flex items-center justify-center">
+          <div className="text-center space-y-4">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+            <p className="text-muted-foreground">Loading your ledger data...</p>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   return (
-    <div className="container mx-auto py-6 px-4 space-y-6">
-      {/* Header with controls */}
-      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Carpool Ledger</h1>
-          <p className="text-muted-foreground mt-1">Track trips, payments, and expenses</p>
+    <div className="min-h-screen flex flex-col">
+      <AppHeader />
+
+      <main className="flex-1 container py-6 px-4 space-y-6">
+        {/* Date Range, Rate, Payment History, Expense History & Export */}
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+            <DateRangePicker />
+            <div className="flex gap-2 flex-wrap">
+              <PaymentHistoryDialog />
+              <ExpenseHistoryDialog />
+              <ExportButton />
+            </div>
+          </div>
+          <div className="flex justify-start">
+            <RatePerTripControl />
+          </div>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <PaymentHistoryDialog />
-          <ExpenseHistoryDialog />
-          <ExportButton />
-        </div>
-      </div>
 
-      {/* Date Range and Rate Controls */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <DateRangePicker />
-        <RatePerTripControl />
-      </div>
-
-      {/* Main Tabs */}
-      <Tabs value={activeTab} onValueChange={handleTabChange}>
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="travellers">Travellers</TabsTrigger>
-          <TabsTrigger value="daily">Daily</TabsTrigger>
-          <TabsTrigger value="summary">Summary</TabsTrigger>
-          <TabsTrigger value="car">Car Expense</TabsTrigger>
-          <TabsTrigger value="overall">Overall</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="travellers" className="space-y-4">
-          <TravellerManager />
-        </TabsContent>
-
-        <TabsContent value="daily" className="space-y-4">
-          <DailyParticipationGrid onSaveAndNext={handleSaveAndNext} />
-        </TabsContent>
-
-        <TabsContent value="summary" className="space-y-4">
-          <SummaryPanel />
-        </TabsContent>
-
-        <TabsContent value="car" className="space-y-4">
-          <CarExpensesPanel />
-        </TabsContent>
-
-        <TabsContent value="overall" className="space-y-4">
-          <OverallSummaryPanel />
-        </TabsContent>
-      </Tabs>
+        {/* Unified Tab Navigation for All Screen Sizes */}
+        <Tabs value={activeTab} onValueChange={handleTabChange}>
+          <TabsList className="grid w-full grid-cols-7 h-auto">
+            <TabsTrigger value="travellers" className="flex flex-col sm:flex-row items-center gap-1 py-2">
+              <Users className="h-4 w-4" />
+              <span className="text-xs sm:text-sm">Travellers</span>
+            </TabsTrigger>
+            <TabsTrigger value="grid" className="flex flex-col sm:flex-row items-center gap-1 py-2">
+              <Calendar className="h-4 w-4" />
+              <span className="text-xs sm:text-sm">Daily</span>
+            </TabsTrigger>
+            <TabsTrigger value="summary" className="flex flex-col sm:flex-row items-center gap-1 py-2">
+              <Receipt className="h-4 w-4" />
+              <span className="text-xs sm:text-sm">Summary</span>
+            </TabsTrigger>
+            <TabsTrigger value="car" className="flex flex-col sm:flex-row items-center gap-1 py-2">
+              <Car className="h-4 w-4" />
+              <span className="text-xs sm:text-sm">Car Expense</span>
+            </TabsTrigger>
+            <TabsTrigger value="overall" className="flex flex-col sm:flex-row items-center gap-1 py-2">
+              <TrendingUp className="h-4 w-4" />
+              <span className="text-xs sm:text-sm">Overall</span>
+            </TabsTrigger>
+            <TabsTrigger value="settings" className="flex flex-col sm:flex-row items-center gap-1 py-2">
+              <Settings className="h-4 w-4" />
+              <span className="text-xs sm:text-sm">Settings</span>
+            </TabsTrigger>
+            <TabsTrigger value="clear" className="flex flex-col sm:flex-row items-center gap-1 py-2">
+              <Trash2 className="h-4 w-4" />
+              <span className="text-xs sm:text-sm">Clear Data</span>
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="travellers" className="mt-6">
+            <TravellerManager />
+          </TabsContent>
+          <TabsContent value="grid" className="mt-6">
+            <DailyParticipationGrid onSaveAndNext={handleSaveAndNext} />
+          </TabsContent>
+          <TabsContent value="summary" className="mt-6">
+            <SummaryPanel />
+          </TabsContent>
+          <TabsContent value="car" className="mt-6">
+            <CarExpensesPanel />
+          </TabsContent>
+          <TabsContent value="overall" className="mt-6">
+            <OverallSummaryPanel />
+          </TabsContent>
+          <TabsContent value="settings" className="mt-6">
+            <SettingsPanel />
+          </TabsContent>
+          <TabsContent value="clear" className="mt-6">
+            <ClearDataPanel />
+          </TabsContent>
+        </Tabs>
+      </main>
 
       {/* Unsaved Changes Dialog */}
       <AlertDialog open={showUnsavedDialog} onOpenChange={setShowUnsavedDialog}>
@@ -114,15 +156,23 @@ export default function LedgerPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Unsaved Changes</AlertDialogTitle>
             <AlertDialogDescription>
-              You have unsaved changes in the Daily Participation grid. If you leave now, your changes will be lost.
+              You have unsaved changes in the Daily grid. Do you want to discard them and continue?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={cancelTabChange}>Stay</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmTabChange}>Leave Anyway</AlertDialogAction>
+            <AlertDialogCancel onClick={handleStay}>Stay</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDiscardChanges}>Discard Changes</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </div>
+  );
+}
+
+export default function LedgerPage() {
+  return (
+    <LedgerStateProvider>
+      <LedgerPageContent />
+    </LedgerStateProvider>
   );
 }

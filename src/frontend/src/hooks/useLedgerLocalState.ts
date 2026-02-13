@@ -1,63 +1,15 @@
-import { useState, useEffect } from 'react';
-
-export interface Traveller {
-  id: string;
-  name: string;
-}
-
-export interface TripData {
-  morning: boolean;
-  evening: boolean;
-}
-
-export interface DailyData {
-  [dateKey: string]: {
-    [travellerId: string]: TripData;
-  };
-}
-
-export interface DateRange {
-  start: Date;
-  end: Date;
-}
-
-export interface CashPayment {
-  id: string;
-  travellerId: string;
-  amount: number;
-  date: string;
-  note?: string;
-}
-
-export interface OtherPending {
-  id: string;
-  travellerId: string;
-  amount: number;
-  date: string;
-  note?: string;
-}
-
-export interface CarExpense {
-  id: string;
-  date: string;
-  category: string;
-  amount: number;
-  note?: string;
-}
-
-const STORAGE_KEY = 'carpool-ledger-state';
-
-interface StoredState {
-  travellers: Traveller[];
-  dailyData: DailyData;
-  dateRange: { start: string; end: string };
-  ratePerTrip: number;
-  cashPayments: CashPayment[];
-  otherPending: OtherPending[];
-  carExpenses: CarExpense[];
-  includeSaturday: boolean;
-  includeSunday: boolean;
-}
+import { useState, useEffect, useCallback } from 'react';
+import { useLoadLedgerState, useSaveLedgerState } from './useLedgerQueries';
+import type {
+  Traveller,
+  TripData,
+  DailyData,
+  DateRange,
+  CashPayment,
+  OtherPending,
+  CarExpense,
+  LedgerState,
+} from '../types/ledger';
 
 // Simple UUID generator
 function generateId(): string {
@@ -86,21 +38,7 @@ function deepCloneDailyData(data: DailyData): DailyData {
   return cloned;
 }
 
-function loadState(): StoredState {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      return {
-        ...parsed,
-        includeSaturday: parsed.includeSaturday ?? false,
-        includeSunday: parsed.includeSunday ?? false,
-      };
-    }
-  } catch (error) {
-    console.error('Failed to load state:', error);
-  }
-  
+function getDefaultState(): LedgerState {
   const defaultRange = getDefaultDateRange();
   return {
     travellers: [],
@@ -118,15 +56,10 @@ function loadState(): StoredState {
   };
 }
 
-function saveState(state: StoredState): void {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  } catch (error) {
-    console.error('Failed to save state:', error);
-  }
-}
-
 export function useLedgerLocalState() {
+  const { data: loadedState, isLoading: isLoadingState, isFetched } = useLoadLedgerState();
+  const { mutate: saveState } = useSaveLedgerState();
+
   const [travellers, setTravellers] = useState<Traveller[]>([]);
   const [dailyData, setDailyData] = useState<DailyData>({});
   const [draftDailyData, setDraftDailyData] = useState<DailyData>({});
@@ -137,30 +70,35 @@ export function useLedgerLocalState() {
   const [carExpenses, setCarExpenses] = useState<CarExpense[]>([]);
   const [includeSaturday, setIncludeSaturday] = useState(false);
   const [includeSunday, setIncludeSunday] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
 
-  // Load state on mount
+  // Load state from canister on mount
   useEffect(() => {
-    const loaded = loadState();
-    setTravellers(loaded.travellers);
-    const loadedDailyData = loaded.dailyData;
-    setDailyData(loadedDailyData);
-    // Deep clone to prevent shared references
-    setDraftDailyData(deepCloneDailyData(loadedDailyData));
-    setDateRange({
-      start: new Date(loaded.dateRange.start),
-      end: new Date(loaded.dateRange.end),
-    });
-    setRatePerTrip(loaded.ratePerTrip);
-    setCashPayments(loaded.cashPayments);
-    setOtherPending(loaded.otherPending);
-    setCarExpenses(loaded.carExpenses);
-    setIncludeSaturday(loaded.includeSaturday);
-    setIncludeSunday(loaded.includeSunday);
-  }, []);
+    if (isFetched && !isInitialized) {
+      const state = loadedState || getDefaultState();
+      setTravellers(state.travellers);
+      const loadedDailyData = state.dailyData;
+      setDailyData(loadedDailyData);
+      setDraftDailyData(deepCloneDailyData(loadedDailyData));
+      setDateRange({
+        start: new Date(state.dateRange.start),
+        end: new Date(state.dateRange.end),
+      });
+      setRatePerTrip(state.ratePerTrip);
+      setCashPayments(state.cashPayments);
+      setOtherPending(state.otherPending);
+      setCarExpenses(state.carExpenses);
+      setIncludeSaturday(state.includeSaturday);
+      setIncludeSunday(state.includeSunday);
+      setIsInitialized(true);
+    }
+  }, [loadedState, isFetched, isInitialized]);
 
-  // Save state whenever it changes
-  useEffect(() => {
-    const state: StoredState = {
+  // Persist state to canister whenever it changes
+  const persistState = useCallback(() => {
+    if (!isInitialized) return;
+
+    const state: LedgerState = {
       travellers,
       dailyData,
       dateRange: {
@@ -175,7 +113,23 @@ export function useLedgerLocalState() {
       includeSunday,
     };
     saveState(state);
-  }, [travellers, dailyData, dateRange, ratePerTrip, cashPayments, otherPending, carExpenses, includeSaturday, includeSunday]);
+  }, [
+    isInitialized,
+    travellers,
+    dailyData,
+    dateRange,
+    ratePerTrip,
+    cashPayments,
+    otherPending,
+    carExpenses,
+    includeSaturday,
+    includeSunday,
+    saveState,
+  ]);
+
+  useEffect(() => {
+    persistState();
+  }, [persistState]);
 
   const addTraveller = (name: string) => {
     const newTraveller: Traveller = {
@@ -190,20 +144,13 @@ export function useLedgerLocalState() {
   };
 
   const removeTraveller = (id: string) => {
-    // Remove traveller from the list
     setTravellers(travellers.filter((t) => t.id !== id));
-    
-    // Remove traveller-specific cash payments and other pending amounts
     setCashPayments(cashPayments.filter((p) => p.travellerId !== id));
     setOtherPending(otherPending.filter((p) => p.travellerId !== id));
-    
-    // DO NOT remove traveller's entries from dailyData or draftDailyData
-    // This preserves historical trip participation for Overall Summary income calculations
   };
 
   const toggleDraftTrip = (dateKey: string, travellerId: string, period: 'morning' | 'evening') => {
     setDraftDailyData((prev) => {
-      // Deep clone to ensure immutability
       const newData = deepCloneDailyData(prev);
       
       if (!newData[dateKey]) {
@@ -213,7 +160,6 @@ export function useLedgerLocalState() {
         newData[dateKey][travellerId] = { morning: false, evening: false };
       }
       
-      // Create new TripData object instead of mutating
       newData[dateKey][travellerId] = {
         morning: period === 'morning' ? !newData[dateKey][travellerId].morning : newData[dateKey][travellerId].morning,
         evening: period === 'evening' ? !newData[dateKey][travellerId].evening : newData[dateKey][travellerId].evening,
@@ -225,7 +171,6 @@ export function useLedgerLocalState() {
 
   const setDraftTripsForAllTravellers = (dateKey: string, morning: boolean, evening: boolean) => {
     setDraftDailyData((prev) => {
-      // Deep clone to ensure immutability
       const newData = deepCloneDailyData(prev);
       
       if (!newData[dateKey]) {
@@ -233,7 +178,6 @@ export function useLedgerLocalState() {
       }
       
       travellers.forEach((t) => {
-        // Create new TripData object for each traveller
         newData[dateKey][t.id] = { morning, evening };
       });
       
@@ -242,13 +186,11 @@ export function useLedgerLocalState() {
   };
 
   const saveDraftDailyData = () => {
-    // Deep clone draft before saving to prevent future shared references
     const clonedDraft = deepCloneDailyData(draftDailyData);
     setDailyData(clonedDraft);
   };
 
   const discardDraftDailyData = () => {
-    // Deep clone saved data when discarding to prevent shared references
     setDraftDailyData(deepCloneDailyData(dailyData));
   };
 
@@ -296,6 +238,41 @@ export function useLedgerLocalState() {
     setCarExpenses(carExpenses.filter((e) => e.id !== id));
   };
 
+  const clearAllLedgerData = () => {
+    const defaultRange = getDefaultDateRange();
+    setTravellers([]);
+    setDailyData({});
+    setDraftDailyData({});
+    setDateRange(defaultRange);
+    setRatePerTrip(50);
+    setCashPayments([]);
+    setOtherPending([]);
+    setCarExpenses([]);
+    setIncludeSaturday(false);
+    setIncludeSunday(false);
+  };
+
+  const clearDailyData = () => {
+    setDailyData({});
+    setDraftDailyData({});
+  };
+
+  const clearCashPayments = () => {
+    setCashPayments([]);
+  };
+
+  const clearOtherPending = () => {
+    setOtherPending([]);
+  };
+
+  const clearCarExpenses = () => {
+    setCarExpenses([]);
+  };
+
+  const refreshFromCanister = useCallback(() => {
+    setIsInitialized(false);
+  }, []);
+
   return {
     travellers,
     addTraveller,
@@ -326,5 +303,14 @@ export function useLedgerLocalState() {
     setIncludeSaturday,
     includeSunday,
     setIncludeSunday,
+    clearAllLedgerData,
+    clearDailyData,
+    clearCashPayments,
+    clearOtherPending,
+    clearCarExpenses,
+    refreshFromCanister,
+    isLoading: isLoadingState,
   };
 }
+
+export type { Traveller, TripData, DailyData, DateRange, CashPayment, OtherPending, CarExpense };

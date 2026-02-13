@@ -6,8 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Plus, Trash2, Edit2, Check, X } from 'lucide-react';
 import EmptyState from '../../components/EmptyState';
 import { Users } from 'lucide-react';
-import { calculateTravellerBalance } from '../../utils/travellerBalance';
 import { toast } from 'sonner';
+import { calculateTravellerBalance } from '../../utils/ledgerBalances';
 
 export default function TravellerManager() {
   const { 
@@ -52,13 +52,10 @@ export default function TravellerManager() {
     setEditingName('');
   };
 
-  const handleDelete = (travellerId: string) => {
-    const traveller = travellers.find((t) => t.id === travellerId);
-    if (!traveller) return;
-
-    // Calculate balance to check if deletion is allowed
+  const handleRemove = (id: string, name: string) => {
+    // Calculate the traveller's balance
     const balance = calculateTravellerBalance(
-      traveller,
+      id,
       dateRange,
       dailyData,
       ratePerTrip,
@@ -68,14 +65,15 @@ export default function TravellerManager() {
       includeSunday
     );
 
-    // Block deletion if traveller owes money
-    if (balance.status === 'Owes') {
-      toast.error('Cannot delete this traveller because they have an outstanding balance.');
+    // Block deletion if traveller has outstanding balance
+    if (balance !== 0) {
+      toast.error('Cannot delete traveller: outstanding due amount must be settled first');
       return;
     }
 
-    // Allow deletion for Settled or Overpaid
-    removeTraveller(travellerId);
+    // Proceed with deletion
+    removeTraveller(id);
+    toast.success(`${name} removed successfully`);
   };
 
   return (
@@ -143,7 +141,7 @@ export default function TravellerManager() {
                       <Edit2 className="h-4 w-4" />
                     </Button>
                     <Button
-                      onClick={() => handleDelete(t.id)}
+                      onClick={() => handleRemove(t.id, t.name)}
                       size="icon"
                       variant="ghost"
                       className="h-8 w-8 text-destructive hover:text-destructive"

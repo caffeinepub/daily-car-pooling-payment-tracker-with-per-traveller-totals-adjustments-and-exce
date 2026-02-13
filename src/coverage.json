@@ -1,84 +1,60 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-12T07:15:00.028Z",
+  "generatedAt": "2026-02-13T06:43:03.117Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
     "total": 4,
-    "implemented": 4,
+    "implemented": 0,
     "items": [
       {
-        "id": "REQ-10",
-        "summary": "Add an explicit, visible loading state for app initialization phases that can otherwise appear blank (e.g., while InternetIdentityProvider initializes and while the caller profile query is waiting on actor availability).",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/components/AuthGate.tsx",
-          "frontend/src/App.tsx",
-          "frontend/src/components/InitLoadingScreen.tsx"
-        ],
-        "matchedFiles": [
-          "frontend/src/components/AuthGate.tsx",
-          "frontend/src/App.tsx",
-          "frontend/src/components/InitLoadingScreen.tsx"
-        ]
+        "id": "REQ-1",
+        "summary": "Implement canister-backed persistence for the full LedgerState (travellers, daily participation history, dateRange, ratePerTrip, cashPayments, otherPending, carExpenses, includeSaturday/includeSunday) keyed to the authenticated caller, so data is not stored only in browser memory.",
+        "status": "unknown",
+        "plannedFiles": [],
+        "matchedFiles": []
       },
       {
-        "id": "REQ-7",
-        "summary": "Diagnose and fix the root cause of the deployed app rendering a black screen so that the initial UI reliably renders (at minimum: the unauthenticated login screen from AuthGate).",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/App.tsx",
-          "frontend/src/components/AuthGate.tsx",
-          "frontend/src/components/InitLoadingScreen.tsx"
-        ],
-        "matchedFiles": [
-          "frontend/src/App.tsx",
-          "frontend/src/components/AuthGate.tsx",
-          "frontend/src/components/InitLoadingScreen.tsx"
-        ]
+        "id": "REQ-2",
+        "summary": "Add backend methods for ledger backup/restore so the export contains the full raw records exactly as stored: loadLedgerState, saveLedgerState, exportLedgerData (returns LedgerState), restoreLedgerData (accepts LedgerState), and clearAllLedgerData (or equivalent) for the caller.",
+        "status": "unknown",
+        "plannedFiles": [],
+        "matchedFiles": []
       },
       {
-        "id": "REQ-8",
-        "summary": "Add a top-level runtime error boundary and a user-facing fallback screen that appears if any render-time error occurs, showing an English error message and a 'Reload' action, and logging the underlying error details to the browser console.",
-        "status": "implemented",
+        "id": "REQ-3",
+        "summary": "Wire the frontend ledger data layer to the backend by replacing the current placeholder implementations in frontend/src/hooks/useLedgerQueries.ts (which currently return null or an empty LedgerBackup) with real actor calls to the new backend methods.",
+        "status": "missing",
         "plannedFiles": [
-          "frontend/src/components/RuntimeErrorBoundary.tsx",
-          "frontend/src/components/RuntimeErrorFallback.tsx",
-          "frontend/src/main.tsx"
+          "frontend/src/backend.d.ts",
+          "frontend/src/hooks/useLedgerQueries.ts",
+          "frontend/src/hooks/useLedgerLocalState.ts",
+          "frontend/src/features/ledger/SettingsPanel.tsx"
         ],
-        "matchedFiles": [
-          "frontend/src/components/RuntimeErrorBoundary.tsx",
-          "frontend/src/components/RuntimeErrorFallback.tsx"
-        ]
+        "matchedFiles": []
       },
       {
-        "id": "REQ-9",
-        "summary": "Ensure the frontend config module required by the auth/actor hooks (imported as '../config') is present and cannot crash the app at runtime: it must provide safe defaults and handle missing/invalid environment/config values gracefully (e.g., Internet Identity URL, derivation origin, canister/agent config).",
-        "status": "implemented",
+        "id": "REQ-4",
+        "summary": "Ensure all destructive 'Clear Data' actions clear canister-backed data as well (not only React local state), so exports after clearing do not include cleared records.",
+        "status": "missing",
         "plannedFiles": [
-          "frontend/src/config.ts",
-          "frontend/src/components/AuthGate.tsx"
+          "frontend/src/backend.d.ts",
+          "frontend/src/hooks/useLedgerQueries.ts",
+          "frontend/src/hooks/useLedgerLocalState.ts",
+          "frontend/src/features/ledger/ClearDataPanel.tsx"
         ],
-        "matchedFiles": [
-          "frontend/src/components/AuthGate.tsx"
-        ]
+        "matchedFiles": []
       }
     ]
   },
   "changedFiles": [
+    "backend/main.mo",
     "build-request.json",
     "feature_evidence.json",
-    "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/App.tsx",
-    "frontend/src/backend.idl.ts",
-    "frontend/src/components/AuthGate.tsx",
-    "frontend/src/components/InitLoadingScreen.tsx",
-    "frontend/src/components/RuntimeErrorBoundary.tsx",
-    "frontend/src/components/RuntimeErrorFallback.tsx",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

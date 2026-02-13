@@ -1,51 +1,69 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-12T07:15:00.024Z",
-  "summary": "REQ-8 and REQ-10 appear implemented via a new RuntimeErrorBoundary/fallback UI and explicit initialization loading screens in AuthGate/App. However, the required safe frontend config module (REQ-9) is not evidenced in the diff summary. There are also multiple ledger/UI/styling changes that are not requested by the BuildRequest and may be scope creep.",
+  "generatedAt": "2026-02-13T06:43:03.114Z",
+  "summary": "The diff does not implement the requested canister-backed LedgerState persistence, backup/export/restore methods, or the frontend wiring. The only visible backend changes relate to access control/user profiles, balances, and charge entries, and project_state.json updates.",
   "missing_requirements": [
     {
-      "id": "REQ-9",
-      "requirement": "Ensure the frontend config module required by the auth/actor hooks (imported as '../config') is present and cannot crash the app at runtime; provide safe defaults and handle missing/invalid environment/config values gracefully (II URL, derivation origin, canister/agent config).",
-      "reason": "The diff summary shows no added/modified config module (e.g., frontend/src/config.ts) or any code explicitly handling missing/invalid environment/config values. The only related note is an unverified description that AuthGate was 'simplified to avoid config dependencies', but no concrete config module implementation is shown.",
+      "id": "REQ-1",
+      "requirement": "Implement canister-backed persistence for the full LedgerState keyed to the authenticated caller (Internet Identity principal), so ledger data reloads after refresh/sign-in.",
+      "reason": "No LedgerState type/storage keyed by caller is shown, and no stable persistence for travellers/daily participation/dateRange/ratePerTrip/cashPayments/otherPending/carExpenses/includeSaturday/includeSunday is present in the visible backend changes.",
       "evidence": [
-        "frontend-file-summaries.txt (no config module listed among modified/added files)",
-        "Modified: frontend/src/components/AuthGate.tsx (no config handling shown in snippet)"
+        "backend/main.mo (truncated)"
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "requirement": "Add backend methods for ledger backup/restore: loadLedgerState, saveLedgerState, exportLedgerData (returns LedgerState), restoreLedgerData (accepts LedgerState), and clearAllLedgerData (or equivalent) per caller with access isolation.",
+      "reason": "None of the required ledger backup/restore/export/clear methods are present in the visible backend diff, and nothing indicates per-caller ledger state export/restore.",
+      "evidence": [
+        "backend/main.mo (truncated)"
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "requirement": "Replace placeholder implementations in frontend/src/hooks/useLedgerQueries.ts with real actor calls to the new backend ledger methods (load/save/export/restore).",
+      "reason": "No frontend files were modified; frontend/src/hooks/useLedgerQueries.ts is not changed in this diff.",
+      "evidence": [
+        "File diff summary: Modified files only include backend/main.mo and project_state.json"
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "requirement": "Ensure destructive 'Clear Data' actions clear canister-backed data as well, including targeted clears (daily participation only, cash payments only, other pending only, car expenses only) and clear-all.",
+      "reason": "No backend clear methods for ledger datasets are shown, and no frontend wiring changes are included to invoke such canister clears.",
+      "evidence": [
+        "backend/main.mo (truncated)",
+        "File diff summary: no relevant frontend changes"
       ]
     }
   ],
   "hallucinated_features": [
     {
-      "description": "Added backend candid/IDL interface file in the frontend (backend.idl.ts).",
-      "reason": "BuildRequest focuses on fixing black screen, adding runtime fallback UI, safe config defaults, and loading states. Adding a backend IDL file is not explicitly requested in REQ-7..REQ-10.",
+      "description": "User profile management methods (getCallerUserProfile, getUserProfile, saveCallerUserProfile) with authorization checks.",
+      "reason": "Not requested by the BuildRequest, which focuses on ledger persistence and backup/export/restore.",
       "evidence": [
-        "frontend/src/backend.idl.ts"
+        "backend/main.mo (truncated)"
       ]
     },
     {
-      "description": "Multiple ledger feature/UI behavior changes (tabs/navigation unification, unsaved changes guard, traveller deletion guard with outstanding balance checks, success toasts, date range picker behavior, export changes, localStorage persistence changes).",
-      "reason": "Non-goals explicitly exclude adding new ledger features unrelated to fixing the black screen; these appear unrelated to runtime init/black screen/error boundary requirements.",
+      "description": "Balance and charge-entry functionality (pendingBalances, startCharge, entries, MonetaryEvent/TravelEntry types).",
+      "reason": "Not requested; BuildRequest requires persisting and exporting LedgerState for a ledger UI, not implementing admin charge/balance logic.",
       "evidence": [
-        "frontend-file-summaries.txt (LedgerPage.tsx, TravellerManager.tsx, DailyParticipationGrid.tsx, DateRangePicker.tsx, exportExcel.ts, useLedgerLocalState.ts, SummaryPanel.tsx, etc.)"
+        "backend/main.mo (truncated)"
       ]
     },
     {
-      "description": "Global styling/theme palette changes (warm neutral/amber OKLCH palette) and Tailwind config changes (fonts/colors/shadows).",
-      "reason": "Not requested by REQ-7..REQ-10 and not necessary to meet the black-screen/error-boundary/loading/config requirements.",
+      "description": "Modification of project_state.json to add/track feature requests/architectural notes.",
+      "reason": "Not requested as part of implementing the ledger persistence/export fix; it is ancillary metadata not mentioned in constraints/requirements.",
       "evidence": [
-        "frontend-file-summaries.txt (frontend/index.css, frontend/src/index.css, frontend/tailwind.config.js)"
+        "project_state.json"
       ]
     }
   ],
-  "confidence": 0.72,
+  "confidence": 0.78,
   "changed_files": [
-    "frontend-file-summaries.txt",
-    "frontend/src/App.tsx",
-    "frontend/src/backend.idl.ts",
-    "frontend/src/components/AuthGate.tsx",
-    "frontend/src/components/InitLoadingScreen.tsx",
-    "frontend/src/components/RuntimeErrorBoundary.tsx",
-    "frontend/src/components/RuntimeErrorFallback.tsx",
+    "backend/main.mo",
     "project_state.json"
   ]
 }

@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import EmptyState from '../../components/EmptyState';
-import { Receipt, Pencil, Trash2 } from 'lucide-react';
+import { Receipt, Pencil, Trash2, IndianRupee } from 'lucide-react';
 import { useState } from 'react';
 import EditCashPaymentDialog from './EditCashPaymentDialog';
 import DeleteCashPaymentAlertDialog from './DeleteCashPaymentAlertDialog';
@@ -108,24 +108,22 @@ export default function PaymentHistoryView() {
                     {payment.note || '—'}
                   </TableCell>
                   <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-2">
+                    <div className="flex justify-end gap-2">
                       <Button
                         variant="ghost"
-                        size="sm"
+                        size="icon"
                         onClick={() => setEditingPayment(payment)}
-                        className="h-8 w-8 p-0"
+                        className="h-8 w-8"
                       >
                         <Pencil className="h-4 w-4" />
-                        <span className="sr-only">Edit payment</span>
                       </Button>
                       <Button
                         variant="ghost"
-                        size="sm"
+                        size="icon"
                         onClick={() => setDeletingPayment(payment)}
-                        className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                        className="h-8 w-8 text-destructive hover:text-destructive"
                       >
                         <Trash2 className="h-4 w-4" />
-                        <span className="sr-only">Delete payment</span>
                       </Button>
                     </div>
                   </TableCell>
@@ -143,7 +141,10 @@ export default function PaymentHistoryView() {
           travellerName={getTravellerName(editingPayment.travellerId)}
           open={!!editingPayment}
           onOpenChange={(open) => !open && setEditingPayment(null)}
-          onUpdatePayment={updateCashPayment}
+          onUpdatePayment={(paymentId, updates) => {
+            updateCashPayment(paymentId, updates);
+            setEditingPayment(null);
+          }}
         />
       )}
 
@@ -152,7 +153,10 @@ export default function PaymentHistoryView() {
         <DeleteCashPaymentAlertDialog
           open={!!deletingPayment}
           onOpenChange={(open) => !open && setDeletingPayment(null)}
-          onConfirmDelete={() => removeCashPayment(deletingPayment.id)}
+          onConfirmDelete={() => {
+            removeCashPayment(deletingPayment.id);
+            setDeletingPayment(null);
+          }}
           travellerName={getTravellerName(deletingPayment.travellerId)}
           amount={deletingPayment.amount}
         />

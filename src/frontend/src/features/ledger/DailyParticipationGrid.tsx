@@ -207,25 +207,34 @@ export default function DailyParticipationGrid({ onSaveAndNext }: DailyParticipa
           </table>
         </ResponsiveTableShell>
 
-        {/* Save buttons */}
-        <div className="flex flex-col sm:flex-row gap-2 pt-2">
+        {/* Save Actions */}
+        <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t">
           <Button
             onClick={handleSave}
             disabled={!hasUnsavedChanges}
-            className="flex-1"
+            className="flex-1 sm:flex-none"
           >
-            <Save className="mr-2 h-4 w-4" />
+            <Save className="h-4 w-4 mr-2" />
             Save
           </Button>
-          <Button
-            onClick={handleSaveAndNext}
-            disabled={!hasUnsavedChanges}
-            variant="default"
-            className="flex-1"
-          >
-            Save & Next
-            <ChevronRight className="ml-2 h-4 w-4" />
-          </Button>
+          
+          {onSaveAndNext && (
+            <Button
+              onClick={handleSaveAndNext}
+              disabled={!hasUnsavedChanges}
+              variant="outline"
+              className="flex-1 sm:flex-none"
+            >
+              Save & Next
+              <ChevronRight className="h-4 w-4 ml-2" />
+            </Button>
+          )}
+          
+          {hasUnsavedChanges && (
+            <span className="text-sm text-muted-foreground self-center">
+              You have unsaved changes
+            </span>
+          )}
         </div>
       </CardContent>
     </Card>

@@ -1,90 +1,93 @@
 {
   "kind": "build_request",
-  "title": "Fix black screen on app load and add safe runtime fallback UI",
+  "title": "Fix ledger backup/export by persisting ledger state in canister and exporting full raw records",
   "priority": "high",
   "requirements": [
     {
-      "id": "REQ-7",
-      "text": "Diagnose and fix the root cause of the deployed app rendering a black screen so that the initial UI reliably renders (at minimum: the unauthenticated login screen from AuthGate).",
-      "target": "frontend",
+      "id": "REQ-1",
+      "text": "Implement canister-backed persistence for the full LedgerState (travellers, daily participation history, dateRange, ratePerTrip, cashPayments, otherPending, carExpenses, includeSaturday/includeSunday) keyed to the authenticated caller, so data is not stored only in browser memory.",
+      "target": "backend",
       "source": {
         "messageIds": [
-          "msg-3"
+          "msg-4",
+          "msg-6"
         ],
         "quotes": [
-          "I am unable to view any content only black screen"
+          "Might be data is storing in browser memory i dont know you machanism",
+          "it is not backing up data of Travellers, Daily Participation history, summary, car expense, overall summary"
         ]
       },
       "acceptanceCriteria": [
-        "On a fresh load (no cached data) the app renders visible UI instead of a blank/black screen.",
-        "If the user is not authenticated, the AuthGate login card is visible and clickable.",
-        "If the user is authenticated, the app proceeds to profile lookup and renders either ProfileSetupModal or LedgerPage.",
-        "No uncaught runtime exceptions occur during initial render (verify in browser console)."
+        "Backend exposes stable storage for ledger data per caller (Internet Identity principal).",
+        "After refresh/sign-out/sign-in on the same identity, previously entered travellers, daily participation, payments, other pending, car expenses, and settings reload from the canister (not empty)."
       ]
     },
     {
-      "id": "REQ-8",
-      "text": "Add a top-level runtime error boundary and a user-facing fallback screen that appears if any render-time error occurs, showing an English error message and a 'Reload' action, and logging the underlying error details to the browser console.",
-      "target": "frontend",
+      "id": "REQ-2",
+      "text": "Add backend methods for ledger backup/restore so the export contains the full raw records exactly as stored: loadLedgerState, saveLedgerState, exportLedgerData (returns LedgerState), restoreLedgerData (accepts LedgerState), and clearAllLedgerData (or equivalent) for the caller.",
+      "target": "backend",
       "source": {
         "messageIds": [
-          "msg-3"
+          "msg-3",
+          "msg-4"
         ],
         "quotes": [
-          "I am unable to view any content only black screen"
+          "yes backup file is created but no data in it attaching content of file",
+          "2 - automatically"
         ]
       },
       "acceptanceCriteria": [
-        "If a component throws during render/effects, the app shows a fallback view (not a blank screen) with clear English copy (e.g., 'Something went wrong.').",
-        "Fallback view includes a button that reloads the page.",
-        "The thrown error and component stack (when available) are logged to console for debugging.",
-        "Normal operation is unaffected when no error occurs."
+        "exportLedgerData returns non-empty arrays/objects when the caller has stored data (e.g., travellers.length > 0 after adding travellers).",
+        "restoreLedgerData overwrites the caller’s stored ledger with the uploaded LedgerState and subsequent export returns the restored data.",
+        "Backend enforces that callers can only load/save/export/restore/clear their own ledger data."
       ]
     },
     {
-      "id": "REQ-9",
-      "text": "Ensure the frontend config module required by the auth/actor hooks (imported as '../config') is present and cannot crash the app at runtime: it must provide safe defaults and handle missing/invalid environment/config values gracefully (e.g., Internet Identity URL, derivation origin, canister/agent config).",
+      "id": "REQ-3",
+      "text": "Wire the frontend ledger data layer to the backend by replacing the current placeholder implementations in frontend/src/hooks/useLedgerQueries.ts (which currently return null or an empty LedgerBackup) with real actor calls to the new backend methods.",
       "target": "frontend",
       "source": {
         "messageIds": [
           "msg-3"
         ],
         "quotes": [
-          "I am unable to view any content only black screen"
+          "yes backup file is created but no data in it attaching content of file"
         ]
       },
       "acceptanceCriteria": [
-        "The app does not crash on startup even when optional config values are missing.",
-        "If Internet Identity provider URL is not configured, the login flow still has a valid provider URL (via a safe default) or shows a clear on-screen configuration error instead of a blank screen.",
-        "Any config-loading failures are surfaced via the error boundary fallback (or an explicit in-app error state), not as a black screen."
+        "useLoadLedgerState returns the caller’s persisted LedgerState from the canister (not always null).",
+        "useSaveLedgerState persists changes to the canister (no longer just console logging).",
+        "useExportLedgerBackup exports a JSON file whose data fields match the caller’s stored ledger and are not empty when data exists.",
+        "useRestoreLedgerBackup sends the uploaded backup to the backend and refreshes the UI from canister data."
       ]
     },
     {
-      "id": "REQ-10",
-      "text": "Add an explicit, visible loading state for app initialization phases that can otherwise appear blank (e.g., while InternetIdentityProvider initializes and while the caller profile query is waiting on actor availability).",
-      "target": "frontend",
+      "id": "REQ-4",
+      "text": "Ensure all destructive 'Clear Data' actions clear canister-backed data as well (not only React local state), so exports after clearing do not include cleared records.",
+      "target": "both",
       "source": {
         "messageIds": [
-          "msg-3"
+          "msg-6"
         ],
         "quotes": [
-          "I am unable to view any content only black screen"
+          "Might be data is storing in browser memory i dont know you machanism"
         ]
       },
       "acceptanceCriteria": [
-        "During initialization (before AuthGate can decide what to render), the user sees a loading screen/skeleton instead of a blank view.",
-        "Loading text is in English and does not mention internal implementation details.",
-        "Once initialization completes, the app transitions to the correct UI (login/profile setup/ledger)."
+        "After using 'Clear All Ledger Data', exporting a backup produces an empty/default LedgerState for the caller.",
+        "After using each targeted clear option (daily participation only, cash payments only, other pending only, car expenses only), exporting a backup reflects only that dataset being cleared while other datasets remain intact."
       ]
     }
   ],
   "constraints": [
-    "Do not edit files under frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useInternetIdentity.tsx, or frontend/src/hooks/useActor.ts (immutable paths). Implement fixes by adding/adjusting other modules/components they depend on, or by adding new wrapper components at the app level.",
-    "Keep the backend as a single Motoko actor (no additional backend services)."
+    "Backend must remain a single Motoko actor in backend/main.mo (no additional backend services).",
+    "Do not edit any files under frontend/src/components/ui or any paths listed as immutable in SYSTEM_CONTEXT.",
+    "Use English for any user-facing text."
   ],
   "nonGoals": [
-    "Adding new ledger features unrelated to fixing the black screen.",
-    "Changing authentication provider away from Internet Identity."
+    "Adding third-party storage, external databases, or cloud sync outside the canister.",
+    "Changing the JSON backup file structure (keep LedgerBackup { version, exportedAt, data }).",
+    "Adding new report/CSV export formats beyond fixing backup/export of raw records."
   ],
   "imageRequirements": {
     "required": [],

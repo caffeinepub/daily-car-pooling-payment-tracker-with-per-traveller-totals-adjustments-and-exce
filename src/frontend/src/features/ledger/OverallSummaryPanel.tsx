@@ -1,26 +1,16 @@
 import { useLedgerState } from './LedgerStateContext';
-import { getDaysInRange } from '../../utils/dateRange';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import { formatCurrency } from '../../utils/money';
-import { TrendingUp, TrendingDown, IndianRupee } from 'lucide-react';
 import { parseISO, format } from 'date-fns';
-import { calculateIncomeFromDailyData, calculateMonthlyIncomeFromDailyData } from '../../utils/tripCalculations';
+import { TrendingUp, IndianRupee, Car, DollarSign } from 'lucide-react';
+import { calculateIncomeFromDailyData } from '../../utils/tripCalculations';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import ResponsiveTableShell from '../../components/ResponsiveTableShell';
 
 export default function OverallSummaryPanel() {
-  const { 
-    dateRange, 
-    dailyData, 
-    ratePerTrip, 
-    carExpenses,
-    includeSaturday,
-    includeSunday,
-  } = useLedgerState();
+  const { dateRange, dailyData, ratePerTrip, carExpenses, includeSaturday, includeSunday } = useLedgerState();
 
-  const days = getDaysInRange(dateRange.start, dateRange.end);
-
-  // Calculate total income from dailyData (stable even after traveller deletion)
+  // Calculate total income using dailyData-driven calculation
   const totalIncome = calculateIncomeFromDailyData(
     dailyData,
     dateRange,
@@ -29,137 +19,161 @@ export default function OverallSummaryPanel() {
     includeSunday
   );
 
-  // Calculate total expenses within date range
-  const totalExpense = carExpenses
-    .filter((e) => {
-      try {
-        const expenseDate = parseISO(e.date);
-        return expenseDate >= dateRange.start && expenseDate <= dateRange.end;
-      } catch {
-        return false;
-      }
-    })
-    .reduce((sum, e) => sum + e.amount, 0);
-
-  const profitLoss = totalIncome - totalExpense;
-
-  // Month-wise breakdown using dailyData-driven calculation
-  const monthlyIncomeMap = calculateMonthlyIncomeFromDailyData(
-    dailyData,
-    dateRange,
-    ratePerTrip,
-    includeSaturday,
-    includeSunday
-  );
-
-  const monthlyData = new Map<string, { income: number; expense: number }>();
-
-  // Initialize with income data
-  monthlyIncomeMap.forEach((income, monthKey) => {
-    monthlyData.set(monthKey, { income, expense: 0 });
-  });
-
-  // Add expense data
-  carExpenses.forEach((e) => {
+  // Calculate total expenses in range
+  const expensesInRange = carExpenses.filter((e) => {
     try {
       const expenseDate = parseISO(e.date);
-      if (expenseDate >= dateRange.start && expenseDate <= dateRange.end) {
-        const monthKey = format(expenseDate, 'yyyy-MM');
-        if (!monthlyData.has(monthKey)) {
-          monthlyData.set(monthKey, { income: 0, expense: 0 });
-        }
-        const monthData = monthlyData.get(monthKey)!;
-        monthData.expense += e.amount;
+      return expenseDate >= dateRange.start && expenseDate <= dateRange.end;
+    } catch {
+      return false;
+    }
+  });
+
+  const totalExpense = expensesInRange.reduce((sum, e) => sum + e.amount, 0);
+  const profitLoss = totalIncome - totalExpense;
+
+  // Month-wise breakdown
+  const monthlyData: Record<string, { income: number; expense: number }> = {};
+
+  // Calculate monthly income from dailyData
+  const allDates = Object.keys(dailyData);
+  allDates.forEach((dateKey) => {
+    try {
+      const [year, month] = dateKey.split('-');
+      const date = new Date(parseInt(year), parseInt(month) - 1, 1);
+      
+      // Check if date is in range
+      if (date < new Date(dateRange.start.getFullYear(), dateRange.start.getMonth(), 1) ||
+          date > new Date(dateRange.end.getFullYear(), dateRange.end.getMonth() + 1, 0)) {
+        return;
       }
+
+      const monthKey = format(date, 'MMM yyyy');
+      if (!monthlyData[monthKey]) {
+        monthlyData[monthKey] = { income: 0, expense: 0 };
+      }
+
+      // Count trips for this date
+      const dayData = dailyData[dateKey];
+      let dayTrips = 0;
+      Object.values(dayData).forEach((tripData) => {
+        dayTrips += (tripData.morning ? 1 : 0) + (tripData.evening ? 1 : 0);
+      });
+
+      monthlyData[monthKey].income += dayTrips * ratePerTrip;
     } catch {
       // Skip invalid dates
     }
   });
 
-  const monthlyBreakdown = Array.from(monthlyData.entries())
-    .map(([monthKey, data]) => ({
-      month: monthKey,
-      monthLabel: format(parseISO(monthKey + '-01'), 'MMMM yyyy'),
-      income: data.income,
-      expense: data.expense,
-      profitLoss: data.income - data.expense,
-    }))
-    .sort((a, b) => a.month.localeCompare(b.month));
+  // Add expenses to monthly data
+  expensesInRange.forEach((e) => {
+    try {
+      const expenseDate = parseISO(e.date);
+      const monthKey = format(expenseDate, 'MMM yyyy');
+      if (!monthlyData[monthKey]) {
+        monthlyData[monthKey] = { income: 0, expense: 0 };
+      }
+      monthlyData[monthKey].expense += e.amount;
+    } catch {
+      // Skip invalid dates
+    }
+  });
+
+  const monthlyEntries = Object.entries(monthlyData).map(([month, data]) => ({
+    month,
+    income: data.income,
+    expense: data.expense,
+    profit: data.income - data.expense,
+  }));
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Overall Summary</CardTitle>
-        <CardDescription>
-          Financial overview for {format(dateRange.start, 'MMM dd, yyyy')} - {format(dateRange.end, 'MMM dd, yyyy')}
-        </CardDescription>
+        <CardTitle className="flex items-center gap-2">
+          <TrendingUp className="h-5 w-5" />
+          Overall Summary
+        </CardTitle>
+        <CardDescription>Financial overview for the selected date range</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Overall Totals */}
+        {/* Summary Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="flex flex-col gap-2 p-4 rounded-lg bg-accent/30 border">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <div className="p-4 border rounded-lg bg-green-50 dark:bg-green-950/20">
+            <div className="flex items-center gap-2 text-green-700 dark:text-green-400 mb-2">
               <IndianRupee className="h-4 w-4" />
-              <span>Income</span>
+              <p className="text-sm font-medium">Income</p>
             </div>
-            <div className="text-2xl font-bold text-foreground">
+            <p className="text-2xl font-bold text-green-700 dark:text-green-400">
               {formatCurrency(totalIncome)}
-            </div>
+            </p>
           </div>
 
-          <div className="flex flex-col gap-2 p-4 rounded-lg bg-accent/30 border">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <TrendingDown className="h-4 w-4" />
-              <span>Expense</span>
+          <div className="p-4 border rounded-lg bg-red-50 dark:bg-red-950/20">
+            <div className="flex items-center gap-2 text-red-700 dark:text-red-400 mb-2">
+              <Car className="h-4 w-4" />
+              <p className="text-sm font-medium">Expense</p>
             </div>
-            <div className="text-2xl font-bold text-foreground">
+            <p className="text-2xl font-bold text-red-700 dark:text-red-400">
               {formatCurrency(totalExpense)}
-            </div>
+            </p>
           </div>
 
-          <div className="flex flex-col gap-2 p-4 rounded-lg bg-accent/30 border">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <TrendingUp className="h-4 w-4" />
-              <span>Profit/Loss</span>
+          <div className="p-4 border rounded-lg bg-accent">
+            <div className="flex items-center gap-2 text-foreground mb-2">
+              <DollarSign className="h-4 w-4" />
+              <p className="text-sm font-medium">Profit/Loss</p>
             </div>
-            <div className="text-2xl font-bold text-foreground">
+            <p
+              className={`text-2xl font-bold ${
+                profitLoss > 0
+                  ? 'text-green-600 dark:text-green-400'
+                  : profitLoss < 0
+                  ? 'text-red-600 dark:text-red-400'
+                  : 'text-muted-foreground'
+              }`}
+            >
               {formatCurrency(profitLoss)}
-            </div>
+            </p>
           </div>
         </div>
 
-        <Separator />
-
         {/* Month-wise Breakdown */}
-        {monthlyBreakdown.length > 0 && (
-          <div className="space-y-3">
-            <h3 className="font-semibold text-sm">Month-wise Breakdown</h3>
-            <div className="space-y-2">
-              {monthlyBreakdown.map((month) => (
-                <div key={month.month} className="p-3 rounded-lg border bg-card">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="font-medium text-sm">{month.monthLabel}</span>
-                    <Badge variant={month.profitLoss >= 0 ? 'default' : 'destructive'}>
-                      {month.profitLoss >= 0 ? 'Profit' : 'Loss'} {formatCurrency(Math.abs(month.profitLoss))}
-                    </Badge>
-                  </div>
-                  <div className="grid grid-cols-3 gap-2 text-xs text-muted-foreground">
-                    <div>
-                      <div>Income</div>
-                      <div className="font-medium text-foreground">{formatCurrency(month.income)}</div>
-                    </div>
-                    <div>
-                      <div>Expense</div>
-                      <div className="font-medium text-foreground">{formatCurrency(month.expense)}</div>
-                    </div>
-                    <div>
-                      <div>Net</div>
-                      <div className="font-medium text-foreground">{formatCurrency(month.profitLoss)}</div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+        {monthlyEntries.length > 0 && (
+          <div>
+            <h3 className="text-lg font-semibold mb-3">Month-wise Breakdown</h3>
+            <ResponsiveTableShell>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Month</TableHead>
+                    <TableHead className="text-right">Income</TableHead>
+                    <TableHead className="text-right">Expense</TableHead>
+                    <TableHead className="text-right">Profit/Loss</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {monthlyEntries.map((entry) => (
+                    <TableRow key={entry.month}>
+                      <TableCell className="font-medium">{entry.month}</TableCell>
+                      <TableCell className="text-right">{formatCurrency(entry.income)}</TableCell>
+                      <TableCell className="text-right">{formatCurrency(entry.expense)}</TableCell>
+                      <TableCell
+                        className={`text-right font-semibold ${
+                          entry.profit > 0
+                            ? 'text-green-600 dark:text-green-400'
+                            : entry.profit < 0
+                            ? 'text-red-600 dark:text-red-400'
+                            : 'text-muted-foreground'
+                        }`}
+                      >
+                        {formatCurrency(entry.profit)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </ResponsiveTableShell>
           </div>
         )}
       </CardContent>

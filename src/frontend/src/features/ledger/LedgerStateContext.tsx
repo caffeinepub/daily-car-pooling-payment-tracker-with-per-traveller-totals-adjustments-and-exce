@@ -7,7 +7,7 @@ import type {
   CashPayment,
   OtherPending,
   CarExpense,
-} from '../../hooks/useLedgerLocalState';
+} from '../../types/ledger';
 
 interface LedgerStateContextValue {
   travellers: Traveller[];
@@ -39,6 +39,13 @@ interface LedgerStateContextValue {
   setIncludeSaturday: (include: boolean) => void;
   includeSunday: boolean;
   setIncludeSunday: (include: boolean) => void;
+  clearAllLedgerData: () => void;
+  clearDailyData: () => void;
+  clearCashPayments: () => void;
+  clearOtherPending: () => void;
+  clearCarExpenses: () => void;
+  refreshFromCanister: () => void;
+  isLoading: boolean;
 }
 
 const LedgerStateContext = createContext<LedgerStateContextValue | null>(null);

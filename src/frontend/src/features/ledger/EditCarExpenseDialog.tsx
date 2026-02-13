@@ -1,26 +1,18 @@
 import { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Pencil } from 'lucide-react';
+import { toast } from 'sonner';
 import type { CarExpense } from '../../hooks/useLedgerLocalState';
-
-const PREDEFINED_CATEGORIES = [
-  'CNG BRD',
-  'CNG AHM',
-  'Petrol',
-  'Maintenance Cost',
-  'Toll',
-  'Other',
-];
 
 interface EditCarExpenseDialogProps {
   expense: CarExpense;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onUpdateExpense: (id: string, updates: Partial<CarExpense>) => void;
+  onUpdateExpense: (expenseId: string, patch: Partial<Pick<CarExpense, 'category' | 'amount' | 'date' | 'note'>>) => void;
 }
 
 export default function EditCarExpenseDialog({
@@ -29,50 +21,47 @@ export default function EditCarExpenseDialog({
   onOpenChange,
   onUpdateExpense,
 }: EditCarExpenseDialogProps) {
-  const [date, setDate] = useState(expense.date);
   const [category, setCategory] = useState(expense.category);
-  const [customCategory, setCustomCategory] = useState('');
   const [amount, setAmount] = useState(expense.amount.toString());
+  const [date, setDate] = useState(expense.date);
   const [note, setNote] = useState(expense.note || '');
   const [error, setError] = useState('');
 
-  // Determine if the category is predefined or custom
-  const isPredefinedCategory = PREDEFINED_CATEGORIES.includes(expense.category);
-  const [selectedCategory, setSelectedCategory] = useState(
-    isPredefinedCategory ? expense.category : 'Other'
-  );
-
+  // Reset form when expense changes or dialog opens
   useEffect(() => {
-    if (!isPredefinedCategory) {
-      setCustomCategory(expense.category);
+    if (open) {
+      setCategory(expense.category);
+      setAmount(expense.amount.toString());
+      setDate(expense.date);
+      setNote(expense.note || '');
+      setError('');
     }
-  }, [expense.category, isPredefinedCategory]);
+  }, [open, expense]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
     const numAmount = parseFloat(amount);
-
+    
     if (!amount || isNaN(numAmount) || numAmount <= 0) {
       setError('Please enter a valid amount greater than 0');
       return;
     }
 
-    if (selectedCategory === 'Other' && !customCategory.trim()) {
-      setError('Please enter a custom category name for Other');
+    if (!category.trim()) {
+      setError('Please enter a category');
       return;
     }
 
-    const finalCategory = selectedCategory === 'Other' ? customCategory.trim() : selectedCategory;
-
     onUpdateExpense(expense.id, {
-      date,
-      category: finalCategory,
+      category: category.trim(),
       amount: numAmount,
+      date,
       note: note || undefined,
     });
 
+    toast.success(`Expense updated for ${category}`);
     onOpenChange(false);
   };
 
@@ -80,8 +69,13 @@ export default function EditCarExpenseDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Edit Car Expense</DialogTitle>
-          <DialogDescription>Update the details of this car expense</DialogDescription>
+          <DialogTitle className="flex items-center gap-2">
+            <Pencil className="h-5 w-5" />
+            Edit Car Expense
+          </DialogTitle>
+          <DialogDescription>
+            Update the expense details
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <div className="grid gap-4 py-4">
@@ -94,43 +88,21 @@ export default function EditCarExpenseDialog({
                 onChange={(e) => setDate(e.target.value)}
               />
             </div>
-
             <div className="grid gap-2">
               <Label htmlFor="edit-category">
                 Category <span className="text-destructive">*</span>
               </Label>
-              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                <SelectTrigger id="edit-category">
-                  <SelectValue placeholder="Select category" />
-                </SelectTrigger>
-                <SelectContent>
-                  {PREDEFINED_CATEGORIES.map((cat) => (
-                    <SelectItem key={cat} value={cat}>
-                      {cat}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Input
+                id="edit-category"
+                type="text"
+                placeholder="Enter category"
+                value={category}
+                onChange={(e) => {
+                  setCategory(e.target.value);
+                  setError('');
+                }}
+              />
             </div>
-
-            {selectedCategory === 'Other' && (
-              <div className="grid gap-2">
-                <Label htmlFor="edit-customCategory">
-                  Custom Category Name <span className="text-destructive">*</span>
-                </Label>
-                <Input
-                  id="edit-customCategory"
-                  type="text"
-                  placeholder="Enter custom category"
-                  value={customCategory}
-                  onChange={(e) => {
-                    setCustomCategory(e.target.value);
-                    setError('');
-                  }}
-                />
-              </div>
-            )}
-
             <div className="grid gap-2">
               <Label htmlFor="edit-amount">
                 Amount (₹) <span className="text-destructive">*</span>
@@ -148,8 +120,8 @@ export default function EditCarExpenseDialog({
                 }}
                 className={error ? 'border-destructive' : ''}
               />
+              {error && <p className="text-sm text-destructive">{error}</p>}
             </div>
-
             <div className="grid gap-2">
               <Label htmlFor="edit-note">Note (optional)</Label>
               <Textarea
@@ -160,8 +132,6 @@ export default function EditCarExpenseDialog({
                 rows={3}
               />
             </div>
-
-            {error && <p className="text-sm text-destructive">{error}</p>}
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>

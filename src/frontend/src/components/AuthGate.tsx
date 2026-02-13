@@ -2,23 +2,13 @@ import { useInternetIdentity } from '../hooks/useInternetIdentity';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Car, LogIn } from 'lucide-react';
-import InitLoadingScreen from './InitLoadingScreen';
 
 interface AuthGateProps {
   children: React.ReactNode;
 }
 
-/**
- * Authentication gate that shows login screen for unauthenticated users.
- * Handles initialization states gracefully with loading screens.
- */
 export default function AuthGate({ children }: AuthGateProps) {
-  const { identity, login, loginStatus, isInitializing } = useInternetIdentity();
-
-  // Show loading screen during Internet Identity initialization
-  if (isInitializing) {
-    return <InitLoadingScreen message="Initializing secure authentication..." />;
-  }
+  const { identity, login, loginStatus } = useInternetIdentity();
 
   if (!identity) {
     return (
@@ -31,7 +21,8 @@ export default function AuthGate({ children }: AuthGateProps) {
             <div>
               <CardTitle className="text-2xl">Carpool Ledger</CardTitle>
               <CardDescription className="mt-2">
-                Track daily carpooling expenses, manage traveller balances, and export reports
+                Track daily carpooling expenses, manage traveller balances, and export reports. 
+                Your data syncs across all devices.
               </CardDescription>
             </div>
           </CardHeader>

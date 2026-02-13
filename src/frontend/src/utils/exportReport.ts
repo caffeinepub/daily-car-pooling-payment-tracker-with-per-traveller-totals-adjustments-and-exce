@@ -70,6 +70,12 @@ function formatINR(amount: number): string {
   }).format(amount);
 }
 
+function getBalanceColor(balance: number): string {
+  if (balance > 0) return '#dc2626'; // red-600 (owes)
+  if (balance < 0) return '#16a34a'; // green-600 (overpaid)
+  return '#000000'; // black (settled)
+}
+
 export async function exportToCSV(state: LedgerState, filters: ExportFilters): Promise<void> {
   const { travellers, dateRange, dailyData, ratePerTrip, cashPayments, otherPending, carExpenses, includeSaturday, includeSunday } = state;
   const filteredTravellers = filterTravellers(travellers, filters.selectedTravellerIds);
@@ -246,9 +252,9 @@ export async function exportToPDF(state: LedgerState, filters: ExportFilters): P
     tr:nth-child(even) { background-color: #f9f9f9; }
     .summary-box { background: #f5f5f5; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
     .summary-item { display: flex; justify-content: space-between; margin: 5px 0; }
-    .balance-owes { color: #dc2626; font-weight: bold; }
-    .balance-overpaid { color: #16a34a; font-weight: bold; }
-    .balance-settled { color: #000000; font-weight: bold; }
+    .balance-positive { color: #dc2626; font-weight: bold; }
+    .balance-negative { color: #16a34a; font-weight: bold; }
+    .balance-zero { color: #000000; font-weight: bold; }
     @media print {
       body { margin: 0; }
       h2 { page-break-before: always; }
@@ -335,7 +341,7 @@ export async function exportToPDF(state: LedgerState, filters: ExportFilters): P
         .reduce((sum, p) => sum + p.amount, 0);
 
       const balance = totalCharge + otherPendingInRange - paymentsInRange;
-      const balanceClass = balance > 0 ? 'balance-owes' : balance < 0 ? 'balance-overpaid' : 'balance-settled';
+      const balanceClass = balance > 0 ? 'balance-positive' : balance < 0 ? 'balance-negative' : 'balance-zero';
 
       html += `<tr>
         <td>${t.name}</td>
@@ -400,7 +406,7 @@ export async function exportToPDF(state: LedgerState, filters: ExportFilters): P
     html += '<h2>Overall Summary</h2><div class="summary-box">';
     html += `<div class="summary-item"><span>Total Income:</span><span>${formatINR(totalIncome)}</span></div>`;
     html += `<div class="summary-item"><span>Total Expense:</span><span>${formatINR(totalExpense)}</span></div>`;
-    html += `<div class="summary-item"><span>Profit/Loss:</span><span style="font-weight: bold;">${formatINR(profitLoss)}</span></div>`;
+    html += `<div class="summary-item"><span>Profit/Loss:</span><span style="color: ${getBalanceColor(profitLoss)}; font-weight: bold;">${formatINR(profitLoss)}</span></div>`;
     html += '</div>';
   }
 
@@ -432,9 +438,6 @@ export async function exportToXLSX(state: LedgerState, filters: ExportFilters): 
     table { border-collapse: collapse; }
     th, td { border: 1px solid #000; padding: 5px; }
     th { background-color: #c89664; color: white; font-weight: bold; }
-    .balance-owes { color: #dc2626; font-weight: bold; }
-    .balance-overpaid { color: #16a34a; font-weight: bold; }
-    .balance-settled { color: #000000; font-weight: bold; }
   </style>
 </head>
 <body>
@@ -516,7 +519,7 @@ export async function exportToXLSX(state: LedgerState, filters: ExportFilters): 
         .reduce((sum, p) => sum + p.amount, 0);
 
       const balance = totalCharge + otherPendingInRange - paymentsInRange;
-      const balanceClass = balance > 0 ? 'balance-owes' : balance < 0 ? 'balance-overpaid' : 'balance-settled';
+      const balanceColor = getBalanceColor(balance);
 
       html += `<tr>
         <td>${t.name}</td>
@@ -524,7 +527,7 @@ export async function exportToXLSX(state: LedgerState, filters: ExportFilters): 
         <td>${totalCharge}</td>
         <td>${otherPendingInRange}</td>
         <td>${paymentsInRange}</td>
-        <td class="${balanceClass}">${balance}</td>
+        <td style="color: ${balanceColor}; font-weight: bold;">${balance}</td>
       </tr>`;
     });
 
@@ -581,12 +584,13 @@ export async function exportToXLSX(state: LedgerState, filters: ExportFilters): 
     html += '<h2>Overall Summary</h2><table><thead><tr><th>Metric</th><th>Amount</th></tr></thead><tbody>';
     html += `<tr><td>Total Income</td><td>${totalIncome}</td></tr>`;
     html += `<tr><td>Total Expense</td><td>${totalExpense}</td></tr>`;
-    html += `<tr><td>Profit/Loss</td><td>${profitLoss}</td></tr>`;
+    html += `<tr><td>Profit/Loss</td><td style="color: ${getBalanceColor(profitLoss)}; font-weight: bold;">${profitLoss}</td></tr>`;
     html += '</tbody></table>';
   }
 
   html += '</body></html>';
 
+  // Download as .xls file
   const filename = `Carpool_${format(dateRange.start, 'yyyy-MM-dd')}_to_${format(dateRange.end, 'yyyy-MM-dd')}.xls`;
   downloadFile(filename, html, 'application/vnd.ms-excel');
 }

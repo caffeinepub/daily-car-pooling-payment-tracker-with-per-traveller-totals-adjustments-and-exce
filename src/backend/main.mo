@@ -8,7 +8,6 @@ import Time "mo:core/Time";
 import Nat64 "mo:core/Nat64";
 import Principal "mo:core/Principal";
 import Iter "mo:core/Iter";
-import Int64 "mo:core/Int64";
 import MixinAuthorization "authorization/MixinAuthorization";
 import AccessControl "authorization/access-control";
 
@@ -51,6 +50,7 @@ actor {
 
   public type UserProfile = {
     name : Text;
+    // Add other profile fields as needed
   };
 
   let travellers = Map.empty<Principal, Traveller>();
@@ -156,9 +156,11 @@ actor {
       case (null) { 0 };
       case (?balance) { balance };
     };
+
     if (currentBalance < amount) {
       Runtime.trap("Payment amount exceeds pending balance");
     };
+
     pendingBalances.add(caller, currentBalance - amount);
 
     switch (entries.get(Date.toText(eventDate))) {

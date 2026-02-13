@@ -32,12 +32,12 @@ export default function CarExpensesPanel() {
   const [note, setNote] = useState('');
   const [error, setError] = useState('');
 
-  // Auto-fill amount when Toll is selected
+  // Default amount to 30 when Toll is selected
   useEffect(() => {
     if (category === 'Toll' && !amount) {
       setAmount('30');
     }
-  }, [category, amount]);
+  }, [category]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -117,96 +117,75 @@ export default function CarExpensesPanel() {
               Add Car Expense
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px]">
+          <DialogContent>
             <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <Car className="h-5 w-5" />
-                Add Car Expense
-              </DialogTitle>
-              <DialogDescription>
-                Record a car expense for the selected category
-              </DialogDescription>
+              <DialogTitle>Add Car Expense</DialogTitle>
+              <DialogDescription>Record a new car expense</DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleSubmit}>
-              <div className="grid gap-4 py-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="category">
-                    Category <span className="text-destructive">*</span>
-                  </Label>
-                  <Select value={category} onValueChange={setCategory}>
-                    <SelectTrigger id="category">
-                      <SelectValue placeholder="Select category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {PREDEFINED_CATEGORIES.map((cat) => (
-                        <SelectItem key={cat} value={cat}>
-                          {cat}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {category === 'Other' && (
-                  <div className="grid gap-2">
-                    <Label htmlFor="customCategory">
-                      Custom Category Name <span className="text-destructive">*</span>
-                    </Label>
-                    <Input
-                      id="customCategory"
-                      type="text"
-                      placeholder="Enter custom category"
-                      value={customCategory}
-                      onChange={(e) => {
-                        setCustomCategory(e.target.value);
-                        setError('');
-                      }}
-                    />
-                  </div>
-                )}
-
-                <div className="grid gap-2">
-                  <Label htmlFor="amount">
-                    Amount (₹) <span className="text-destructive">*</span>
-                  </Label>
-                  <Input
-                    id="amount"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    placeholder="Enter amount"
-                    value={amount}
-                    onChange={(e) => {
-                      setAmount(e.target.value);
-                      setError('');
-                    }}
-                    className={error ? 'border-destructive' : ''}
-                  />
-                </div>
-
-                <div className="grid gap-2">
-                  <Label htmlFor="date">Date</Label>
-                  <Input
-                    id="date"
-                    type="date"
-                    value={date}
-                    onChange={(e) => setDate(e.target.value)}
-                  />
-                </div>
-
-                <div className="grid gap-2">
-                  <Label htmlFor="note">Note (optional)</Label>
-                  <Textarea
-                    id="note"
-                    placeholder="Add a note about this expense"
-                    value={note}
-                    onChange={(e) => setNote(e.target.value)}
-                    rows={3}
-                  />
-                </div>
-
-                {error && <p className="text-sm text-destructive">{error}</p>}
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="category">Category</Label>
+                <Select value={category} onValueChange={setCategory}>
+                  <SelectTrigger id="category">
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PREDEFINED_CATEGORIES.map((cat) => (
+                      <SelectItem key={cat} value={cat}>
+                        {cat}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
+
+              {category === 'Other' && (
+                <div className="space-y-2">
+                  <Label htmlFor="customCategory">Custom Category Name</Label>
+                  <Input
+                    id="customCategory"
+                    value={customCategory}
+                    onChange={(e) => setCustomCategory(e.target.value)}
+                    placeholder="Enter category name"
+                  />
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <Label htmlFor="amount">Amount (₹)</Label>
+                <Input
+                  id="amount"
+                  type="number"
+                  step="0.01"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  placeholder="0.00"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="date">Date</Label>
+                <Input
+                  id="date"
+                  type="date"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="note">Note (optional)</Label>
+                <Textarea
+                  id="note"
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  placeholder="Add any additional details"
+                  rows={3}
+                />
+              </div>
+
+              {error && <p className="text-sm text-destructive">{error}</p>}
+
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setOpen(false)}>
                   Cancel
@@ -217,28 +196,25 @@ export default function CarExpensesPanel() {
           </DialogContent>
         </Dialog>
 
-        <Separator />
-
+        {/* Category Totals */}
         <div className="space-y-3">
-          <h3 className="font-semibold text-sm">Totals for Selected Date Range</h3>
-          
+          <h3 className="text-sm font-semibold">Category Totals (Current Range)</h3>
+          <Separator />
           {Object.keys(totals.categoryTotals).length === 0 ? (
-            <p className="text-sm text-muted-foreground">No expenses recorded in this date range</p>
+            <p className="text-sm text-muted-foreground">No expenses recorded yet</p>
           ) : (
             <div className="space-y-2">
               {Object.entries(totals.categoryTotals)
-                .sort(([a], [b]) => a.localeCompare(b))
+                .sort(([, a], [, b]) => b - a)
                 .map(([cat, total]) => (
-                  <div key={cat} className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">{cat}:</span>
-                    <span className="font-medium">{formatCurrency(total)}</span>
+                  <div key={cat} className="flex justify-between items-center text-sm">
+                    <span className="text-muted-foreground">{cat}</span>
+                    <span className="font-semibold">{formatCurrency(total)}</span>
                   </div>
                 ))}
-              
-              <Separator className="my-2" />
-              
-              <div className="flex justify-between text-base font-semibold">
-                <span>Grand Total:</span>
+              <Separator />
+              <div className="flex justify-between items-center text-base font-bold">
+                <span>Grand Total</span>
                 <span>{formatCurrency(totals.grandTotal)}</span>
               </div>
             </div>

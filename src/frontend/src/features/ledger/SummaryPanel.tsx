@@ -1,13 +1,16 @@
 import { useLedgerState } from './LedgerStateContext';
+import { getDaysInRange, formatDateKey } from '../../utils/dateRange';
+import { isDateIncluded, isWeekendDay } from '../../utils/weekendInclusion';
+import { formatCurrency } from '../../utils/money';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
+import { Button } from '@/components/ui/button';
 import EmptyState from '../../components/EmptyState';
-import { Receipt } from 'lucide-react';
-import { formatCurrency } from '../../utils/money';
+import { Receipt, IndianRupee } from 'lucide-react';
+import { parseISO } from 'date-fns';
 import CashPaymentForm from './CashPaymentForm';
 import OtherPendingAmountForm from './OtherPendingAmountForm';
-import { calculateTravellerBalance } from '../../utils/travellerBalance';
+import { useState } from 'react';
 
 export default function SummaryPanel() {
   const { 
@@ -23,87 +26,157 @@ export default function SummaryPanel() {
     includeSunday,
   } = useLedgerState();
 
+  const days = getDaysInRange(dateRange.start, dateRange.end);
+
+  // Calculate per-traveller summaries
+  const summaries = travellers.map((traveller) => {
+    let weekdayTrips = 0;
+    let weekendTrips = 0;
+
+    days.forEach((day) => {
+      const dateKey = formatDateKey(day);
+      const isIncluded = isDateIncluded(day, includeSaturday, includeSunday);
+      if (!isIncluded) return;
+
+      const tripData = dailyData[dateKey]?.[traveller.id];
+      if (tripData) {
+        const tripCount = (tripData.morning ? 1 : 0) + (tripData.evening ? 1 : 0);
+        const { isSaturday, isSunday } = isWeekendDay(day);
+        if (isSaturday || isSunday) {
+          weekendTrips += tripCount;
+        } else {
+          weekdayTrips += tripCount;
+        }
+      }
+    });
+
+    const totalTrips = weekdayTrips + weekendTrips;
+    const totalCharge = totalTrips * ratePerTrip;
+
+    // Calculate payments in range
+    const paymentsInRange = cashPayments
+      .filter((p) => {
+        if (p.travellerId !== traveller.id) return false;
+        try {
+          const paymentDate = parseISO(p.date);
+          return paymentDate >= dateRange.start && paymentDate <= dateRange.end;
+        } catch {
+          return false;
+        }
+      })
+      .reduce((sum, p) => sum + p.amount, 0);
+
+    // Calculate other pending in range
+    const otherPendingInRange = otherPending
+      .filter((p) => {
+        if (p.travellerId !== traveller.id) return false;
+        try {
+          const pendingDate = parseISO(p.date);
+          return pendingDate >= dateRange.start && pendingDate <= dateRange.end;
+        } catch {
+          return false;
+        }
+      })
+      .reduce((sum, p) => sum + p.amount, 0);
+
+    const balance = totalCharge + otherPendingInRange - paymentsInRange;
+
+    return {
+      traveller,
+      weekdayTrips,
+      weekendTrips,
+      totalTrips,
+      totalCharge,
+      paymentsInRange,
+      otherPendingInRange,
+      balance,
+    };
+  });
+
   if (travellers.length === 0) {
     return (
       <Card>
         <CardHeader>
           <CardTitle>Summary</CardTitle>
-          <CardDescription>Per-traveller totals</CardDescription>
+          <CardDescription>Per-traveller charges and balances</CardDescription>
         </CardHeader>
         <CardContent>
           <EmptyState
             icon={Receipt}
-            title="No data yet"
-            description="Add travellers and mark daily participation to see summaries"
+            title="Add travellers first"
+            description="You need to add travellers before viewing the summary"
           />
         </CardContent>
       </Card>
     );
   }
 
-  // Calculate summaries using shared utility
-  const summaries = travellers.map((t) => 
-    calculateTravellerBalance(
-      t,
-      dateRange,
-      dailyData,
-      ratePerTrip,
-      cashPayments,
-      otherPending,
-      includeSaturday,
-      includeSunday
-    )
-  );
-
   return (
     <Card>
       <CardHeader>
         <CardTitle>Summary</CardTitle>
-        <CardDescription>
-          Total charge = (number of checked boxes across AM/PM) × {formatCurrency(ratePerTrip)} per trip
-        </CardDescription>
+        <CardDescription>Per-traveller charges and balances for the selected date range</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {summaries.map((s) => (
-          <div key={s.id} className="space-y-2">
-            {/* Responsive header with name and badge */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-              <h3 className="font-semibold text-base break-words">{s.name}</h3>
-              <Badge 
-                variant={s.status === 'Owes' ? 'destructive' : s.status === 'Overpaid' ? 'default' : 'secondary'}
-                className="self-start sm:self-auto whitespace-nowrap"
-              >
-                {s.status} {formatCurrency(Math.abs(s.balance))}
+        {summaries.map((summary) => (
+          <div
+            key={summary.traveller.id}
+            className="p-4 border rounded-lg bg-card hover:bg-accent/30 transition-colors space-y-3"
+          >
+            {/* Name and Badge Row */}
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className="text-lg font-semibold">{summary.traveller.name}</h3>
+              <Badge variant="outline">
+                {summary.weekdayTrips} weekday + {summary.weekendTrips} weekend = {summary.totalTrips} trips
               </Badge>
             </div>
 
-            <div className="text-sm space-y-1 text-muted-foreground">
-              <div className="flex justify-between">
-                <span>Total Trips:</span>
-                <span className="font-medium text-foreground">{s.totalTrips}</span>
+            {/* Stats Grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+              <div>
+                <p className="text-muted-foreground">Total Charge</p>
+                <p className="font-semibold">{formatCurrency(summary.totalCharge)}</p>
               </div>
-              <div className="flex justify-between">
-                <span>Total Charge:</span>
-                <span className="font-medium text-foreground">{formatCurrency(s.totalCharge)}</span>
+              <div>
+                <p className="text-muted-foreground">Other Pending</p>
+                <p className="font-semibold">{formatCurrency(summary.otherPendingInRange)}</p>
               </div>
-              {s.otherPending > 0 && (
-                <div className="flex justify-between">
-                  <span>Other Pending:</span>
-                  <span className="font-medium text-foreground">+{formatCurrency(s.otherPending)}</span>
-                </div>
-              )}
-              <div className="flex justify-between">
-                <span>Payments:</span>
-                <span className="font-medium text-foreground">−{formatCurrency(s.payments)}</span>
+              <div>
+                <p className="text-muted-foreground">Payments</p>
+                <p className="font-semibold">{formatCurrency(summary.paymentsInRange)}</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Balance</p>
+                <p
+                  className={`font-bold ${
+                    summary.balance > 0
+                      ? 'text-green-600 dark:text-green-400'
+                      : summary.balance < 0
+                      ? 'text-red-600 dark:text-red-400'
+                      : 'text-muted-foreground'
+                  }`}
+                >
+                  {formatCurrency(summary.balance)}
+                </p>
               </div>
             </div>
 
-            <Separator className="my-2" />
-
-            {/* Responsive action buttons */}
-            <div className="flex flex-col sm:flex-row gap-2">
-              <CashPaymentForm travellerId={s.id} travellerName={s.name} onSubmit={addCashPayment} />
-              <OtherPendingAmountForm travellerId={s.id} travellerName={s.name} onSubmit={addOtherPending} />
+            {/* Action Buttons Row */}
+            <div className="flex flex-wrap gap-2 pt-2">
+              <CashPaymentForm
+                travellerId={summary.traveller.id}
+                travellerName={summary.traveller.name}
+                onSubmit={(payment) => {
+                  addCashPayment(payment);
+                }}
+              />
+              <OtherPendingAmountForm
+                travellerId={summary.traveller.id}
+                travellerName={summary.traveller.name}
+                onSubmit={(pending) => {
+                  addOtherPending(pending);
+                }}
+              />
             </div>
           </div>
         ))}

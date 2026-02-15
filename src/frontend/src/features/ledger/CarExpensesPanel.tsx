@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
 import { Plus, Car, IndianRupee } from 'lucide-react';
-import { format, parseISO, getDay } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { toast } from 'sonner';
 import { formatCurrency } from '../../utils/money';
 import { Separator } from '@/components/ui/separator';
@@ -49,32 +49,6 @@ export default function CarExpensesPanel() {
       setAmount('30');
     }
   }, [category]);
-
-  // Auto-add toll expense for today only when enabled
-  useEffect(() => {
-    if (!autoTollEnabled) return;
-
-    const today = new Date();
-    const dayOfWeek = getDay(today);
-    
-    // Only add on weekdays (Mon-Fri: 1-5)
-    if (dayOfWeek === 0 || dayOfWeek === 6) return;
-
-    const todayKey = formatDateKey(today);
-    const existingTollForToday = carExpenses.some(
-      (e) => e.category === 'Toll' && e.date === todayKey
-    );
-
-    if (!existingTollForToday) {
-      addCarExpense({
-        category: 'Toll',
-        amount: autoTollAmount,
-        date: todayKey,
-        note: 'Auto-added',
-      });
-      toast.success(`Auto-added toll expense for today`);
-    }
-  }, [autoTollEnabled, autoTollAmount]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -167,7 +141,7 @@ export default function CarExpensesPanel() {
                 Auto Toll Add
               </Label>
               <p className="text-sm text-muted-foreground">
-                Automatically add toll expense for today (weekdays only)
+                Automatically add toll expense when participation is saved
               </p>
             </div>
             <Switch
@@ -176,109 +150,102 @@ export default function CarExpensesPanel() {
               onCheckedChange={handleAutoTollToggle}
             />
           </div>
-          
+
           <div className="space-y-2">
-            <Label htmlFor="auto-toll-amount">Toll Amount</Label>
-            <div className="relative">
-              <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                id="auto-toll-amount"
-                type="number"
-                min="1"
-                step="1"
-                value={localAutoTollAmount}
-                onChange={(e) => handleAutoTollAmountChange(e.target.value)}
-                disabled={autoTollEnabled}
-                className="pl-9"
-                placeholder="30"
-              />
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {autoTollEnabled 
-                ? 'Amount is read-only while Auto Toll is enabled' 
-                : 'Enter the toll amount to auto-add for each weekday'}
-            </p>
+            <Label htmlFor="auto-toll-amount">Toll Amount (₹)</Label>
+            <Input
+              id="auto-toll-amount"
+              type="number"
+              value={localAutoTollAmount}
+              onChange={(e) => handleAutoTollAmountChange(e.target.value)}
+              disabled={!autoTollEnabled}
+              placeholder="Enter toll amount"
+            />
           </div>
         </div>
 
         <Separator />
 
+        {/* Add Expense Button */}
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button className="w-full">
-              <Plus className="mr-2 h-4 w-4" />
+              <Plus className="h-4 w-4 mr-2" />
               Add Car Expense
             </Button>
           </DialogTrigger>
           <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Add Car Expense</DialogTitle>
-              <DialogDescription>Record a new car expense</DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="category">Category</Label>
-                <Select value={category} onValueChange={setCategory}>
-                  <SelectTrigger id="category">
-                    <SelectValue placeholder="Select category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {PREDEFINED_CATEGORIES.map((cat) => (
-                      <SelectItem key={cat} value={cat}>
-                        {cat}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+            <form onSubmit={handleSubmit}>
+              <DialogHeader>
+                <DialogTitle>Add Car Expense</DialogTitle>
+                <DialogDescription>
+                  Record a new car expense for tracking
+                </DialogDescription>
+              </DialogHeader>
 
-              {category === 'Other' && (
+              <div className="space-y-4 py-4">
                 <div className="space-y-2">
-                  <Label htmlFor="customCategory">Custom Category</Label>
+                  <Label htmlFor="category">Category</Label>
+                  <Select value={category} onValueChange={setCategory}>
+                    <SelectTrigger id="category">
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PREDEFINED_CATEGORIES.map((cat) => (
+                        <SelectItem key={cat} value={cat}>
+                          {cat}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {category === 'Other' && (
+                  <div className="space-y-2">
+                    <Label htmlFor="custom-category">Custom Category</Label>
+                    <Input
+                      id="custom-category"
+                      value={customCategory}
+                      onChange={(e) => setCustomCategory(e.target.value)}
+                      placeholder="Enter category name"
+                    />
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <Label htmlFor="amount">Amount (₹)</Label>
                   <Input
-                    id="customCategory"
-                    value={customCategory}
-                    onChange={(e) => setCustomCategory(e.target.value)}
-                    placeholder="Enter category name"
+                    id="amount"
+                    type="number"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    placeholder="Enter amount"
                   />
                 </div>
-              )}
 
-              <div className="space-y-2">
-                <Label htmlFor="amount">Amount (₹)</Label>
-                <Input
-                  id="amount"
-                  type="number"
-                  min="0.01"
-                  step="0.01"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  placeholder="0.00"
-                />
+                <div className="space-y-2">
+                  <Label htmlFor="date">Date</Label>
+                  <Input
+                    id="date"
+                    type="date"
+                    value={date}
+                    onChange={(e) => setDate(e.target.value)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="note">Note (Optional)</Label>
+                  <Textarea
+                    id="note"
+                    value={note}
+                    onChange={(e) => setNote(e.target.value)}
+                    placeholder="Add a note"
+                    rows={3}
+                  />
+                </div>
+
+                {error && <p className="text-sm text-destructive">{error}</p>}
               </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="date">Date</Label>
-                <Input
-                  id="date"
-                  type="date"
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="note">Note (optional)</Label>
-                <Textarea
-                  id="note"
-                  value={note}
-                  onChange={(e) => setNote(e.target.value)}
-                  placeholder="Add any additional details"
-                  rows={3}
-                />
-              </div>
-
-              {error && <p className="text-sm text-destructive">{error}</p>}
 
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setOpen(false)}>
@@ -290,21 +257,24 @@ export default function CarExpensesPanel() {
           </DialogContent>
         </Dialog>
 
-        {/* Totals Section */}
-        <div className="space-y-2">
-          <h4 className="text-sm font-medium">Expenses in Current Range</h4>
+        {/* Expense Summary */}
+        <div className="rounded-lg border p-4 space-y-3">
+          <h3 className="text-sm font-semibold flex items-center gap-2">
+            <IndianRupee className="h-4 w-4" />
+            Expense Summary (Selected Range)
+          </h3>
           {Object.keys(totals.categoryTotals).length === 0 ? (
-            <p className="text-sm text-muted-foreground">No expenses recorded yet</p>
+            <p className="text-sm text-muted-foreground">No expenses recorded in this range</p>
           ) : (
-            <div className="space-y-1">
+            <div className="space-y-2">
               {Object.entries(totals.categoryTotals).map(([cat, total]) => (
                 <div key={cat} className="flex justify-between text-sm">
                   <span className="text-muted-foreground">{cat}</span>
                   <span className="font-medium">{formatCurrency(total)}</span>
                 </div>
               ))}
-              <Separator className="my-2" />
-              <div className="flex justify-between text-sm font-semibold">
+              <Separator />
+              <div className="flex justify-between text-base font-semibold">
                 <span>Total</span>
                 <span>{formatCurrency(totals.grandTotal)}</span>
               </div>

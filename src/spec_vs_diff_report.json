@@ -1,65 +1,68 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-15T03:41:26.324Z",
-  "summary": "Implemented a new Trip History panel and added a Trip History entry to the mobile sidebar menu. Updated Auto Toll logic in CarExpensesPanel to auto-add a single Toll expense for the current weekday only and avoid duplicates. However, the diff evidence is truncated, so some required navigation/UI elements (desktop/in-app menu placement and Total trips display) cannot be fully verified. Additionally, there are signs of unrelated changes (e.g., default date range and weekend-counting logic) not requested in the BuildRequest.",
+  "generatedAt": "2026-02-15T05:52:11.608Z",
+  "summary": "Most requested features appear implemented: mobile menu now includes Log out with matching clearing behavior; Date Range picker layout updated for small screens; desktop navigation/action items for Payment/Expense History and Export Report are indicated; PDF/Excel export paths are enabled with toasts; and a polling-based app data sync hook plus backend AppData/versioning changes were added. However, the diff summary is truncated for the sync hook and does not clearly show that polling is stopped/reset on logout or that the sync indicator is fully wired to show syncing/synced/failed across the app.",
   "missing_requirements": [
     {
       "id": "REQ-2",
-      "requirement": "A new Trip History entry is available in the ledger menu/navigation (including the mobile sidebar menu).",
-      "reason": "Mobile sidebar menu clearly includes Trip History, but the diff for the main (non-mobile) in-app navigation/tabs is truncated, so it’s not verifiable that Trip History is accessible from the primary ledger menu/navigation on desktop.",
+      "requirement": "Logging out stops polling/sync activity and resets sync state to idle.",
+      "reason": "A new polling-based sync hook was added, but the shown portion does not include the effect/cleanup that starts/stops the polling interval, nor any explicit reset-to-idle behavior on logout; logout handling shown in LedgerPage clears identity/cache/localStorage but does not show interaction with the sync hook's internal timers/state.",
       "evidence": [
-        "frontend/src/features/ledger/MobileLedgerSidebarNav.tsx",
-        "frontend/src/features/ledger/LedgerPage.tsx (truncated)"
+        "frontend/src/hooks/useAppDataSync.ts (truncated; polling interval refs exist but start/stop not shown)",
+        "frontend/src/features/ledger/LedgerPage.tsx (logout clears identity/query cache/localStorage but no sync-hook stop/reset shown)"
       ]
     },
     {
       "id": "REQ-2",
-      "requirement": "A “Total trips” value is displayed at the bottom of Trip History and equals the sum of all trip counts shown for the selected date range (including the co-traveller income rows counted as 1 each).",
-      "reason": "TripHistoryPanel computes totalTrips, but the file content is truncated before showing the footer/total display; cannot confirm it is rendered at the bottom and matches the required presentation.",
+      "requirement": "Sync status indicator updates to show syncing/synced/failed appropriately, and failures do not permanently stop future sync attempts while authenticated.",
+      "reason": "The sync hook defines statuses (idle/syncing/synced/failed), but the diff summary does not show UI wiring for the indicator (e.g., AppHeader) nor the retry behavior after failures (whether polling continues after entering 'failed').",
       "evidence": [
-        "frontend/src/features/ledger/TripHistoryPanel.tsx (truncated)"
-      ]
-    },
-    {
-      "id": "REQ-1",
-      "requirement": "With Auto Toll Add enabled, switching the ledger date range no longer bulk-creates Toll expenses for every weekday in the range.",
-      "reason": "CarExpensesPanel now includes logic to auto-add only for today, but the diff is truncated and does not show removal/absence of any previous bulk-add behavior tied to dateRange changes; cannot confirm switching date range no longer bulk-creates entries.",
-      "evidence": [
-        "frontend/src/features/ledger/CarExpensesPanel.tsx (truncated)"
+        "frontend/src/hooks/useAppDataSync.ts (truncated; status is set but retry/poll continuation not shown)",
+        "frontend-file-summaries.txt (mentions AppHeader has a sync status indicator, but no diff snippet shows it being connected to useAppDataSync changes)"
       ]
     }
   ],
   "hallucinated_features": [
     {
-      "description": "Changed ledger default date range behavior to current week Monday–Friday instead of current month (or prior behavior).",
-      "reason": "Not requested by REQ-1 or REQ-2; BuildRequest explicitly focuses on Auto Toll daily-only behavior and adding Trip History without altering other ledger calculations/behaviors unless necessary.",
+      "description": "Changed Daily Participation Grid behavior to keep weekend rows visible but disabled when weekend inclusion is unchecked, preserving saved weekend selections as read-only.",
+      "reason": "Not requested by any REQ; requirements focus on sync, navigation/layout, logout, and export.",
       "evidence": [
-        "frontend-file-summaries.txt (mentions frontend/src/hooks/useLedgerLocalState.ts change)"
+        "frontend-file-summaries.txt (DailyParticipationGrid description)"
       ]
     },
     {
-      "description": "Updated weekend inclusion / weekend counting logic in Daily grid, Summary, and export to count saved weekend trips even when weekend checkboxes are unchecked.",
-      "reason": "Not requested; BuildRequest non-goals state not to change how Summary/Export/History dialogs calculate money amounts unless required for Trip History, and this appears unrelated to Trip History display requirements.",
+      "description": "Modified Trips & Payment summary UI to replace Weekday/Weekend columns with a single consolidated Trips column and other responsive column sizing changes.",
+      "reason": "Not requested by any REQ; could be an unrequested UX change.",
       "evidence": [
-        "frontend-file-summaries.txt (mentions frontend/src/features/ledger/DailyParticipationGrid.ts, SummaryPanel.tsx, utils/exportExcel.ts changes)"
+        "frontend-file-summaries.txt (SummaryPanel description)"
       ]
     },
     {
-      "description": "Global styling/theme palette changes (warm neutral/amber palette) and Tailwind config adjustments.",
-      "reason": "Not requested by the BuildRequest.",
+      "description": "Added/changed traveller name validation (case-insensitive/trimmed) and blocked deletion when a traveller has outstanding due.",
+      "reason": "Not requested by any REQ; unrelated to specified tasks.",
       "evidence": [
-        "frontend-file-summaries.txt (mentions frontend/index.css and frontend/tailwind.config.js changes)"
+        "frontend-file-summaries.txt (TravellerManager description)"
+      ]
+    },
+    {
+      "description": "Added/changed auto-toll logic reading a fixed amount from 'carpool-auto-toll-settings' localStorage and using it when auto-adding Toll expenses.",
+      "reason": "Not requested by any REQ; unrelated to specified tasks.",
+      "evidence": [
+        "frontend-file-summaries.txt (useLedgerLocalState description)"
       ]
     }
   ],
-  "confidence": 0.62,
+  "confidence": 0.66,
   "changed_files": [
+    "backend/main.mo",
     "frontend-file-summaries.txt",
-    "frontend/src/features/ledger/CarExpensesPanel.tsx",
+    "frontend/src/features/ledger/DateRangePicker.tsx",
+    "frontend/src/features/ledger/ExportReportDialog.tsx",
     "frontend/src/features/ledger/LedgerPage.tsx",
     "frontend/src/features/ledger/MobileLedgerSidebarNav.tsx",
-    "frontend/src/features/ledger/TripHistoryPanel.tsx",
+    "frontend/src/hooks/useAppDataSync.ts",
+    "frontend/src/utils/exportPdf.ts",
     "project_state.json"
   ]
 }

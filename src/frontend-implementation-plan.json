@@ -1,53 +1,122 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Daily-only Auto Toll Add + Trip History with date-range totals",
+  "title": "Restore sync polling behavior, improve responsive navigation, and enable PDF/Excel exports",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Update Auto Toll so enabling it only auto-creates a single Toll expense for the current weekday (never bulk-create across the selected date range).",
+      "summary": "Add a Log out action to the mobile hamburger/sidebar menu with the same logout behavior as the existing header logout.",
       "acceptanceCriteria": [
-        "With Auto Toll Add enabled, switching the ledger date range no longer bulk-creates Toll expenses for every weekday in the range.",
-        "On a weekday, if there is no existing Toll expense entry for that date, the app auto-adds exactly one Toll expense for that date with the configured amount.",
-        "If a Toll expense already exists for the current weekday date, no duplicate Toll entry is created.",
-        "No Toll entries are auto-added for Saturday or Sunday.",
-        "Auto-added Toll expenses remain visible in Car Expenses and are persisted in the same local ledger state as before."
+        "On small screens, the hamburger/sidebar menu includes a clearly labeled \"Log out\" item.",
+        "Clicking \"Log out\" clears the Internet Identity session, clears React Query cache, and removes local storage key \"carpool-ledger-state\" (same behavior as existing header logout).",
+        "After logout, the app returns to the unauthenticated/login state and no user data remains visible."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/features/ledger/CarExpensesPanel.tsx",
+          "path": "frontend/src/features/ledger/MobileLedgerSidebarNav.tsx",
           "operation": "modify",
-          "description": "Replace the current dateRange-driven weekday loop with a daily-only Auto Toll effect: when Auto Toll is enabled, check only today's date; if today is Mon–Fri and there is not already a Toll expense for today's date, auto-add exactly one Toll expense with the configured amount. Ensure the effect does not create duplicates on re-render and does not react to dateRange changes."
+          "description": "Add a new \"Log out\" menu item to the mobile sidebar action list and accept an onLogout callback prop to execute the logout flow from the menu."
+        },
+        {
+          "path": "frontend/src/features/ledger/LedgerPage.tsx",
+          "operation": "modify",
+          "description": "Wire the new MobileLedgerSidebarNav onLogout handler to the existing logout behavior (Internet Identity clear, React Query cache clear, remove localStorage key \"carpool-ledger-state\") and ensure the sidebar closes after logout."
         }
       ]
     },
     {
       "id": "REQ-2",
-      "summary": "Add a Trip History screen in the ledger menu that uses the shared date range and shows per-day trip counts per traveller plus co-traveller income rows, with a total trips footer.",
+      "summary": "Restore multi-device sync behavior by hardening polling/merge and preventing echo saves so updates propagate cross-device within ~2–5 seconds while authenticated.",
       "acceptanceCriteria": [
-        "A new Trip History entry is available in the ledger menu/navigation (including the mobile sidebar menu).",
-        "Trip History uses the existing ledger dateRange state (the same DateRangePicker selection used elsewhere) and updates automatically when the date range changes.",
-        "For each date within the selected date range, Trip History shows a row per traveller when they have any participation that day; trip count is 0–2 based on Morning (1) + Evening (1), so Morning+Evening together counts as 2 trips.",
-        "Any single trip marking (only Morning or only Evening) is counted as 1 trip.",
-        "Each co-traveller income record within the selected date range appears in Trip History as its own row with a trip count of 1.",
-        "A “Total trips” value is displayed at the bottom of Trip History and equals the sum of all trip counts shown for the selected date range (including the co-traveller income rows counted as 1 each).",
-        "All user-facing text on the new screen is in English."
+        "When logged in as the same Internet Identity on Device A and Device B, edits to any ledger data on Device A (e.g., travellers, daily participation, payments, car expenses, other pending, co-traveller income, rate per trip, date-range-related state if persisted) are visible on Device B within 2–5 seconds without a manual refresh.",
+        "Edits made concurrently on both devices do not cause data loss; the final state is a merged result consistent with the existing merge strategy (non-destructive merge).",
+        "Sync status indicator updates to show syncing/synced/failed appropriately, and failures do not permanently stop future sync attempts while authenticated.",
+        "Logging out stops polling/sync activity and resets sync state to idle."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/features/ledger/TripHistoryPanel.tsx",
-          "operation": "create",
-          "description": "Implement the Trip History screen UI as a new ledger panel: read shared ledger state (dateRange, dailyData, travellers, coTravellerIncomes) and render a responsive table/list with rows containing Traveller name, Trip date, and Trip count per day (0–2 from morning+evening). Include additional rows for each co-traveller income record in range (trip count = 1). Show a bottom summary row/section with “Total trips” equal to the sum of all displayed trip counts. Keep all labels and text in English."
+          "path": "frontend/src/hooks/useAppDataSync.ts",
+          "operation": "modify",
+          "description": "Adjust polling/merge logic to more reliably detect remote changes (prefer timestamp-based detection), reduce unnecessary sync churn, and prevent echo saves after applying remote merges so cross-device updates converge within the target 2–5 seconds."
         },
+        {
+          "path": "frontend/src/components/SyncStatusIndicator.tsx",
+          "operation": "modify",
+          "description": "Ensure sync status UI covers syncing/synced/failed states clearly and can reflect the restored behavior (including after retries) without getting stuck; keep accessibility attributes consistent."
+        },
+        {
+          "path": "frontend/src/components/AppHeader.tsx",
+          "operation": "modify",
+          "description": "Ensure logout behavior continues to stop sync activity (via identity clearing), clears cached data, and removes \"carpool-ledger-state\"; keep it consistent with the mobile menu logout flow."
+        }
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "summary": "Make the Date Range controls responsive on small screens and prevent layout collisions with the hamburger/menu button.",
+      "acceptanceCriteria": [
+        "On small screens, the Date Range label and the start/end date buttons wrap or stack cleanly without overlapping the page title/hamburger button.",
+        "Both date buttons remain fully visible and clickable at common narrow widths (e.g., ~320px).",
+        "On larger screens, Date Range layout remains aligned and consistent with existing design."
+      ],
+      "file_operations": [
         {
           "path": "frontend/src/features/ledger/LedgerPage.tsx",
           "operation": "modify",
-          "description": "Wire Trip History into the main ledger navigation: add a new tab (e.g., value \"trip-history\") that renders TripHistoryPanel, update the desktop TabsList layout to include the new tab, and ensure it uses the existing DateRangePicker state (no new date-range state)."
+          "description": "Update the top header layout to stack/wrap appropriately on narrow widths so the hamburger/title block and the DateRangePicker do not overlap (e.g., use responsive flex direction and spacing)."
+        },
+        {
+          "path": "frontend/src/features/ledger/DateRangePicker.tsx",
+          "operation": "modify",
+          "description": "Improve small-screen layout by allowing the date button row to wrap (or stack) and ensuring buttons can shrink without overflowing while staying fully clickable."
+        }
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "summary": "Show Payment History, Expense History, and Export Report as visible desktop navigation actions while keeping them in the mobile hamburger menu.",
+      "acceptanceCriteria": [
+        "At laptop/desktop widths (i.e., where the desktop tab bar is shown), the UI includes visible, clickable navigation items labeled \"Payment History\", \"Expense History\", and \"Export Report\".",
+        "Clicking each item on desktop opens the same dialogs/views as the mobile menu actions.",
+        "At small/mobile widths, these items remain accessible from the hamburger/sidebar menu."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/features/ledger/LedgerPage.tsx",
+          "operation": "modify",
+          "description": "Add a desktop-visible action group (shown alongside the existing lg tab bar UI) for Payment History, Expense History, and Export Report, wired to open the same dialogs currently opened by mobile sidebar actions."
         },
         {
           "path": "frontend/src/features/ledger/MobileLedgerSidebarNav.tsx",
           "operation": "modify",
-          "description": "Add a \"Trip History\" item to the mobile sidebar menu that selects the new Trip History tab, ensuring it appears alongside other ledger menu items and closes the sidebar on selection."
+          "description": "Keep the existing mobile action items for Payment History, Expense History, and Export Report and ensure behavior matches the new desktop actions."
+        }
+      ]
+    },
+    {
+      "id": "REQ-5",
+      "summary": "Enable functional PDF and Excel export options in Export Report with clear success/failure feedback.",
+      "acceptanceCriteria": [
+        "In the Export Report dialog, selecting PDF or Excel no longer shows \"Not Available\" messaging and does not disable the export action purely due to format choice.",
+        "Excel export produces a downloadable file (at minimum a .csv-compatible export is acceptable if generated by the existing Excel export utility) and completes successfully for typical ledger sizes.",
+        "PDF export triggers a functional PDF workflow without external services (e.g., a printable report view using the browser print-to-PDF flow) and provides a clear instruction or automatic print dialog.",
+        "Success and error toasts accurately reflect the outcome for CSV, Excel, and PDF exports."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/features/ledger/ExportReportDialog.tsx",
+          "operation": "modify",
+          "description": "Remove \"Not Available\" UI/disable logic for PDF/Excel, wire Excel to the existing exportToExcel utility, and wire PDF to a print-to-PDF workflow; update toast messages to reflect success/failure per format."
+        },
+        {
+          "path": "frontend/src/utils/exportExcel.ts",
+          "operation": "modify",
+          "description": "Ensure the Excel export utility can be invoked reliably from the Export Report dialog for typical ledger sizes (CSV-compatible output acceptable) and supports the dialog’s filtered traveller selection where feasible."
+        },
+        {
+          "path": "frontend/src/utils/exportPdf.ts",
+          "operation": "create",
+          "description": "Implement a client-side, no-external-service printable report workflow (render/compose a printable view from the current ledger state + selected sections/travellers, open print dialog, and surface clear instructions/errors) to support browser print-to-PDF."
         }
       ]
     }

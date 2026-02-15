@@ -12,18 +12,24 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
-import { Download, Loader2 } from 'lucide-react';
+import { Download, Loader2, FileText, FileSpreadsheet } from 'lucide-react';
 import { toast } from 'sonner';
 import { exportToCSV } from '../../utils/exportReport';
+import { exportToExcel } from '../../utils/exportExcel';
+import { exportToPDF } from '../../utils/exportPdf';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface ExportReportDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
+type ExportFormat = 'csv' | 'pdf' | 'excel';
+
 export default function ExportReportDialog({ open, onOpenChange }: ExportReportDialogProps) {
   const ledgerState = useLedgerState();
   const [isExporting, setIsExporting] = useState(false);
+  const [exportFormat, setExportFormat] = useState<ExportFormat>('csv');
 
   // Section filters
   const [includeDailyGrid, setIncludeDailyGrid] = useState(true);
@@ -73,8 +79,16 @@ export default function ExportReportDialog({ open, onOpenChange }: ExportReportD
         selectedTravellerIds: Array.from(selectedTravellers),
       };
 
-      await exportToCSV(ledgerState, filters);
-      toast.success('Report exported successfully as CSV');
+      if (exportFormat === 'csv') {
+        await exportToCSV(ledgerState, filters);
+        toast.success('Report exported successfully as CSV');
+      } else if (exportFormat === 'excel') {
+        await exportToExcel(ledgerState);
+        toast.success('Report exported successfully as Excel');
+      } else if (exportFormat === 'pdf') {
+        await exportToPDF(ledgerState, filters);
+        toast.success('Print dialog opened for PDF export');
+      }
 
       onOpenChange(false);
     } catch (error) {
@@ -91,11 +105,48 @@ export default function ExportReportDialog({ open, onOpenChange }: ExportReportD
         <DialogHeader>
           <DialogTitle>Export Report</DialogTitle>
           <DialogDescription>
-            Choose sections and travellers to include in your CSV export
+            Choose format, sections, and travellers to include in your export
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6 py-4">
+          {/* Export Format Selection */}
+          <div className="space-y-3">
+            <Label className="text-base font-semibold">Export Format</Label>
+            <Select value={exportFormat} onValueChange={(value) => setExportFormat(value as ExportFormat)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="csv">
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-4 w-4" />
+                    <span>CSV (Comma Separated Values)</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="excel">
+                  <div className="flex items-center gap-2">
+                    <FileSpreadsheet className="h-4 w-4" />
+                    <span>Excel (XLSX)</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="pdf">
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-4 w-4" />
+                    <span>PDF (Print to PDF)</span>
+                  </div>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+            {exportFormat === 'pdf' && (
+              <p className="text-sm text-muted-foreground">
+                PDF export will open your browser's print dialog. Choose "Save as PDF" as the destination.
+              </p>
+            )}
+          </div>
+
+          <Separator />
+
           {/* Section Filters */}
           <div className="space-y-3">
             <Label className="text-base font-semibold">Include Sections</Label>
@@ -117,7 +168,7 @@ export default function ExportReportDialog({ open, onOpenChange }: ExportReportD
                   onCheckedChange={(checked) => setIncludeSummary(checked === true)}
                 />
                 <Label htmlFor="section-summary" className="cursor-pointer">
-                  Per-Traveller Summary
+                  Trips & Payment
                 </Label>
               </div>
               <div className="flex items-center space-x-2">
@@ -208,7 +259,7 @@ export default function ExportReportDialog({ open, onOpenChange }: ExportReportD
             ) : (
               <>
                 <Download className="h-4 w-4 mr-2" />
-                Export CSV
+                Export {exportFormat.toUpperCase()}
               </>
             )}
           </Button>

@@ -1,7 +1,7 @@
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Calendar, Users, Receipt, Car, TrendingUp, Database, Trash2, FileText, CreditCard, History } from 'lucide-react';
+import { Calendar, Users, Receipt, Car, TrendingUp, Database, Trash2, FileText, CreditCard, History, DollarSign, LogOut } from 'lucide-react';
 
 interface MobileLedgerSidebarNavProps {
   isOpen: boolean;
@@ -11,6 +11,7 @@ interface MobileLedgerSidebarNavProps {
   onOpenPaymentHistory: () => void;
   onOpenExpenseHistory: () => void;
   onOpenExport: () => void;
+  onLogout: () => void;
 }
 
 export default function MobileLedgerSidebarNav({
@@ -21,6 +22,7 @@ export default function MobileLedgerSidebarNav({
   onOpenPaymentHistory,
   onOpenExpenseHistory,
   onOpenExport,
+  onLogout,
 }: MobileLedgerSidebarNavProps) {
   const handleTabClick = (tab: string) => {
     onTabSelect(tab);
@@ -30,8 +32,9 @@ export default function MobileLedgerSidebarNav({
   const navItems = [
     { id: 'travellers', label: 'Travellers', icon: Users },
     { id: 'grid', label: 'Daily Participation', icon: Calendar },
-    { id: 'summary', label: 'Summary', icon: Receipt },
+    { id: 'summary', label: 'Trips & Payment', icon: Receipt },
     { id: 'trip-history', label: 'Trip History', icon: History },
+    { id: 'payment-summary', label: 'Payment Summary', icon: DollarSign },
     { id: 'car', label: 'Car Expenses', icon: Car },
     { id: 'overall', label: 'Overall Summary', icon: TrendingUp },
     { id: 'backup', label: 'Backup & Restore', icon: Database },
@@ -44,11 +47,16 @@ export default function MobileLedgerSidebarNav({
     { label: 'Export Report', icon: FileText, onClick: onOpenExport },
   ];
 
+  const getActiveLabel = () => {
+    const activeItem = navItems.find((item) => item.id === activeTab);
+    return activeItem ? activeItem.label : 'Carpool Menu';
+  };
+
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
       <SheetContent side="left" className="w-[280px] sm:w-[320px] overflow-y-auto">
         <SheetHeader>
-          <SheetTitle>Carpool Menu</SheetTitle>
+          <SheetTitle>{getActiveLabel()}</SheetTitle>
         </SheetHeader>
 
         <div className="mt-6 space-y-1">
@@ -84,6 +92,17 @@ export default function MobileLedgerSidebarNav({
               </Button>
             );
           })}
+
+          <Separator className="my-4" />
+
+          <Button
+            variant="ghost"
+            className="w-full justify-start gap-3 text-destructive hover:text-destructive hover:bg-destructive/10"
+            onClick={onLogout}
+          >
+            <LogOut className="h-4 w-4" />
+            <span>Log out</span>
+          </Button>
         </div>
       </SheetContent>
     </Sheet>

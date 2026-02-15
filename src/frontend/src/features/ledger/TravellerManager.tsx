@@ -28,9 +28,15 @@ export default function TravellerManager() {
   const [editingName, setEditingName] = useState('');
 
   const handleAdd = () => {
-    if (newName.trim()) {
-      addTraveller(newName.trim());
-      setNewName('');
+    const trimmed = newName.trim();
+    if (trimmed) {
+      try {
+        addTraveller(trimmed);
+        setNewName('');
+        toast.success(`${trimmed} added successfully`);
+      } catch (error: any) {
+        toast.error(error.message || 'Failed to add traveller');
+      }
     }
   };
 
@@ -41,9 +47,14 @@ export default function TravellerManager() {
 
   const saveEdit = () => {
     if (editingId && editingName.trim()) {
-      renameTraveller(editingId, editingName.trim());
-      setEditingId(null);
-      setEditingName('');
+      try {
+        renameTraveller(editingId, editingName.trim());
+        setEditingId(null);
+        setEditingName('');
+        toast.success('Traveller renamed successfully');
+      } catch (error: any) {
+        toast.error(error.message || 'Failed to rename traveller');
+      }
     }
   };
 

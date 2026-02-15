@@ -1,27 +1,55 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "Build an app feature set including Auto Toll behavior change (create toll entry daily at day start instead of pre-filling the week) and a new Trip History menu screen that lists trips by traveller/date with trip counts and totals over a selectable date range.",
+  "summary": "Project to implement UI and functionality fixes: add Logout in menu, restore multi-device data sync behavior (as in Draft 30), fix responsive date-range alignment on small screens, ensure key menu items are visible as tabs on laptop, and enable PDF/Excel export features without 'Not available' state.",
   "architectural_notes": [
-    "Trip History uses the same date range selector behavior as other pages.",
-    "Trip counting rules: morning+evening marked together counts as 2 trips; any single entry (including 'Other Traveller income') counts as 1 trip."
+    "Maintain feature parity with prior Draft 30 behavior; do not remove existing features without explicit user approval."
   ],
-  "known_issues": [],
-  "isFixRequest": false,
+  "known_issues": [
+    "Multi-device data sync stopped working (previously worked in Draft 30 within 2–5 seconds).",
+    "Export PDF/Excel shows 'Not available' and controls are disabled.",
+    "Payment History/Expense History/Export Report not visible in laptop browser navigation (hidden in hamburger).",
+    "Date range UI alignment breaks on small screens due to hamburger button."
+  ],
+  "isFixRequest": true,
   "existing_features": [
     {
-      "id": "feature-change-auto-toll-add-behavior-so-that-when-auto-toll-is-enabled-it-auto-creates-at-most-one-toll-car-expense-entry-per-day-weekdays-only-instead-of-pre-filling-toll-entries-for-every-weekday-in-the-currently-selected-date-range-week",
-      "title": "Change Auto Toll Add behavior so that when Auto Toll is enabled it auto-creates at most one Toll car-expense entry per day (weekdays only), instead of pre-filling Toll entries for every weekday in the currently selected date range/week.",
+      "id": "feature-add-a-logout-action-inside-the-in-app-hamburger-menu-mobile-sidebar-so-users-can-log-out-from-the-menu-in-addition-to-any-existing-logout-access",
+      "title": "Add a Logout action inside the in-app hamburger/menu (mobile sidebar) so users can log out from the menu, in addition to any existing logout access.",
       "reqIds": [
         "REQ-1"
       ],
       "version": 1
     },
     {
-      "id": "feature-add-a-trip-history-screen-accessible-from-the-in-app-menu-that-uses-the-same-global-date-range-selection-used-across-the-ledger-pages-and-displays-trip-history-rows-with-traveller-name-trip-date-and-trip-count-per-day-also-include-co-traveller-income-entries-as-single-trip-records-and-show-total-trip-count-at-the-bottom-for-the-selected-date-range",
-      "title": "Add a Trip History screen accessible from the in-app menu that uses the same global Date Range selection used across the ledger pages, and displays trip history rows with: Traveller name, Trip date, and Trip count per day; also include co-traveller income entries as single-trip records; and show total trip count at the bottom for the selected date range.",
+      "id": "feature-fix-and-restore-multi-device-data-synchronization-so-that-while-logged-in-with-the-same-account-on-multiple-devices-changes-made-on-one-device-are-reflected-on-the-other-within-2-5-seconds-matching-draft-30-behavior-across-all-ledger-user-inputs",
+      "title": "Fix and restore multi-device data synchronization so that while logged in with the same account on multiple devices, changes made on one device are reflected on the other within ~2–5 seconds (matching Draft 30 behavior) across all ledger/user inputs.",
       "reqIds": [
         "REQ-2"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-make-the-date-range-ui-responsive-on-small-screens-and-fix-alignment-issues-introduced-by-the-hamburger-menu-button-so-the-date-range-controls-remain-usable-and-well-aligned-on-narrow-widths",
+      "title": "Make the Date Range UI responsive on small screens and fix alignment issues introduced by the hamburger/menu button so the date range controls remain usable and well-aligned on narrow widths.",
+      "reqIds": [
+        "REQ-3"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-on-laptop-large-screens-ensure-payment-history-expense-history-and-export-report-are-visible-as-desktop-navigation-items-not-hidden-behind-the-hamburger-menu-while-keeping-them-in-the-hamburger-menu-for-small-screens",
+      "title": "On laptop/large screens, ensure Payment History, Expense History, and Export Report are visible as desktop navigation items (not hidden behind the hamburger menu), while keeping them in the hamburger menu for small screens.",
+      "reqIds": [
+        "REQ-4"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-enable-export-pdf-and-export-excel-so-they-are-not-shown-as-not-available-and-are-functional-when-selected-with-clear-user-feedback-on-completion-failure",
+      "title": "Enable Export PDF and Export Excel so they are not shown as \"Not available\" and are functional when selected, with clear user feedback on completion/failure.",
+      "reqIds": [
+        "REQ-5"
       ],
       "version": 1
     }
@@ -29,18 +57,36 @@
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "Update Auto Toll to add a single toll entry at the start of each day (Mon–Fri) instead of pre-filling toll entries for the entire week.",
+      "summary": "Add Logout button inside the app menu (hamburger/menu)",
       "reqIds": [],
       "status": "pending"
     },
     {
       "id": "AR-2",
-      "summary": "Add Trip History screen in Menu showing traveller name, trip date, and trip count (morning+evening together counts as 2; single entry including 'Other Traveller income' counts as 1) and show total trips at bottom for selected date range.",
+      "summary": "Fix/restore multi-device data sync while logged in with same account to match Draft 30 behavior (updates within ~2–5 seconds)",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-3",
+      "summary": "Make Date Range UI responsive on small screens; fix alignment issues caused by hamburger button",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-4",
+      "summary": "On laptop/large screens, show Payment History, Expense History, and Export Report as visible tabs (not hidden in hamburger); keep hamburger-only on small screens",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-5",
+      "summary": "Enable Export PDF & Excel (currently disabled showing 'Not available'); make export functional",
       "reqIds": [],
       "status": "pending"
     }
   ],
-  "projectName": "Update Auto Toll to daily-only and add Trip History with date-range totals",
+  "projectName": "Restore multi-device data sync, improve responsive navigation, and enable PDF/Excel export",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

@@ -1,11 +1,13 @@
 # Specification
 
 ## Summary
-**Goal:** Update Auto Toll so it only auto-adds a single weekday toll entry per day, and add a Trip History screen that summarizes trips and totals over the currently selected date range.
+**Goal:** Restore reliable multi-device sync, improve responsive navigation/layout, and enable working PDF/Excel exports.
 
 **Planned changes:**
-- Change Auto Toll behavior to stop bulk-creating toll expenses across the selected date range/week, and instead auto-create at most one Toll car-expense entry for the current date on weekdays only (no duplicates; none on weekends).
-- Add a Trip History screen accessible from the in-app menu that uses the existing global date range selection and lists trip history rows by traveller/date with morning+evening trip counting (0–2) plus separate co-traveller income rows counted as 1 each.
-- Show a “Total trips” value at the bottom of Trip History equal to the sum of all trip counts in the selected date range, with all user-facing text in English.
+- Add a clearly labeled “Log out” action to the mobile hamburger/sidebar menu that performs the same logout behavior as the existing header logout (clear Internet Identity session, React Query cache, and local storage key `carpool-ledger-state`).
+- Fix and restore polling/merge-based multi-device synchronization so changes made on one device appear on another within ~2–5 seconds while logged in to the same account; ensure sync status updates correctly and stops/reset on logout.
+- Make the Date Range UI responsive on small screens so controls don’t overlap with the title/hamburger button and remain usable at narrow widths.
+- Adjust desktop navigation so “Payment History”, “Expense History”, and “Export Report” are visible on laptop/large screens (while remaining in the hamburger menu on small screens).
+- Enable functional Export PDF and Export Excel options (remove “Not available” behavior), with clear success/error feedback; allow PDF via a print-to-PDF workflow and Excel via a downloadable file (CSV-compatible acceptable).
 
-**User-visible outcome:** With Auto Toll enabled, the app only adds a single toll entry for the current weekday (if missing), and users can open Trip History from the menu to see per-day trip counts by traveller (including co-traveller income entries) and a total trips count for the selected date range.
+**User-visible outcome:** Users can log out from the mobile menu, see ledger changes sync across devices within a few seconds, use a properly aligned Date Range on small screens, access key sections directly from desktop navigation, and successfully export reports to PDF and Excel with clear completion/failure feedback.

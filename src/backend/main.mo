@@ -9,10 +9,8 @@ import Principal "mo:core/Principal";
 import Iter "mo:core/Iter";
 import Order "mo:core/Order";
 
-
 import MixinAuthorization "authorization/MixinAuthorization";
 import AccessControl "authorization/access-control";
-
 
 actor {
   let accessControlState = AccessControl.initState();
@@ -198,7 +196,7 @@ actor {
     };
 
     let amountPerParticipant = amount / participants.size();
-    
+
     for (participant in participants.vals()) {
       let currentBalance = switch (pendingBalances.get(participant)) {
         case (null) { 0 };

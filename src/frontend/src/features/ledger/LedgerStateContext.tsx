@@ -32,6 +32,8 @@ interface LedgerState {
   saveDraftDailyData: () => void;
   discardDraftDailyData: () => void;
   hasDraftChanges: () => boolean;
+  updateTravellerParticipation: (travellerId: string, date: string, morning: boolean, evening: boolean) => void;
+  deleteTravellerParticipation: (travellerId: string, date: string) => void;
   setDateRange: (range: DateRange) => void;
   setRatePerTrip: (rate: number) => void;
   addCashPayment: (payment: Omit<CashPayment, 'id'>) => void;
@@ -42,6 +44,8 @@ interface LedgerState {
   updateCarExpense: (id: string, updates: Partial<CarExpense>) => void;
   removeCarExpense: (id: string) => void;
   addCoTravellerIncome: (income: CoTravellerIncome) => void;
+  updateCoTravellerIncome: (id: string, amount: number, date: string, note?: string) => void;
+  removeCoTravellerIncome: (id: string) => void;
   setIncludeSaturday: (include: boolean) => void;
   setIncludeSunday: (include: boolean) => void;
   clearAllLedgerData: () => void;

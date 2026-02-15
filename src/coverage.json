@@ -1,52 +1,95 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-15T03:41:26.326Z",
+  "generatedAt": "2026-02-15T05:52:11.611Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 2,
-    "implemented": 2,
+    "total": 5,
+    "implemented": 5,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Change Auto Toll Add behavior so that when Auto Toll is enabled it auto-creates at most one Toll car-expense entry per day (weekdays only), instead of pre-filling Toll entries for every weekday in the currently selected date range/week.",
+        "summary": "Add a Logout action inside the in-app hamburger/menu (mobile sidebar) so users can log out from the menu, in addition to any existing logout access.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/features/ledger/CarExpensesPanel.tsx"
+          "frontend/src/features/ledger/MobileLedgerSidebarNav.tsx",
+          "frontend/src/features/ledger/LedgerPage.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/features/ledger/CarExpensesPanel.tsx"
+          "frontend/src/features/ledger/MobileLedgerSidebarNav.tsx",
+          "frontend/src/features/ledger/LedgerPage.tsx"
         ]
       },
       {
         "id": "REQ-2",
-        "summary": "Add a Trip History screen accessible from the in-app menu that uses the same global Date Range selection used across the ledger pages, and displays trip history rows with: Traveller name, Trip date, and Trip count per day; also include co-traveller income entries as single-trip records; and show total trip count at the bottom for the selected date range.",
+        "summary": "Fix and restore multi-device data synchronization so that while logged in with the same account on multiple devices, changes made on one device are reflected on the other within ~2–5 seconds (matching Draft 30 behavior) across all ledger/user inputs.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/features/ledger/TripHistoryPanel.tsx",
+          "frontend/src/hooks/useAppDataSync.ts",
+          "frontend/src/components/SyncStatusIndicator.tsx",
+          "frontend/src/components/AppHeader.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/hooks/useAppDataSync.ts"
+        ]
+      },
+      {
+        "id": "REQ-3",
+        "summary": "Make the Date Range UI responsive on small screens and fix alignment issues introduced by the hamburger/menu button so the date range controls remain usable and well-aligned on narrow widths.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/features/ledger/LedgerPage.tsx",
+          "frontend/src/features/ledger/DateRangePicker.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/features/ledger/LedgerPage.tsx",
+          "frontend/src/features/ledger/DateRangePicker.tsx"
+        ]
+      },
+      {
+        "id": "REQ-4",
+        "summary": "On laptop/large screens, ensure Payment History, Expense History, and Export Report are visible as desktop navigation items (not hidden behind the hamburger menu), while keeping them in the hamburger menu for small screens.",
+        "status": "implemented",
+        "plannedFiles": [
           "frontend/src/features/ledger/LedgerPage.tsx",
           "frontend/src/features/ledger/MobileLedgerSidebarNav.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/features/ledger/TripHistoryPanel.tsx",
           "frontend/src/features/ledger/LedgerPage.tsx",
           "frontend/src/features/ledger/MobileLedgerSidebarNav.tsx"
+        ]
+      },
+      {
+        "id": "REQ-5",
+        "summary": "Enable Export PDF and Export Excel so they are not shown as \"Not available\" and are functional when selected, with clear user feedback on completion/failure.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/features/ledger/ExportReportDialog.tsx",
+          "frontend/src/utils/exportExcel.ts",
+          "frontend/src/utils/exportPdf.ts"
+        ],
+        "matchedFiles": [
+          "frontend/src/features/ledger/ExportReportDialog.tsx",
+          "frontend/src/utils/exportPdf.ts"
         ]
       }
     ]
   },
   "changedFiles": [
+    "backend/main.mo",
     "build-request.json",
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/features/ledger/CarExpensesPanel.tsx",
+    "frontend/src/features/ledger/DateRangePicker.tsx",
+    "frontend/src/features/ledger/ExportReportDialog.tsx",
     "frontend/src/features/ledger/LedgerPage.tsx",
     "frontend/src/features/ledger/MobileLedgerSidebarNav.tsx",
-    "frontend/src/features/ledger/TripHistoryPanel.tsx",
+    "frontend/src/hooks/useAppDataSync.ts",
+    "frontend/src/utils/exportPdf.ts",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

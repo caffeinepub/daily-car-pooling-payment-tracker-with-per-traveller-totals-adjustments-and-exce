@@ -98,7 +98,7 @@ export async function exportToCSV(state: LedgerState, filters: ExportFilters): P
     sections.push('Daily Grid\n' + arrayToCSV(gridData));
   }
 
-  // Summary
+  // Trips & Payment
   if (filters.includeSummary) {
     const summaryData: any[][] = [];
     summaryData.push(['Traveller', 'Total Trips', 'Rate/Trip', 'Total Charge', 'Other Pending', 'Payments', 'Balance']);
@@ -149,7 +149,7 @@ export async function exportToCSV(state: LedgerState, filters: ExportFilters): P
       summaryData.push([t.name, totalTrips, ratePerTrip, totalCharge, otherPendingInRange, paymentsInRange, balance]);
     });
 
-    sections.push('Summary\n' + arrayToCSV(summaryData));
+    sections.push('Trips & Payment\n' + arrayToCSV(summaryData));
   }
 
   // Payments

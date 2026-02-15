@@ -19,8 +19,8 @@ interface UseAppDataSyncProps {
   stateRevision: number;
 }
 
-const POLL_INTERVAL = 3000; // 3 seconds (within 2-5 second range)
-const DEBOUNCE_DELAY = 1000; // 1 second debounce for outbound saves
+const POLL_INTERVAL = 3000; // 3 seconds
+const DEBOUNCE_DELAY = 800; // 800ms debounce for outbound saves
 
 export function useAppDataSync({ getLocalState, applyMergedState, stateRevision }: UseAppDataSyncProps) {
   const { actor, isFetching: actorFetching } = useActor();
@@ -37,12 +37,13 @@ export function useAppDataSync({ getLocalState, applyMergedState, stateRevision 
   const lastRemoteTimestampRef = useRef<bigint | null>(null);
   const isSavingRef = useRef(false);
   const lastSavedRevisionRef = useRef<number>(0);
+  const isApplyingMergeRef = useRef(false);
 
   const isAuthenticated = !!identity && !!actor && !actorFetching;
 
   // Fetch and merge remote data
   const fetchAndMerge = useCallback(async () => {
-    if (!actor || !isAuthenticated) return;
+    if (!actor || !isAuthenticated || isApplyingMergeRef.current) return;
 
     try {
       setSyncState((prev) => ({ ...prev, status: 'syncing', error: null }));
@@ -50,13 +51,14 @@ export function useAppDataSync({ getLocalState, applyMergedState, stateRevision 
       const remoteAppData = await actor.fetchAppData();
 
       if (remoteAppData && remoteAppData.ledgerState) {
-        // Check if remote data has changed
+        // Check if remote data has changed using timestamp
         const hasRemoteChanged =
-          lastRemoteVersionRef.current === null ||
-          remoteAppData.version > lastRemoteVersionRef.current ||
-          remoteAppData.lastUpdated > (lastRemoteTimestampRef.current || BigInt(0));
+          lastRemoteTimestampRef.current === null ||
+          remoteAppData.lastUpdated > lastRemoteTimestampRef.current;
 
         if (hasRemoteChanged) {
+          isApplyingMergeRef.current = true;
+          
           // Parse remote ledger state
           const remoteLedgerState: LocalLedgerState = JSON.parse(remoteAppData.ledgerState);
           const currentLocalState = getLocalState();
@@ -70,6 +72,8 @@ export function useAppDataSync({ getLocalState, applyMergedState, stateRevision 
           // Update tracking refs
           lastRemoteVersionRef.current = remoteAppData.version;
           lastRemoteTimestampRef.current = remoteAppData.lastUpdated;
+          
+          isApplyingMergeRef.current = false;
         }
       } else if (remoteAppData) {
         // Remote exists but no ledger state yet
@@ -84,6 +88,7 @@ export function useAppDataSync({ getLocalState, applyMergedState, stateRevision 
       });
     } catch (error) {
       console.error('Sync fetch error:', error);
+      isApplyingMergeRef.current = false;
       setSyncState((prev) => ({
         ...prev,
         status: 'failed',
@@ -94,7 +99,7 @@ export function useAppDataSync({ getLocalState, applyMergedState, stateRevision 
 
   // Save local state to backend with merge-before-save
   const saveToBackend = useCallback(async () => {
-    if (!actor || !isAuthenticated || isSavingRef.current) return;
+    if (!actor || !isAuthenticated || isSavingRef.current || isApplyingMergeRef.current) return;
 
     try {
       isSavingRef.current = true;
@@ -110,12 +115,15 @@ export function useAppDataSync({ getLocalState, applyMergedState, stateRevision 
       if (
         remoteAppData &&
         remoteAppData.ledgerState &&
-        remoteAppData.version > (lastRemoteVersionRef.current || BigInt(0))
+        remoteAppData.lastUpdated > (lastRemoteTimestampRef.current || BigInt(0))
       ) {
         const remoteLedgerState: LocalLedgerState = JSON.parse(remoteAppData.ledgerState);
         stateToSave = mergeLocalStates(remoteLedgerState, currentLocalState);
+        
         // Apply merged state locally before saving
+        isApplyingMergeRef.current = true;
         applyMergedState(stateToSave);
+        isApplyingMergeRef.current = false;
       }
 
       // Prepare AppData for save
@@ -168,6 +176,7 @@ export function useAppDataSync({ getLocalState, applyMergedState, stateRevision 
       setSyncState({ status: 'idle', lastSyncTime: null, error: null });
       lastRemoteVersionRef.current = null;
       lastRemoteTimestampRef.current = null;
+      isApplyingMergeRef.current = false;
       return;
     }
 
@@ -186,7 +195,7 @@ export function useAppDataSync({ getLocalState, applyMergedState, stateRevision 
 
   // Debounced outbound sync on state changes
   useEffect(() => {
-    if (!isAuthenticated || stateRevision === 0) return;
+    if (!isAuthenticated || stateRevision === 0 || isApplyingMergeRef.current) return;
 
     // Skip if this revision was already saved
     if (stateRevision === lastSavedRevisionRef.current) return;
@@ -208,21 +217,5 @@ export function useAppDataSync({ getLocalState, applyMergedState, stateRevision 
     };
   }, [isAuthenticated, stateRevision, saveToBackend]);
 
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (pollIntervalRef.current) {
-        clearInterval(pollIntervalRef.current);
-      }
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  return {
-    syncStatus: syncState.status,
-    lastSyncTime: syncState.lastSyncTime,
-    error: syncState.error,
-  };
+  return syncState;
 }

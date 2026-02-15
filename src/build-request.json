@@ -1,62 +1,114 @@
 {
   "kind": "build_request",
-  "title": "Update Auto Toll to daily-only and add Trip History with date-range totals",
+  "title": "Restore multi-device data sync, improve responsive navigation, and enable PDF/Excel export",
   "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Change Auto Toll Add behavior so that when Auto Toll is enabled it auto-creates at most one Toll car-expense entry per day (weekdays only), instead of pre-filling Toll entries for every weekday in the currently selected date range/week.",
+      "text": "Add a Logout action inside the in-app hamburger/menu (mobile sidebar) so users can log out from the menu, in addition to any existing logout access.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-1"
+          "msg-4"
         ],
         "quotes": [
-          "is this possible to auto add toll only on starting of the day instead adding for whole week ?",
-          "Yes Please Update"
+          "Logout Button needs to be add",
+          "1. inside menue"
         ]
       },
       "acceptanceCriteria": [
-        "With Auto Toll Add enabled, switching the ledger date range no longer bulk-creates Toll expenses for every weekday in the range.",
-        "On a weekday, if there is no existing Toll expense entry for that date, the app auto-adds exactly one Toll expense for that date with the configured amount.",
-        "If a Toll expense already exists for the current weekday date, no duplicate Toll entry is created.",
-        "No Toll entries are auto-added for Saturday or Sunday.",
-        "Auto-added Toll expenses remain visible in Car Expenses and are persisted in the same local ledger state as before."
+        "On small screens, the hamburger/sidebar menu includes a clearly labeled \"Log out\" item.",
+        "Clicking \"Log out\" clears the Internet Identity session, clears React Query cache, and removes local storage key \"carpool-ledger-state\" (same behavior as existing header logout).",
+        "After logout, the app returns to the unauthenticated/login state and no user data remains visible."
       ]
     },
     {
       "id": "REQ-2",
-      "text": "Add a Trip History screen accessible from the in-app menu that uses the same global Date Range selection used across the ledger pages, and displays trip history rows with: Traveller name, Trip date, and Trip count per day; also include co-traveller income entries as single-trip records; and show total trip count at the bottom for the selected date range.",
-      "target": "frontend",
+      "text": "Fix and restore multi-device data synchronization so that while logged in with the same account on multiple devices, changes made on one device are reflected on the other within ~2–5 seconds (matching Draft 30 behavior) across all ledger/user inputs.",
+      "target": "both",
       "source": {
         "messageIds": [
-          "msg-1"
+          "msg-4"
         ],
         "quotes": [
-          "Also add a Trip History in Menu Where showing Name of Travellers with Date and Morning evening Trip date wise and Other Traveller if Added income for other traveller and add count as 1 trip",
-          "1. Date Range exist same as all page \n2. Yes a single entry should consider as 1 trip \n3. Mark ther together as 2 Trip"
+          "All Data Sync between multiple device while logged in with same account which was working in Draft 30 for all data and all user inputs",
+          "Same as working in draft 30 - Sync data between 2-5 seconds"
         ]
       },
       "acceptanceCriteria": [
-        "A new Trip History entry is available in the ledger menu/navigation (including the mobile sidebar menu).",
-        "Trip History uses the existing ledger dateRange state (the same DateRangePicker selection used elsewhere) and updates automatically when the date range changes.",
-        "For each date within the selected date range, Trip History shows a row per traveller when they have any participation that day; trip count is 0–2 based on Morning (1) + Evening (1), so Morning+Evening together counts as 2 trips.",
-        "Any single trip marking (only Morning or only Evening) is counted as 1 trip.",
-        "Each co-traveller income record within the selected date range appears in Trip History as its own row with a trip count of 1.",
-        "A “Total trips” value is displayed at the bottom of Trip History and equals the sum of all trip counts shown for the selected date range (including the co-traveller income rows counted as 1 each).",
-        "All user-facing text on the new screen is in English."
+        "When logged in as the same Internet Identity on Device A and Device B, edits to any ledger data on Device A (e.g., travellers, daily participation, payments, car expenses, other pending, co-traveller income, rate per trip, date-range-related state if persisted) are visible on Device B within 2–5 seconds without a manual refresh.",
+        "Edits made concurrently on both devices do not cause data loss; the final state is a merged result consistent with the existing merge strategy (non-destructive merge).",
+        "Sync status indicator updates to show syncing/synced/failed appropriately, and failures do not permanently stop future sync attempts while authenticated.",
+        "Logging out stops polling/sync activity and resets sync state to idle."
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "text": "Make the Date Range UI responsive on small screens and fix alignment issues introduced by the hamburger/menu button so the date range controls remain usable and well-aligned on narrow widths.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-4"
+        ],
+        "quotes": [
+          "Make Date range responsive to fit in small screen size alignment changed due humberge button"
+        ]
+      },
+      "acceptanceCriteria": [
+        "On small screens, the Date Range label and the start/end date buttons wrap or stack cleanly without overlapping the page title/hamburger button.",
+        "Both date buttons remain fully visible and clickable at common narrow widths (e.g., ~320px).",
+        "On larger screens, Date Range layout remains aligned and consistent with existing design."
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "text": "On laptop/large screens, ensure Payment History, Expense History, and Export Report are visible as desktop navigation items (not hidden behind the hamburger menu), while keeping them in the hamburger menu for small screens.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-4"
+        ],
+        "quotes": [
+          "Payment History, Expense Historu & Export report not showing in Laptop Browser i thing all items in humburge menue should be visible on laptop as well",
+          "Yes in laptop only in small size it should be in Humburge menu only"
+        ]
+      },
+      "acceptanceCriteria": [
+        "At laptop/desktop widths (i.e., where the desktop tab bar is shown), the UI includes visible, clickable navigation items labeled \"Payment History\", \"Expense History\", and \"Export Report\".",
+        "Clicking each item on desktop opens the same dialogs/views as the mobile menu actions.",
+        "At small/mobile widths, these items remain accessible from the hamburger/sidebar menu."
+      ]
+    },
+    {
+      "id": "REQ-5",
+      "text": "Enable Export PDF and Export Excel so they are not shown as \"Not available\" and are functional when selected, with clear user feedback on completion/failure.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-4"
+        ],
+        "quotes": [
+          "Why Export PDF & Excel showing Not available ?",
+          "Buttons are Disabled and drop down shows not available"
+        ]
+      },
+      "acceptanceCriteria": [
+        "In the Export Report dialog, selecting PDF or Excel no longer shows \"Not Available\" messaging and does not disable the export action purely due to format choice.",
+        "Excel export produces a downloadable file (at minimum a .csv-compatible export is acceptable if generated by the existing Excel export utility) and completes successfully for typical ledger sizes.",
+        "PDF export triggers a functional PDF workflow without external services (e.g., a printable report view using the browser print-to-PDF flow) and provides a clear instruction or automatic print dialog.",
+        "Success and error toasts accurately reflect the outcome for CSV, Excel, and PDF exports."
       ]
     }
   ],
   "constraints": [
-    "Do not edit files under frontend/src/components/ui (read-only).",
-    "Do not edit immutable hook files listed in SYSTEM_CONTEXT.frontend.immutablePaths.",
-    "Keep all backend logic in the single Motoko actor if any backend change becomes necessary (none required by this request)."
+    "Do not edit files under frontend/immutablePaths (e.g., frontend/src/hooks/useInternetIdentity.ts(x), frontend/src/hooks/useActor.ts, frontend/src/main.tsx, frontend/src/components/ui). Compose using them as-is.",
+    "Backend must remain a single Motoko actor in backend/main.mo; only add backend/migration.mo if a stable-state schema change is required.",
+    "Do not add real-time technologies that are unsupported (e.g., WebSockets). Sync must use the existing polling/merge approach."
   ],
   "nonGoals": [
-    "Do not change how Summary, Overall, Export, or existing History dialogs calculate money amounts unless required to support the new Trip History view.",
-    "Do not add new authentication methods beyond the existing Internet Identity flow.",
-    "Do not introduce any external database or third-party APIs."
+    "Implementing third-party authentication providers beyond Internet Identity.",
+    "Adding external databases or non-Motoko backend services.",
+    "Adding true real-time push sync; the target behavior must be achieved via polling/refresh mechanics within platform constraints."
   ],
   "imageRequirements": {
     "required": [],

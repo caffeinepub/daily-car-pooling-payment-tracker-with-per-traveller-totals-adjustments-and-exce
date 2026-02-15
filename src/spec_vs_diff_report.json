@@ -1,41 +1,55 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-15T03:08:12.511Z",
-  "summary": "REQ-1 appears implemented by changing the persisted/default ledger dateRange to the current week Monday–Friday via new dateRange utilities. Auto Toll settings persistence and weekday auto-add logic are implemented, but the diff summary is truncated before showing the CarExpensesPanel JSX, so the presence/placement/labeling of the toggle and the amount input behavior in the UI cannot be confirmed from available evidence. Some extra behaviors were added (defaulting manual Toll amount to 30; auto-added note/toast).",
+  "generatedAt": "2026-02-15T03:41:26.324Z",
+  "summary": "Implemented a new Trip History panel and added a Trip History entry to the mobile sidebar menu. Updated Auto Toll logic in CarExpensesPanel to auto-add a single Toll expense for the current weekday only and avoid duplicates. However, the diff evidence is truncated, so some required navigation/UI elements (desktop/in-app menu placement and Total trips display) cannot be fully verified. Additionally, there are signs of unrelated changes (e.g., default date range and weekend-counting logic) not requested in the BuildRequest.",
   "missing_requirements": [
     {
       "id": "REQ-2",
-      "requirement": "Add an \"Auto Toll Add\" toggle control inside the Car Expense menu/panel, clearly labeled, and persisted locally across reloads.",
-      "reason": "Local persistence logic for an enabled flag exists (useAutoTollSettings), but the provided CarExpensesPanel diff is truncated before any JSX/UI rendering, so the existence of a clearly labeled toggle inside the panel cannot be verified from the diff summary evidence.",
+      "requirement": "A new Trip History entry is available in the ledger menu/navigation (including the mobile sidebar menu).",
+      "reason": "Mobile sidebar menu clearly includes Trip History, but the diff for the main (non-mobile) in-app navigation/tabs is truncated, so it’s not verifiable that Trip History is accessible from the primary ledger menu/navigation on desktop.",
       "evidence": [
-        "frontend/src/hooks/useAutoTollSettings.ts",
-        "frontend/src/features/ledger/CarExpensesPanel.tsx (truncated before JSX)"
+        "frontend/src/features/ledger/MobileLedgerSidebarNav.tsx",
+        "frontend/src/features/ledger/LedgerPage.tsx (truncated)"
       ]
     },
     {
-      "id": "REQ-3",
-      "requirement": "Add a toll amount input beside the \"Auto Toll Add\" toggle; editable only when Auto Toll is OFF, read-only/disabled when ON; persisted locally across reloads.",
-      "reason": "Local persistence logic for amount exists (useAutoTollSettings) and CarExpensesPanel has state for a local amount string, but the diff is truncated before showing the UI control and whether it is disabled/read-only when Auto Toll is ON and placed beside the toggle.",
+      "id": "REQ-2",
+      "requirement": "A “Total trips” value is displayed at the bottom of Trip History and equals the sum of all trip counts shown for the selected date range (including the co-traveller income rows counted as 1 each).",
+      "reason": "TripHistoryPanel computes totalTrips, but the file content is truncated before showing the footer/total display; cannot confirm it is rendered at the bottom and matches the required presentation.",
       "evidence": [
-        "frontend/src/hooks/useAutoTollSettings.ts",
-        "frontend/src/features/ledger/CarExpensesPanel.tsx (truncated before JSX)"
+        "frontend/src/features/ledger/TripHistoryPanel.tsx (truncated)"
+      ]
+    },
+    {
+      "id": "REQ-1",
+      "requirement": "With Auto Toll Add enabled, switching the ledger date range no longer bulk-creates Toll expenses for every weekday in the range.",
+      "reason": "CarExpensesPanel now includes logic to auto-add only for today, but the diff is truncated and does not show removal/absence of any previous bulk-add behavior tied to dateRange changes; cannot confirm switching date range no longer bulk-creates entries.",
+      "evidence": [
+        "frontend/src/features/ledger/CarExpensesPanel.tsx (truncated)"
       ]
     }
   ],
   "hallucinated_features": [
     {
-      "description": "Automatically default the manual car expense form amount to \"30\" when category \"Toll\" is selected.",
-      "reason": "Not requested; requirements only specify an Auto Toll configured amount input and its use for auto-added tolls, not auto-filling the manual form amount on category selection.",
+      "description": "Changed ledger default date range behavior to current week Monday–Friday instead of current month (or prior behavior).",
+      "reason": "Not requested by REQ-1 or REQ-2; BuildRequest explicitly focuses on Auto Toll daily-only behavior and adding Trip History without altering other ledger calculations/behaviors unless necessary.",
       "evidence": [
-        "frontend/src/features/ledger/CarExpensesPanel.tsx"
+        "frontend-file-summaries.txt (mentions frontend/src/hooks/useLedgerLocalState.ts change)"
       ]
     },
     {
-      "description": "Auto-added toll expenses include a fixed note \"Auto-added\" and show a success toast indicating how many were added.",
-      "reason": "Not requested in requirements/AC (no mention of notes/toasts for auto-created entries).",
+      "description": "Updated weekend inclusion / weekend counting logic in Daily grid, Summary, and export to count saved weekend trips even when weekend checkboxes are unchecked.",
+      "reason": "Not requested; BuildRequest non-goals state not to change how Summary/Export/History dialogs calculate money amounts unless required for Trip History, and this appears unrelated to Trip History display requirements.",
       "evidence": [
-        "frontend/src/features/ledger/CarExpensesPanel.tsx"
+        "frontend-file-summaries.txt (mentions frontend/src/features/ledger/DailyParticipationGrid.ts, SummaryPanel.tsx, utils/exportExcel.ts changes)"
+      ]
+    },
+    {
+      "description": "Global styling/theme palette changes (warm neutral/amber palette) and Tailwind config adjustments.",
+      "reason": "Not requested by the BuildRequest.",
+      "evidence": [
+        "frontend-file-summaries.txt (mentions frontend/index.css and frontend/tailwind.config.js changes)"
       ]
     }
   ],
@@ -43,9 +57,9 @@
   "changed_files": [
     "frontend-file-summaries.txt",
     "frontend/src/features/ledger/CarExpensesPanel.tsx",
-    "frontend/src/hooks/useAutoTollSettings.ts",
-    "frontend/src/hooks/useLedgerLocalState.ts",
-    "frontend/src/utils/dateRange.ts",
+    "frontend/src/features/ledger/LedgerPage.tsx",
+    "frontend/src/features/ledger/MobileLedgerSidebarNav.tsx",
+    "frontend/src/features/ledger/TripHistoryPanel.tsx",
     "project_state.json"
   ]
 }

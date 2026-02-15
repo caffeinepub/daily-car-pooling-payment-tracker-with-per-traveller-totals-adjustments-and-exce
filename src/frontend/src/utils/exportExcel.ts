@@ -1,5 +1,6 @@
 import { format, parseISO } from 'date-fns';
 import { getDaysInRange, formatDateKey } from './dateRange';
+import { isDateIncludedForCalculation } from './weekendInclusion';
 import type { Traveller, DateRange, DailyData, CashPayment } from '../hooks/useLedgerLocalState';
 
 interface LedgerState {
@@ -8,6 +9,8 @@ interface LedgerState {
   dailyData: DailyData;
   ratePerTrip: number;
   cashPayments: CashPayment[];
+  includeSaturday: boolean;
+  includeSunday: boolean;
 }
 
 function arrayToCSV(data: any[][]): string {
@@ -44,7 +47,7 @@ function downloadCSV(filename: string, csvContent: string): void {
 }
 
 export async function exportToExcel(state: LedgerState): Promise<void> {
-  const { travellers, dateRange, dailyData, ratePerTrip, cashPayments } = state;
+  const { travellers, dateRange, dailyData, ratePerTrip, cashPayments, includeSaturday, includeSunday } = state;
   const days = getDaysInRange(dateRange.start, dateRange.end);
 
   // Sheet 1: Daily Grid with AM/PM columns
@@ -60,6 +63,7 @@ export async function exportToExcel(state: LedgerState): Promise<void> {
   // Data rows
   days.forEach((day) => {
     const dateKey = formatDateKey(day);
+    const isIncluded = isDateIncludedForCalculation(day, includeSaturday, includeSunday, dateKey, dailyData);
     const row: any[] = [
       format(day, 'dd-MM'),
       format(day, 'EEEE'),
@@ -67,7 +71,11 @@ export async function exportToExcel(state: LedgerState): Promise<void> {
     
     travellers.forEach((t) => {
       const tripData = dailyData[dateKey]?.[t.id] || { morning: false, evening: false };
-      row.push(tripData.morning ? 1 : 0, tripData.evening ? 1 : 0);
+      if (isIncluded) {
+        row.push(tripData.morning ? 1 : 0, tripData.evening ? 1 : 0);
+      } else {
+        row.push('-', '-');
+      }
     });
     
     gridData.push(row);
@@ -80,6 +88,9 @@ export async function exportToExcel(state: LedgerState): Promise<void> {
     let eveningCount = 0;
     days.forEach((day) => {
       const dateKey = formatDateKey(day);
+      const isIncluded = isDateIncludedForCalculation(day, includeSaturday, includeSunday, dateKey, dailyData);
+      if (!isIncluded) return;
+      
       const tripData = dailyData[dateKey]?.[t.id];
       if (tripData) {
         if (tripData.morning) morningCount++;
@@ -98,6 +109,9 @@ export async function exportToExcel(state: LedgerState): Promise<void> {
     let totalTrips = 0;
     days.forEach((day) => {
       const dateKey = formatDateKey(day);
+      const isIncluded = isDateIncludedForCalculation(day, includeSaturday, includeSunday, dateKey, dailyData);
+      if (!isIncluded) return;
+      
       const tripData = dailyData[dateKey]?.[t.id];
       if (tripData) {
         if (tripData.morning) totalTrips++;

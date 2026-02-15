@@ -1,93 +1,62 @@
 {
   "kind": "build_request",
-  "title": "App-wide current-week (Mon–Fri) default date range + Auto Toll Add in Car Expense",
+  "title": "Update Auto Toll to daily-only and add Trip History with date-range totals",
   "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Update the app’s default date range selection so that on initial load it is always set to the current week from Monday through Friday (inclusive), matching the date-range UI shown in the provided screenshot. This default must apply everywhere in the app where a date range is displayed/used.",
+      "text": "Change Auto Toll Add behavior so that when Auto Toll is enabled it auto-creates at most one Toll car-expense entry per day (weekdays only), instead of pre-filling Toll entries for every weekday in the currently selected date range/week.",
       "target": "frontend",
       "source": {
         "messageIds": [
           "msg-1"
         ],
         "quotes": [
-          "Date range default selection should be always current week Starting from Monday to Friday.",
-          "Yes, everywhere a date range appears in the app"
+          "is this possible to auto add toll only on starting of the day instead adding for whole week ?",
+          "Yes Please Update"
         ]
       },
       "acceptanceCriteria": [
-        "On a fresh load, the Date Range control shows the current week’s Monday as start date and Friday as end date.",
-        "The default is not the current month anymore.",
-        "All screens/components that rely on the shared ledger dateRange reflect the Monday–Friday current-week default consistently."
+        "With Auto Toll Add enabled, switching the ledger date range no longer bulk-creates Toll expenses for every weekday in the range.",
+        "On a weekday, if there is no existing Toll expense entry for that date, the app auto-adds exactly one Toll expense for that date with the configured amount.",
+        "If a Toll expense already exists for the current weekday date, no duplicate Toll entry is created.",
+        "No Toll entries are auto-added for Saturday or Sunday.",
+        "Auto-added Toll expenses remain visible in Car Expenses and are persisted in the same local ledger state as before."
       ]
     },
     {
       "id": "REQ-2",
-      "text": "Add an \"Auto Toll Add\" toggle control inside the Car Expense menu/panel. When enabled, it turns on the automatic toll creation behavior described in REQ-4; when disabled, no automatic toll entries are created.",
+      "text": "Add a Trip History screen accessible from the in-app menu that uses the same global Date Range selection used across the ledger pages, and displays trip history rows with: Traveller name, Trip date, and Trip count per day; also include co-traveller income entries as single-trip records; and show total trip count at the bottom for the selected date range.",
       "target": "frontend",
       "source": {
         "messageIds": [
           "msg-1"
         ],
         "quotes": [
-          "add a button Auto Toll Add in Car Expense menue which allowed to on and off Auto Add facility of Toll"
+          "Also add a Trip History in Menu Where showing Name of Travellers with Date and Morning evening Trip date wise and Other Traveller if Added income for other traveller and add count as 1 trip",
+          "1. Date Range exist same as all page \n2. Yes a single entry should consider as 1 trip \n3. Mark ther together as 2 Trip"
         ]
       },
       "acceptanceCriteria": [
-        "The Car Expense panel includes a clearly labeled \"Auto Toll Add\" toggle.",
-        "The toggle state is persisted locally so it remains the same after a page reload."
-      ]
-    },
-    {
-      "id": "REQ-3",
-      "text": "Add a toll amount input beside the \"Auto Toll Add\" toggle in the Car Expense menu/panel. The amount input must be editable only when Auto Toll is OFF; when Auto Toll is ON, the input becomes read-only and the auto-added toll expense amount uses this value.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-1"
-        ],
-        "quotes": [
-          "also add a input beside radio for adding amount for toll and its allow add amount when radio is of once radio is on it read only",
-          "Yes amount in amount input"
-        ]
-      },
-      "acceptanceCriteria": [
-        "When Auto Toll is OFF, the toll amount input can be edited.",
-        "When Auto Toll is ON, the toll amount input is read-only/disabled but still displays the configured amount.",
-        "The amount value is persisted locally and survives page reloads."
-      ]
-    },
-    {
-      "id": "REQ-4",
-      "text": "When \"Auto Toll Add\" is ON, automatically add a Toll car expense entry for each weekday (Monday–Friday) using the configured toll amount. The system must avoid creating duplicate auto-added toll entries for the same date.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-1"
-        ],
-        "quotes": [
-          "while on it automatically add Toll default expense daily for that day",
-          "add Toll Expense every day automatically for week days."
-        ]
-      },
-      "acceptanceCriteria": [
-        "Enabling Auto Toll results in Toll expense entries being created for applicable weekdays without requiring manual form submission.",
-        "Each auto-created toll expense uses the configured toll amount from the amount input.",
-        "No duplicate auto-added toll entry is created for the same date if the user revisits/reloads the app or toggles Auto Toll on multiple times.",
-        "Auto Toll does not create entries for Saturday or Sunday."
+        "A new Trip History entry is available in the ledger menu/navigation (including the mobile sidebar menu).",
+        "Trip History uses the existing ledger dateRange state (the same DateRangePicker selection used elsewhere) and updates automatically when the date range changes.",
+        "For each date within the selected date range, Trip History shows a row per traveller when they have any participation that day; trip count is 0–2 based on Morning (1) + Evening (1), so Morning+Evening together counts as 2 trips.",
+        "Any single trip marking (only Morning or only Evening) is counted as 1 trip.",
+        "Each co-traveller income record within the selected date range appears in Trip History as its own row with a trip count of 1.",
+        "A “Total trips” value is displayed at the bottom of Trip History and equals the sum of all trip counts shown for the selected date range (including the co-traveller income rows counted as 1 each).",
+        "All user-facing text on the new screen is in English."
       ]
     }
   ],
   "constraints": [
-    "Do not edit files under frontend/src/components/ui (read-only UI components); compose existing components instead.",
-    "Do not edit any paths listed in frontend.immutablePaths (e.g., frontend/src/hooks/useInternetIdentity.ts(x), frontend/src/hooks/useActor.ts, frontend/src/main.tsx).",
-    "Backend must remain single-actor; only introduce backend changes if strictly required by the requested functionality."
+    "Do not edit files under frontend/src/components/ui (read-only).",
+    "Do not edit immutable hook files listed in SYSTEM_CONTEXT.frontend.immutablePaths.",
+    "Keep all backend logic in the single Motoko actor if any backend change becomes necessary (none required by this request)."
   ],
   "nonGoals": [
-    "Implementing true background/cron scheduling while the app is closed (auto-add can occur when the app runs/loads).",
-    "Adding third-party integrations or notifications for auto-added tolls.",
-    "Changing existing backend schema or adding new canisters/services solely for Auto Toll behavior."
+    "Do not change how Summary, Overall, Export, or existing History dialogs calculate money amounts unless required to support the new Trip History view.",
+    "Do not add new authentication methods beyond the existing Internet Identity flow.",
+    "Do not introduce any external database or third-party APIs."
   ],
   "imageRequirements": {
     "required": [],

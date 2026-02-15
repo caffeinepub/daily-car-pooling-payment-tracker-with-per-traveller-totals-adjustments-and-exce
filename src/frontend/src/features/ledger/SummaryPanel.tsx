@@ -1,6 +1,6 @@
 import { useLedgerState } from './LedgerStateContext';
 import { getDaysInRange, formatDateKey } from '../../utils/dateRange';
-import { isDateIncluded, isWeekendDay } from '../../utils/weekendInclusion';
+import { isDateIncludedForCalculation, isWeekendDay } from '../../utils/weekendInclusion';
 import { formatCurrency } from '../../utils/money';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -35,7 +35,7 @@ export default function SummaryPanel() {
 
     days.forEach((day) => {
       const dateKey = formatDateKey(day);
-      const isIncluded = isDateIncluded(day, includeSaturday, includeSunday);
+      const isIncluded = isDateIncludedForCalculation(day, includeSaturday, includeSunday, dateKey, dailyData);
       if (!isIncluded) return;
 
       const tripData = dailyData[dateKey]?.[traveller.id];

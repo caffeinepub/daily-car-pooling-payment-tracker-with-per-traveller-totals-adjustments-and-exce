@@ -9,12 +9,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
 import { Plus, Car, IndianRupee } from 'lucide-react';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, getDay } from 'date-fns';
 import { toast } from 'sonner';
 import { formatCurrency } from '../../utils/money';
 import { Separator } from '@/components/ui/separator';
 import { useAutoTollSettings } from '../../hooks/useAutoTollSettings';
-import { getWeekdaysInRange } from '../../utils/dateRange';
+import { formatDateKey } from '../../utils/dateRange';
 
 const PREDEFINED_CATEGORIES = [
   'CNG BRD',
@@ -50,34 +50,31 @@ export default function CarExpensesPanel() {
     }
   }, [category]);
 
-  // Auto-add toll expenses when enabled
+  // Auto-add toll expense for today only when enabled
   useEffect(() => {
     if (!autoTollEnabled) return;
 
-    const weekdays = getWeekdaysInRange(dateRange.start, dateRange.end);
-    const existingTollDates = new Set(
-      carExpenses
-        .filter((e) => e.category === 'Toll')
-        .map((e) => e.date)
+    const today = new Date();
+    const dayOfWeek = getDay(today);
+    
+    // Only add on weekdays (Mon-Fri: 1-5)
+    if (dayOfWeek === 0 || dayOfWeek === 6) return;
+
+    const todayKey = formatDateKey(today);
+    const existingTollForToday = carExpenses.some(
+      (e) => e.category === 'Toll' && e.date === todayKey
     );
 
-    let addedCount = 0;
-    weekdays.forEach((dateKey) => {
-      if (!existingTollDates.has(dateKey)) {
-        addCarExpense({
-          category: 'Toll',
-          amount: autoTollAmount,
-          date: dateKey,
-          note: 'Auto-added',
-        });
-        addedCount++;
-      }
-    });
-
-    if (addedCount > 0) {
-      toast.success(`Auto-added ${addedCount} toll expense(s) for weekdays`);
+    if (!existingTollForToday) {
+      addCarExpense({
+        category: 'Toll',
+        amount: autoTollAmount,
+        date: todayKey,
+        note: 'Auto-added',
+      });
+      toast.success(`Auto-added toll expense for today`);
     }
-  }, [autoTollEnabled, dateRange, autoTollAmount]);
+  }, [autoTollEnabled, autoTollAmount]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -170,7 +167,7 @@ export default function CarExpensesPanel() {
                 Auto Toll Add
               </Label>
               <p className="text-sm text-muted-foreground">
-                Automatically add toll expenses for weekdays
+                Automatically add toll expense for today (weekdays only)
               </p>
             </div>
             <Switch

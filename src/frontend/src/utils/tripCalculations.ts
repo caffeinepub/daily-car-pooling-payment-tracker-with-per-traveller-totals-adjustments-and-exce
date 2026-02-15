@@ -1,5 +1,5 @@
 import { getDaysInRange, formatDateKey } from './dateRange';
-import { isDateIncluded } from './weekendInclusion';
+import { isDateIncludedForCalculation } from './weekendInclusion';
 import type { DateRange, DailyData, CoTravellerIncome } from '../hooks/useLedgerLocalState';
 import { parseISO } from 'date-fns';
 
@@ -8,6 +8,10 @@ import { parseISO } from 'date-fns';
  * This calculation is based on the recorded trip data (dailyData keys),
  * not on the current travellers list, so it remains stable even after
  * travellers are deleted.
+ * 
+ * Weekend trips are included if:
+ * - The relevant weekend checkbox is enabled, OR
+ * - The date has saved trip data in dailyData
  */
 export function calculateIncomeFromDailyData(
   dailyData: DailyData,
@@ -22,7 +26,7 @@ export function calculateIncomeFromDailyData(
 
   days.forEach((day) => {
     const dateKey = formatDateKey(day);
-    const isIncluded = isDateIncluded(day, includeSaturday, includeSunday);
+    const isIncluded = isDateIncludedForCalculation(day, includeSaturday, includeSunday, dateKey, dailyData);
     if (!isIncluded) return;
 
     const dayData = dailyData[dateKey];
@@ -58,6 +62,10 @@ export function calculateIncomeFromDailyData(
 /**
  * Calculate monthly income breakdown from dailyData.
  * Returns a map of month keys (yyyy-MM) to income amounts.
+ * 
+ * Weekend trips are included if:
+ * - The relevant weekend checkbox is enabled, OR
+ * - The date has saved trip data in dailyData
  */
 export function calculateMonthlyIncomeFromDailyData(
   dailyData: DailyData,
@@ -73,7 +81,7 @@ export function calculateMonthlyIncomeFromDailyData(
   days.forEach((day) => {
     const dateKey = formatDateKey(day);
     const monthKey = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}`;
-    const isIncluded = isDateIncluded(day, includeSaturday, includeSunday);
+    const isIncluded = isDateIncludedForCalculation(day, includeSaturday, includeSunday, dateKey, dailyData);
     
     if (!isIncluded) return;
 

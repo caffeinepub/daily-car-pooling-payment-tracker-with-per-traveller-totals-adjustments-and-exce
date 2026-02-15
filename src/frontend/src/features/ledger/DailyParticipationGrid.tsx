@@ -47,6 +47,8 @@ export default function DailyParticipationGrid({ onSaveAndNext }: DailyParticipa
   const hasUnsavedChanges = hasDraftChanges();
 
   const handleBulkToggle = () => {
+    if (!isTodayEditable) return;
+    
     if (allTravellersMarkedForToday) {
       // Uncheck all
       setDraftTripsForAllTravellers(todayDateKey, false, false);
@@ -169,7 +171,7 @@ export default function DailyParticipationGrid({ onSaveAndNext }: DailyParticipa
                     key={dateKey}
                     className={`border-b hover:bg-accent/30 transition-colors ${
                       idx % 2 === 0 ? 'bg-background' : 'bg-muted/20'
-                    } ${!isEditable ? 'opacity-50' : ''}`}
+                    } ${!isEditable ? 'opacity-60' : ''}`}
                   >
                     <td className="p-3 text-sm font-medium sticky left-0 bg-inherit z-10">
                       {formatDisplayDate(day)}
@@ -182,7 +184,11 @@ export default function DailyParticipationGrid({ onSaveAndNext }: DailyParticipa
                             <div className="flex flex-col items-center gap-1">
                               <Checkbox
                                 checked={tripData.morning}
-                                onCheckedChange={() => toggleDraftTrip(dateKey, t.id, 'morning')}
+                                onCheckedChange={() => {
+                                  if (isEditable) {
+                                    toggleDraftTrip(dateKey, t.id, 'morning');
+                                  }
+                                }}
                                 disabled={!isEditable}
                                 aria-label={`${t.name} morning trip on ${formatDisplayDate(day)}`}
                               />
@@ -191,7 +197,11 @@ export default function DailyParticipationGrid({ onSaveAndNext }: DailyParticipa
                             <div className="flex flex-col items-center gap-1">
                               <Checkbox
                                 checked={tripData.evening}
-                                onCheckedChange={() => toggleDraftTrip(dateKey, t.id, 'evening')}
+                                onCheckedChange={() => {
+                                  if (isEditable) {
+                                    toggleDraftTrip(dateKey, t.id, 'evening');
+                                  }
+                                }}
                                 disabled={!isEditable}
                                 aria-label={`${t.name} evening trip on ${formatDisplayDate(day)}`}
                               />

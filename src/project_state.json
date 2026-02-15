@@ -1,43 +1,27 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "Implement app-wide default date range (current week Monday–Friday) and add Auto Toll functionality in Car Expense menu (toggle + amount input + weekday auto-add).",
+  "summary": "Build an app feature set including Auto Toll behavior change (create toll entry daily at day start instead of pre-filling the week) and a new Trip History menu screen that lists trips by traveller/date with trip counts and totals over a selectable date range.",
   "architectural_notes": [
-    "Date range components across the app should default to the current week (Mon–Fri) consistently.",
-    "Auto Toll is configured in Car Expense menu; when enabled, a weekday scheduler/trigger should auto-create daily toll expense entries using the configured amount."
+    "Trip History uses the same date range selector behavior as other pages.",
+    "Trip counting rules: morning+evening marked together counts as 2 trips; any single entry (including 'Other Traveller income') counts as 1 trip."
   ],
   "known_issues": [],
   "isFixRequest": false,
   "existing_features": [
     {
-      "id": "feature-update-the-app-s-default-date-range-selection-so-that-on-initial-load-it-is-always-set-to-the-current-week-from-monday-through-friday-inclusive-matching-the-date-range-ui-shown-in-the-provided-screenshot-this-default-must-apply-everywhere-in-the-app-where-a-date-range-is-displayed-used",
-      "title": "Update the app’s default date range selection so that on initial load it is always set to the current week from Monday through Friday (inclusive), matching the date-range UI shown in the provided screenshot. This default must apply everywhere in the app where a date range is displayed/used.",
+      "id": "feature-change-auto-toll-add-behavior-so-that-when-auto-toll-is-enabled-it-auto-creates-at-most-one-toll-car-expense-entry-per-day-weekdays-only-instead-of-pre-filling-toll-entries-for-every-weekday-in-the-currently-selected-date-range-week",
+      "title": "Change Auto Toll Add behavior so that when Auto Toll is enabled it auto-creates at most one Toll car-expense entry per day (weekdays only), instead of pre-filling Toll entries for every weekday in the currently selected date range/week.",
       "reqIds": [
         "REQ-1"
       ],
       "version": 1
     },
     {
-      "id": "feature-add-an-auto-toll-add-toggle-control-inside-the-car-expense-menu-panel-when-enabled-it-turns-on-the-automatic-toll-creation-behavior-described-in-req-4-when-disabled-no-automatic-toll-entries-are-created",
-      "title": "Add an \"Auto Toll Add\" toggle control inside the Car Expense menu/panel. When enabled, it turns on the automatic toll creation behavior described in REQ-4; when disabled, no automatic toll entries are created.",
+      "id": "feature-add-a-trip-history-screen-accessible-from-the-in-app-menu-that-uses-the-same-global-date-range-selection-used-across-the-ledger-pages-and-displays-trip-history-rows-with-traveller-name-trip-date-and-trip-count-per-day-also-include-co-traveller-income-entries-as-single-trip-records-and-show-total-trip-count-at-the-bottom-for-the-selected-date-range",
+      "title": "Add a Trip History screen accessible from the in-app menu that uses the same global Date Range selection used across the ledger pages, and displays trip history rows with: Traveller name, Trip date, and Trip count per day; also include co-traveller income entries as single-trip records; and show total trip count at the bottom for the selected date range.",
       "reqIds": [
         "REQ-2"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-add-a-toll-amount-input-beside-the-auto-toll-add-toggle-in-the-car-expense-menu-panel-the-amount-input-must-be-editable-only-when-auto-toll-is-off-when-auto-toll-is-on-the-input-becomes-read-only-and-the-auto-added-toll-expense-amount-uses-this-value",
-      "title": "Add a toll amount input beside the \"Auto Toll Add\" toggle in the Car Expense menu/panel. The amount input must be editable only when Auto Toll is OFF; when Auto Toll is ON, the input becomes read-only and the auto-added toll expense amount uses this value.",
-      "reqIds": [
-        "REQ-3"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-when-auto-toll-add-is-on-automatically-add-a-toll-car-expense-entry-for-each-weekday-monday-friday-using-the-configured-toll-amount-the-system-must-avoid-creating-duplicate-auto-added-toll-entries-for-the-same-date",
-      "title": "When \"Auto Toll Add\" is ON, automatically add a Toll car expense entry for each weekday (Monday–Friday) using the configured toll amount. The system must avoid creating duplicate auto-added toll entries for the same date.",
-      "reqIds": [
-        "REQ-4"
       ],
       "version": 1
     }
@@ -45,24 +29,18 @@
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "Set default date range everywhere in the app to current week Monday–Friday",
+      "summary": "Update Auto Toll to add a single toll entry at the start of each day (Mon–Fri) instead of pre-filling toll entries for the entire week.",
       "reqIds": [],
       "status": "pending"
     },
     {
       "id": "AR-2",
-      "summary": "Add 'Auto Toll Add' toggle in Car Expense menu to auto-create a toll expense entry each weekday when enabled",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-3",
-      "summary": "Add toll amount input next to Auto Toll toggle; editable only when toggle is OFF and read-only when ON; auto-added toll uses this amount",
+      "summary": "Add Trip History screen in Menu showing traveller name, trip date, and trip count (morning+evening together counts as 2; single entry including 'Other Traveller income' counts as 1) and show total trips at bottom for selected date range.",
       "reqIds": [],
       "status": "pending"
     }
   ],
-  "projectName": "App-wide current-week (Mon–Fri) default date range + Auto Toll Add in Car Expense",
+  "projectName": "Update Auto Toll to daily-only and add Trip History with date-range totals",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

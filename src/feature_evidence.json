@@ -2,11 +2,10 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-update-the-app-s-default-date-range-selection-so-that-on-initial-load-it-is-always-set-to-the-current-week-from-monday-through-friday-inclusive-matching-the-date-range-ui-shown-in-the-provided-screenshot-this-default-must-apply-everywhere-in-the-app-where-a-date-range-is-displayed-used",
-      "featureTitle": "Update the app’s default date range selection so that on initial load it is always set to the current week from Monday through Friday (inclusive), matching the date-range UI shown in the provided screenshot. This default must apply everywhere in the app where a date range is displayed/used.",
+      "featureId": "feature-change-auto-toll-add-behavior-so-that-when-auto-toll-is-enabled-it-auto-creates-at-most-one-toll-car-expense-entry-per-day-weekdays-only-instead-of-pre-filling-toll-entries-for-every-weekday-in-the-currently-selected-date-range-week",
+      "featureTitle": "Change Auto Toll Add behavior so that when Auto Toll is enabled it auto-creates at most one Toll car-expense entry per day (weekdays only), instead of pre-filling Toll entries for every weekday in the currently selected date range/week.",
       "files": [
-        "frontend/src/hooks/useLedgerLocalState.ts",
-        "frontend/src/utils/dateRange.ts"
+        "frontend/src/features/ledger/CarExpensesPanel.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -22,11 +21,12 @@
       "confidence": "high"
     },
     {
-      "featureId": "feature-add-an-auto-toll-add-toggle-control-inside-the-car-expense-menu-panel-when-enabled-it-turns-on-the-automatic-toll-creation-behavior-described-in-req-4-when-disabled-no-automatic-toll-entries-are-created",
-      "featureTitle": "Add an \"Auto Toll Add\" toggle control inside the Car Expense menu/panel. When enabled, it turns on the automatic toll creation behavior described in REQ-4; when disabled, no automatic toll entries are created.",
+      "featureId": "feature-add-a-trip-history-screen-accessible-from-the-in-app-menu-that-uses-the-same-global-date-range-selection-used-across-the-ledger-pages-and-displays-trip-history-rows-with-traveller-name-trip-date-and-trip-count-per-day-also-include-co-traveller-income-entries-as-single-trip-records-and-show-total-trip-count-at-the-bottom-for-the-selected-date-range",
+      "featureTitle": "Add a Trip History screen accessible from the in-app menu that uses the same global Date Range selection used across the ledger pages, and displays trip history rows with: Traveller name, Trip date, and Trip count per day; also include co-traveller income entries as single-trip records; and show total trip count at the bottom for the selected date range.",
       "files": [
-        "frontend/src/features/ledger/CarExpensesPanel.tsx",
-        "frontend/src/hooks/useAutoTollSettings.ts"
+        "frontend/src/features/ledger/LedgerPage.tsx",
+        "frontend/src/features/ledger/MobileLedgerSidebarNav.tsx",
+        "frontend/src/features/ledger/TripHistoryPanel.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -38,46 +38,6 @@
       ],
       "testIds": [
         "REQ-2"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-add-a-toll-amount-input-beside-the-auto-toll-add-toggle-in-the-car-expense-menu-panel-the-amount-input-must-be-editable-only-when-auto-toll-is-off-when-auto-toll-is-on-the-input-becomes-read-only-and-the-auto-added-toll-expense-amount-uses-this-value",
-      "featureTitle": "Add a toll amount input beside the \"Auto Toll Add\" toggle in the Car Expense menu/panel. The amount input must be editable only when Auto Toll is OFF; when Auto Toll is ON, the input becomes read-only and the auto-added toll expense amount uses this value.",
-      "files": [
-        "frontend/src/features/ledger/CarExpensesPanel.tsx",
-        "frontend/src/hooks/useAutoTollSettings.ts"
-      ],
-      "components": [
-        "authorization@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "github-export-icp-cli@1.0.0"
-      ],
-      "testIds": [
-        "REQ-3"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-when-auto-toll-add-is-on-automatically-add-a-toll-car-expense-entry-for-each-weekday-monday-friday-using-the-configured-toll-amount-the-system-must-avoid-creating-duplicate-auto-added-toll-entries-for-the-same-date",
-      "featureTitle": "When \"Auto Toll Add\" is ON, automatically add a Toll car expense entry for each weekday (Monday–Friday) using the configured toll amount. The system must avoid creating duplicate auto-added toll entries for the same date.",
-      "files": [
-        "frontend/src/features/ledger/CarExpensesPanel.tsx",
-        "frontend/src/utils/dateRange.ts"
-      ],
-      "components": [
-        "authorization@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "github-export-icp-cli@1.0.0"
-      ],
-      "testIds": [
-        "REQ-4"
       ],
       "confidence": "high"
     }

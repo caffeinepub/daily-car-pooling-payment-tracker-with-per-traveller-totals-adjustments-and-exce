@@ -1,89 +1,53 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Current work-week default date range + Auto Toll Add in Car Expense",
+  "title": "Daily-only Auto Toll Add + Trip History with date-range totals",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Change the shared ledger dateRange default to always initialize as the current week Monday–Friday across the app (replacing current-month default).",
+      "summary": "Update Auto Toll so enabling it only auto-creates a single Toll expense for the current weekday (never bulk-create across the selected date range).",
       "acceptanceCriteria": [
-        "On a fresh load, the Date Range control shows the current week’s Monday as start date and Friday as end date.",
-        "The default is not the current month anymore.",
-        "All screens/components that rely on the shared ledger dateRange reflect the Monday–Friday current-week default consistently."
+        "With Auto Toll Add enabled, switching the ledger date range no longer bulk-creates Toll expenses for every weekday in the range.",
+        "On a weekday, if there is no existing Toll expense entry for that date, the app auto-adds exactly one Toll expense for that date with the configured amount.",
+        "If a Toll expense already exists for the current weekday date, no duplicate Toll entry is created.",
+        "No Toll entries are auto-added for Saturday or Sunday.",
+        "Auto-added Toll expenses remain visible in Car Expenses and are persisted in the same local ledger state as before."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/utils/dateRange.ts",
+          "path": "frontend/src/features/ledger/CarExpensesPanel.tsx",
           "operation": "modify",
-          "description": "Add a utility to compute the current week (Mon–Fri) DateRange and any small helpers needed to reuse this default consistently throughout the frontend."
-        },
-        {
-          "path": "frontend/src/hooks/useLedgerLocalState.ts",
-          "operation": "modify",
-          "description": "Update the ledger state initialization logic so the default dateRange on app load is always the current week Monday–Friday (inclusive), and ensure the same default is applied wherever the dateRange is initialized/reset (e.g., first run and clear/reset flows)."
+          "description": "Replace the current dateRange-driven weekday loop with a daily-only Auto Toll effect: when Auto Toll is enabled, check only today's date; if today is Mon–Fri and there is not already a Toll expense for today's date, auto-add exactly one Toll expense with the configured amount. Ensure the effect does not create duplicates on re-render and does not react to dateRange changes."
         }
       ]
     },
     {
       "id": "REQ-2",
-      "summary": "Add an \"Auto Toll Add\" toggle in the Car Expense panel and persist its state locally across reloads.",
+      "summary": "Add a Trip History screen in the ledger menu that uses the shared date range and shows per-day trip counts per traveller plus co-traveller income rows, with a total trips footer.",
       "acceptanceCriteria": [
-        "The Car Expense panel includes a clearly labeled \"Auto Toll Add\" toggle.",
-        "The toggle state is persisted locally so it remains the same after a page reload."
+        "A new Trip History entry is available in the ledger menu/navigation (including the mobile sidebar menu).",
+        "Trip History uses the existing ledger dateRange state (the same DateRangePicker selection used elsewhere) and updates automatically when the date range changes.",
+        "For each date within the selected date range, Trip History shows a row per traveller when they have any participation that day; trip count is 0–2 based on Morning (1) + Evening (1), so Morning+Evening together counts as 2 trips.",
+        "Any single trip marking (only Morning or only Evening) is counted as 1 trip.",
+        "Each co-traveller income record within the selected date range appears in Trip History as its own row with a trip count of 1.",
+        "A “Total trips” value is displayed at the bottom of Trip History and equals the sum of all trip counts shown for the selected date range (including the co-traveller income rows counted as 1 each).",
+        "All user-facing text on the new screen is in English."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/hooks/useAutoTollSettings.ts",
+          "path": "frontend/src/features/ledger/TripHistoryPanel.tsx",
           "operation": "create",
-          "description": "Create a small hook to load/save the Auto Toll enabled setting to localStorage (including safe parsing and a stable storage key)."
+          "description": "Implement the Trip History screen UI as a new ledger panel: read shared ledger state (dateRange, dailyData, travellers, coTravellerIncomes) and render a responsive table/list with rows containing Traveller name, Trip date, and Trip count per day (0–2 from morning+evening). Include additional rows for each co-traveller income record in range (trip count = 1). Show a bottom summary row/section with “Total trips” equal to the sum of all displayed trip counts. Keep all labels and text in English."
         },
         {
-          "path": "frontend/src/features/ledger/CarExpensesPanel.tsx",
+          "path": "frontend/src/features/ledger/LedgerPage.tsx",
           "operation": "modify",
-          "description": "Add a clearly labeled \"Auto Toll Add\" toggle control within the Car Expense UI and wire it to the persisted setting from useAutoTollSettings (compose existing UI components; do not edit files under frontend/src/components/ui). Verify the component's usage instructions before implementing."
-        }
-      ]
-    },
-    {
-      "id": "REQ-3",
-      "summary": "Add a persisted toll amount input beside the Auto Toll Add toggle; editable only when Auto Toll is OFF and read-only when ON.",
-      "acceptanceCriteria": [
-        "When Auto Toll is OFF, the toll amount input can be edited.",
-        "When Auto Toll is ON, the toll amount input is read-only/disabled but still displays the configured amount.",
-        "The amount value is persisted locally and survives page reloads."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/hooks/useAutoTollSettings.ts",
-          "operation": "modify",
-          "description": "Extend the Auto Toll settings hook to also persist a tollAmount value to localStorage, including defaults and validation/coercion for numeric input."
+          "description": "Wire Trip History into the main ledger navigation: add a new tab (e.g., value \"trip-history\") that renders TripHistoryPanel, update the desktop TabsList layout to include the new tab, and ensure it uses the existing DateRangePicker state (no new date-range state)."
         },
         {
-          "path": "frontend/src/features/ledger/CarExpensesPanel.tsx",
+          "path": "frontend/src/features/ledger/MobileLedgerSidebarNav.tsx",
           "operation": "modify",
-          "description": "Place a toll amount input beside the \"Auto Toll Add\" toggle; disable/read-only the input when Auto Toll is ON and allow editing only when OFF, while always showing the persisted configured amount. Verify the component's usage instructions before implementing."
-        }
-      ]
-    },
-    {
-      "id": "REQ-4",
-      "summary": "When Auto Toll Add is enabled, auto-create one Toll car expense per weekday (Mon–Fri) using the configured amount, without duplicates for the same date.",
-      "acceptanceCriteria": [
-        "Enabling Auto Toll results in Toll expense entries being created for applicable weekdays without requiring manual form submission.",
-        "Each auto-created toll expense uses the configured toll amount from the amount input.",
-        "No duplicate auto-added toll entry is created for the same date if the user revisits/reloads the app or toggles Auto Toll on multiple times.",
-        "Auto Toll does not create entries for Saturday or Sunday."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/utils/dateRange.ts",
-          "operation": "modify",
-          "description": "Add helper(s) to enumerate weekdays (Mon–Fri) within a given DateRange (using existing date key formatting) to support deterministic auto-creation checks."
-        },
-        {
-          "path": "frontend/src/features/ledger/CarExpensesPanel.tsx",
-          "operation": "modify",
-          "description": "Implement Auto Toll behavior: when enabled, compute applicable weekdays (Mon–Fri) (e.g., within the currently selected dateRange), create missing Toll car expense entries using the configured amount, and prevent duplicates by checking existing carExpenses for the same date before adding. Ensure this runs on enable and on app reload while the app is open. Verify the component's usage instructions before implementing."
+          "description": "Add a \"Trip History\" item to the mobile sidebar menu that selects the new Trip History tab, ensuring it appears alongside other ledger menu items and closes the sidebar on selection."
         }
       ]
     }

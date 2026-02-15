@@ -11,11 +11,10 @@ import {
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Separator } from '@/components/ui/separator';
 import { Download, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { exportToCSV, exportToPDF, exportToXLSX } from '../../utils/exportReport';
+import { exportToCSV } from '../../utils/exportReport';
 
 interface ExportReportDialogProps {
   open: boolean;
@@ -24,7 +23,6 @@ interface ExportReportDialogProps {
 
 export default function ExportReportDialog({ open, onOpenChange }: ExportReportDialogProps) {
   const ledgerState = useLedgerState();
-  const [format, setFormat] = useState<'csv' | 'pdf' | 'xlsx'>('csv');
   const [isExporting, setIsExporting] = useState(false);
 
   // Section filters
@@ -75,16 +73,8 @@ export default function ExportReportDialog({ open, onOpenChange }: ExportReportD
         selectedTravellerIds: Array.from(selectedTravellers),
       };
 
-      if (format === 'csv') {
-        await exportToCSV(ledgerState, filters);
-        toast.success('Report exported successfully as CSV');
-      } else if (format === 'pdf') {
-        await exportToPDF(ledgerState, filters);
-        toast.success('Opening print dialog for PDF export');
-      } else if (format === 'xlsx') {
-        await exportToXLSX(ledgerState, filters);
-        toast.success('Report exported successfully as Excel file');
-      }
+      await exportToCSV(ledgerState, filters);
+      toast.success('Report exported successfully as CSV');
 
       onOpenChange(false);
     } catch (error) {
@@ -101,38 +91,11 @@ export default function ExportReportDialog({ open, onOpenChange }: ExportReportD
         <DialogHeader>
           <DialogTitle>Export Report</DialogTitle>
           <DialogDescription>
-            Choose format and filters for your export
+            Choose sections and travellers to include in your CSV export
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6 py-4">
-          {/* Format Selection */}
-          <div className="space-y-3">
-            <Label className="text-base font-semibold">Export Format</Label>
-            <RadioGroup value={format} onValueChange={(v) => setFormat(v as any)}>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="csv" id="format-csv" />
-                <Label htmlFor="format-csv" className="cursor-pointer">
-                  CSV (.csv) - Recommended for spreadsheets
-                </Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="xlsx" id="format-xlsx" />
-                <Label htmlFor="format-xlsx" className="cursor-pointer">
-                  Excel (.xls) - Excel-compatible format
-                </Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="pdf" id="format-pdf" />
-                <Label htmlFor="format-pdf" className="cursor-pointer">
-                  PDF (.pdf) - Uses browser print dialog
-                </Label>
-              </div>
-            </RadioGroup>
-          </div>
-
-          <Separator />
-
           {/* Section Filters */}
           <div className="space-y-3">
             <Label className="text-base font-semibold">Include Sections</Label>
@@ -245,7 +208,7 @@ export default function ExportReportDialog({ open, onOpenChange }: ExportReportD
             ) : (
               <>
                 <Download className="h-4 w-4 mr-2" />
-                Export
+                Export CSV
               </>
             )}
           </Button>

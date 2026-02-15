@@ -1,11 +1,15 @@
 import { parseISO } from 'date-fns';
 import { getDaysInRange, formatDateKey } from './dateRange';
-import { isDateIncluded } from './weekendInclusion';
+import { isDateIncludedForCalculation } from './weekendInclusion';
 import type { Traveller, DateRange, DailyData, CashPayment, OtherPending } from '../hooks/useLedgerLocalState';
 
 /**
  * Calculate the balance for a specific traveller within the given date range
  * Returns the total amount owed (positive) or overpaid (negative)
+ * 
+ * Weekend trips are included if:
+ * - The relevant weekend checkbox is enabled, OR
+ * - The date has saved trip data in dailyData
  */
 export function calculateTravellerBalance(
   travellerId: string,
@@ -23,7 +27,7 @@ export function calculateTravellerBalance(
   let totalTrips = 0;
   days.forEach((day) => {
     const dateKey = formatDateKey(day);
-    const isIncluded = isDateIncluded(day, includeSaturday, includeSunday);
+    const isIncluded = isDateIncludedForCalculation(day, includeSaturday, includeSunday, dateKey, dailyData);
     if (!isIncluded) return;
 
     const tripData = dailyData[dateKey]?.[travellerId];

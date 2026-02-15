@@ -14,6 +14,7 @@ import ExpenseHistoryDialog from './ExpenseHistoryDialog';
 import ExportReportDialog from './ExportReportDialog';
 import CoTravellerIncomeDialog from './CoTravellerIncomeDialog';
 import MobileLedgerSidebarNav from './MobileLedgerSidebarNav';
+import TripHistoryPanel from './TripHistoryPanel';
 import { LedgerStateProvider, useLedgerState } from './LedgerStateContext';
 import { useAppDataSync } from '../../hooks/useAppDataSync';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -28,7 +29,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Calendar, Users, Receipt, Car, TrendingUp, Database, Trash2, Menu, UserPlus } from 'lucide-react';
+import { Calendar, Users, Receipt, Car, TrendingUp, Database, Trash2, Menu, UserPlus, History } from 'lucide-react';
 
 function LedgerPageContent() {
   const [activeTab, setActiveTab] = useState('grid'); // Default to Daily Participation
@@ -145,7 +146,7 @@ function LedgerPageContent() {
 
         {/* Unified Tab Navigation for Desktop/Tablet */}
         <Tabs value={activeTab} onValueChange={handleTabChange}>
-          <TabsList className="hidden sm:grid w-full grid-cols-7 h-auto">
+          <TabsList className="hidden sm:grid w-full grid-cols-8 h-auto">
             <TabsTrigger value="travellers" className="flex flex-col sm:flex-row items-center gap-1 py-2">
               <Users className="h-4 w-4" />
               <span className="text-xs sm:text-sm">Travellers</span>
@@ -157,6 +158,10 @@ function LedgerPageContent() {
             <TabsTrigger value="summary" className="flex flex-col sm:flex-row items-center gap-1 py-2">
               <Receipt className="h-4 w-4" />
               <span className="text-xs sm:text-sm">Summary</span>
+            </TabsTrigger>
+            <TabsTrigger value="trip-history" className="flex flex-col sm:flex-row items-center gap-1 py-2">
+              <History className="h-4 w-4" />
+              <span className="text-xs sm:text-sm">Trip History</span>
             </TabsTrigger>
             <TabsTrigger value="car" className="flex flex-col sm:flex-row items-center gap-1 py-2">
               <Car className="h-4 w-4" />
@@ -175,51 +180,80 @@ function LedgerPageContent() {
               <span className="text-xs sm:text-sm">Clear Data</span>
             </TabsTrigger>
           </TabsList>
-          <TabsContent value="travellers" className="mt-6">
+
+          <TabsContent value="travellers">
             <TravellerManager />
           </TabsContent>
-          <TabsContent value="grid" className="mt-6">
+
+          <TabsContent value="grid">
             <DailyParticipationGrid onSaveAndNext={handleSaveAndNext} />
           </TabsContent>
-          <TabsContent value="summary" className="mt-6">
+
+          <TabsContent value="summary">
             <SummaryPanel />
           </TabsContent>
-          <TabsContent value="car" className="mt-6">
+
+          <TabsContent value="trip-history">
+            <TripHistoryPanel />
+          </TabsContent>
+
+          <TabsContent value="car">
             <CarExpensesPanel />
           </TabsContent>
-          <TabsContent value="overall" className="mt-6">
+
+          <TabsContent value="overall">
             <OverallSummaryPanel />
           </TabsContent>
-          <TabsContent value="backup" className="mt-6">
+
+          <TabsContent value="backup">
             <BackupRestorePanel />
           </TabsContent>
-          <TabsContent value="clear" className="mt-6">
+
+          <TabsContent value="clear">
             <ClearDataPanel />
           </TabsContent>
         </Tabs>
+
+        {/* Unsaved Changes Dialog */}
+        <AlertDialog open={showUnsavedDialog} onOpenChange={setShowUnsavedDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Unsaved Changes</AlertDialogTitle>
+              <AlertDialogDescription>
+                You have unsaved changes in the Daily Participation grid. What would you like to do?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={handleStay}>Stay</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDiscardChanges} className="bg-destructive hover:bg-destructive/90">
+                Discard Changes
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Dialogs */}
+        <PaymentHistoryDialog open={isPaymentHistoryOpen} onOpenChange={setIsPaymentHistoryOpen} />
+        <ExpenseHistoryDialog open={isExpenseHistoryOpen} onOpenChange={setIsExpenseHistoryOpen} />
+        <ExportReportDialog open={isExportOpen} onOpenChange={setIsExportOpen} />
+        <CoTravellerIncomeDialog open={isCoTravellerIncomeOpen} onOpenChange={setIsCoTravellerIncomeOpen} />
       </main>
 
-      {/* Dialogs */}
-      <PaymentHistoryDialog open={isPaymentHistoryOpen} onOpenChange={setIsPaymentHistoryOpen} />
-      <ExpenseHistoryDialog open={isExpenseHistoryOpen} onOpenChange={setIsExpenseHistoryOpen} />
-      <ExportReportDialog open={isExportOpen} onOpenChange={setIsExportOpen} />
-      <CoTravellerIncomeDialog open={isCoTravellerIncomeOpen} onOpenChange={setIsCoTravellerIncomeOpen} />
-
-      {/* Unsaved Changes Dialog */}
-      <AlertDialog open={showUnsavedDialog} onOpenChange={setShowUnsavedDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Unsaved Changes</AlertDialogTitle>
-            <AlertDialogDescription>
-              You have unsaved changes in the Daily grid. Do you want to discard them and continue?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={handleStay}>Stay</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDiscardChanges}>Discard Changes</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <footer className="border-t py-6 text-center text-sm text-muted-foreground">
+        <p>
+          © {new Date().getFullYear()} · Built with ❤️ using{' '}
+          <a
+            href={`https://caffeine.ai/?utm_source=Caffeine-footer&utm_medium=referral&utm_content=${encodeURIComponent(
+              typeof window !== 'undefined' ? window.location.hostname : 'carpool-ledger'
+            )}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline hover:text-foreground"
+          >
+            caffeine.ai
+          </a>
+        </p>
+      </footer>
     </div>
   );
 }

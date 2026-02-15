@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import type { LocalLedgerState } from '../utils/backupRestore';
 import { mergeLocalStates } from '../utils/backupRestore';
 import { getCurrentWeekMondayToFriday, formatDateKey } from '../utils/dateRange';
-import { parseISO } from 'date-fns';
+import { useAutoTollSettings } from './useAutoTollSettings';
 
 export interface Traveller {
   id: string;
@@ -56,8 +56,11 @@ export interface CoTravellerIncome {
   note?: string;
 }
 
+export interface PerDayAutoTollSelection {
+  [dateKey: string]: boolean;
+}
+
 const STORAGE_KEY = 'carpool-ledger-state';
-const AUTO_TOLL_STORAGE_KEY = 'carpool-auto-toll-settings';
 
 interface StoredState {
   travellers: Traveller[];
@@ -70,6 +73,7 @@ interface StoredState {
   includeSaturday: boolean;
   includeSunday: boolean;
   coTravellerIncomes: CoTravellerIncome[];
+  perDayAutoTollSelection?: PerDayAutoTollSelection;
 }
 
 // Simple UUID generator
@@ -106,6 +110,7 @@ function loadState(): StoredState {
         includeSaturday: parsed.includeSaturday ?? false,
         includeSunday: parsed.includeSunday ?? false,
         coTravellerIncomes: parsed.coTravellerIncomes ?? [],
+        perDayAutoTollSelection: parsed.perDayAutoTollSelection ?? {},
       };
     }
   } catch (error) {
@@ -127,6 +132,7 @@ function loadState(): StoredState {
     includeSaturday: false,
     includeSunday: false,
     coTravellerIncomes: [],
+    perDayAutoTollSelection: {},
   };
 }
 
@@ -150,11 +156,15 @@ export function useLedgerLocalState() {
   const [includeSaturday, setIncludeSaturday] = useState(false);
   const [includeSunday, setIncludeSunday] = useState(false);
   const [coTravellerIncomes, setCoTravellerIncomes] = useState<CoTravellerIncome[]>([]);
+  const [perDayAutoTollSelection, setPerDayAutoTollSelection] = useState<PerDayAutoTollSelection>({});
   const [stateRevision, setStateRevision] = useState(0);
   
   // Track if we should skip the next save (used for clearAllLedgerData)
   const skipNextSave = useRef(false);
   const skipRevisionIncrement = useRef(false);
+
+  // Get auto toll settings
+  const { enabled: autoTollEnabled, amount: autoTollAmount } = useAutoTollSettings();
 
   // Load state on mount
   useEffect(() => {
@@ -175,16 +185,38 @@ export function useLedgerLocalState() {
     setIncludeSaturday(loaded.includeSaturday);
     setIncludeSunday(loaded.includeSunday);
     setCoTravellerIncomes(loaded.coTravellerIncomes);
+    setPerDayAutoTollSelection(loaded.perDayAutoTollSelection ?? {});
   }, []);
 
-  // Save state whenever it changes and increment revision
+  // Auto-add toll for current day when app opens
+  useEffect(() => {
+    if (!autoTollEnabled) return;
+
+    const today = formatDateKey(new Date());
+    const existingTollForToday = carExpenses.some(
+      (e) => e.category === 'Toll' && e.date === today
+    );
+
+    if (!existingTollForToday) {
+      const newExpense: CarExpense = {
+        id: generateId(),
+        category: 'Toll',
+        amount: autoTollAmount,
+        date: today,
+        note: 'Auto-added',
+      };
+      setCarExpenses((prev) => [...prev, newExpense]);
+    }
+  }, []); // Run only on mount
+
+  // Save state whenever it changes
   useEffect(() => {
     if (skipNextSave.current) {
       skipNextSave.current = false;
       return;
     }
-    
-    const state: StoredState = {
+
+    saveState({
       travellers,
       dailyData,
       dateRange: {
@@ -198,144 +230,156 @@ export function useLedgerLocalState() {
       includeSaturday,
       includeSunday,
       coTravellerIncomes,
-    };
-    saveState(state);
+      perDayAutoTollSelection,
+    });
 
-    // Increment revision for sync detection (skip on initial load and external merges)
     if (!skipRevisionIncrement.current) {
       setStateRevision((prev) => prev + 1);
+    } else {
+      skipRevisionIncrement.current = false;
     }
-    skipRevisionIncrement.current = false;
-  }, [travellers, dailyData, dateRange, ratePerTrip, cashPayments, otherPending, carExpenses, includeSaturday, includeSunday, coTravellerIncomes]);
+  }, [
+    travellers,
+    dailyData,
+    dateRange,
+    ratePerTrip,
+    cashPayments,
+    otherPending,
+    carExpenses,
+    includeSaturday,
+    includeSunday,
+    coTravellerIncomes,
+    perDayAutoTollSelection,
+  ]);
 
   const addTraveller = (name: string) => {
-    const trimmedName = name.trim();
-    const normalizedName = trimmedName.toLowerCase();
-
-    // Check for duplicates
-    const isDuplicate = travellers.some((t) => t.name.trim().toLowerCase() === normalizedName);
-    if (isDuplicate) {
-      throw new Error('A traveller with this name already exists');
-    }
-
     const newTraveller: Traveller = {
       id: generateId(),
-      name: trimmedName,
+      name,
     };
-    setTravellers([...travellers, newTraveller]);
+    setTravellers((prev) => [...prev, newTraveller]);
   };
 
   const renameTraveller = (id: string, newName: string) => {
-    const trimmedName = newName.trim();
-    const normalizedName = trimmedName.toLowerCase();
-
-    // Check for duplicates (excluding the current traveller)
-    const isDuplicate = travellers.some((t) => t.id !== id && t.name.trim().toLowerCase() === normalizedName);
-    if (isDuplicate) {
-      throw new Error('A traveller with this name already exists');
-    }
-
-    setTravellers(travellers.map((t) => (t.id === id ? { ...t, name: trimmedName } : t)));
+    setTravellers((prev) => prev.map((t) => (t.id === id ? { ...t, name: newName } : t)));
   };
 
   const removeTraveller = (id: string) => {
-    // Remove traveller from the list
-    setTravellers(travellers.filter((t) => t.id !== id));
-    
-    // Remove traveller-specific cash payments and other pending amounts
-    setCashPayments(cashPayments.filter((p) => p.travellerId !== id));
-    setOtherPending(otherPending.filter((p) => p.travellerId !== id));
-    
-    // DO NOT remove traveller's entries from dailyData or draftDailyData
-    // This preserves historical trip participation for Overall Summary income calculations
+    setTravellers((prev) => prev.filter((t) => t.id !== id));
+    // Also remove from daily data
+    setDailyData((prev) => {
+      const updated = { ...prev };
+      for (const dateKey in updated) {
+        const { [id]: _, ...rest } = updated[dateKey];
+        updated[dateKey] = rest;
+      }
+      return updated;
+    });
+    setDraftDailyData((prev) => {
+      const updated = { ...prev };
+      for (const dateKey in updated) {
+        const { [id]: _, ...rest } = updated[dateKey];
+        updated[dateKey] = rest;
+      }
+      return updated;
+    });
   };
 
   const toggleDraftTrip = (dateKey: string, travellerId: string, period: 'morning' | 'evening') => {
     setDraftDailyData((prev) => {
-      // Deep clone to ensure immutability
-      const newData = deepCloneDailyData(prev);
-      
-      if (!newData[dateKey]) {
-        newData[dateKey] = {};
+      const updated = { ...prev };
+      if (!updated[dateKey]) {
+        updated[dateKey] = {};
       }
-      if (!newData[dateKey][travellerId]) {
-        newData[dateKey][travellerId] = { morning: false, evening: false };
+      if (!updated[dateKey][travellerId]) {
+        updated[dateKey][travellerId] = { morning: false, evening: false };
       }
-      
-      // Create new TripData object instead of mutating
-      newData[dateKey][travellerId] = {
-        morning: period === 'morning' ? !newData[dateKey][travellerId].morning : newData[dateKey][travellerId].morning,
-        evening: period === 'evening' ? !newData[dateKey][travellerId].evening : newData[dateKey][travellerId].evening,
+      updated[dateKey][travellerId] = {
+        ...updated[dateKey][travellerId],
+        [period]: !updated[dateKey][travellerId][period],
       };
-      
-      return newData;
+      return updated;
     });
   };
 
   const setDraftTripsForAllTravellers = (dateKey: string, morning: boolean, evening: boolean) => {
     setDraftDailyData((prev) => {
-      const newData = deepCloneDailyData(prev);
-      
-      if (!newData[dateKey]) {
-        newData[dateKey] = {};
+      const updated = { ...prev };
+      if (!updated[dateKey]) {
+        updated[dateKey] = {};
       }
-      
-      travellers.forEach((t) => {
-        newData[dateKey][t.id] = { morning, evening };
+      travellers.forEach((traveller) => {
+        updated[dateKey][traveller.id] = { morning, evening };
       });
-      
-      return newData;
+      return updated;
+    });
+  };
+
+  const updateTravellerTrip = (dateKey: string, travellerId: string, morning: boolean, evening: boolean) => {
+    setDailyData((prev) => {
+      const updated = { ...prev };
+      if (!updated[dateKey]) {
+        updated[dateKey] = {};
+      }
+      updated[dateKey][travellerId] = { morning, evening };
+      return updated;
+    });
+    setDraftDailyData((prev) => {
+      const updated = { ...prev };
+      if (!updated[dateKey]) {
+        updated[dateKey] = {};
+      }
+      updated[dateKey][travellerId] = { morning, evening };
+      return updated;
     });
   };
 
   const saveDraftDailyData = () => {
-    const newDailyData = deepCloneDailyData(draftDailyData);
-    setDailyData(newDailyData);
-
-    // Auto-add toll for dates with participation
-    try {
-      const autoTollSettings = localStorage.getItem(AUTO_TOLL_STORAGE_KEY);
-      if (autoTollSettings) {
-        const parsed = JSON.parse(autoTollSettings);
-        const enabled = parsed.enabled ?? false;
-        const amount = typeof parsed.amount === 'number' && parsed.amount > 0 ? parsed.amount : 30;
+    // Detect which dates changed
+    const changedDates = new Set<string>();
+    
+    // Check all dates in draft
+    for (const dateKey in draftDailyData) {
+      const draftDateData = draftDailyData[dateKey];
+      const savedDateData = dailyData[dateKey] || {};
+      
+      // Compare each traveller's data
+      for (const travellerId in draftDateData) {
+        const draftTrip = draftDateData[travellerId];
+        const savedTrip = savedDateData[travellerId] || { morning: false, evening: false };
         
-        if (enabled) {
-          const datesToCheck = Object.keys(newDailyData);
-          const newExpenses = [...carExpenses];
-          let addedCount = 0;
-
-          datesToCheck.forEach((dateKey) => {
-            const dayData = newDailyData[dateKey];
-            const hasParticipation = Object.values(dayData).some(
-              (tripData) => tripData.morning || tripData.evening
-            );
-
-            if (hasParticipation) {
-              const existingToll = newExpenses.some(
-                (e) => e.category === 'Toll' && e.date === dateKey
-              );
-
-              if (!existingToll) {
-                newExpenses.push({
-                  id: generateId(),
-                  category: 'Toll',
-                  amount: amount,
-                  date: dateKey,
-                  note: 'Auto-added',
-                });
-                addedCount++;
-              }
-            }
-          });
-
-          if (addedCount > 0) {
-            setCarExpenses(newExpenses);
-          }
+        if (draftTrip.morning !== savedTrip.morning || draftTrip.evening !== savedTrip.evening) {
+          changedDates.add(dateKey);
+          break;
         }
       }
-    } catch (error) {
-      console.error('Failed to process auto-toll settings:', error);
+    }
+
+    // Save the draft data
+    setDailyData(deepCloneDailyData(draftDailyData));
+
+    // Auto-add toll for changed dates if enabled
+    if (autoTollEnabled && changedDates.size > 0) {
+      const existingTollDates = new Set(
+        carExpenses.filter((e) => e.category === 'Toll').map((e) => e.date)
+      );
+
+      const newExpenses: CarExpense[] = [];
+      changedDates.forEach((dateKey) => {
+        if (!existingTollDates.has(dateKey)) {
+          newExpenses.push({
+            id: generateId(),
+            category: 'Toll',
+            amount: autoTollAmount,
+            date: dateKey,
+            note: 'Auto-added',
+          });
+        }
+      });
+
+      if (newExpenses.length > 0) {
+        setCarExpenses((prev) => [...prev, ...newExpenses]);
+      }
     }
   };
 
@@ -347,79 +391,22 @@ export function useLedgerLocalState() {
     return JSON.stringify(dailyData) !== JSON.stringify(draftDailyData);
   };
 
-  const updateTravellerParticipation = (travellerId: string, date: string, morning: boolean, evening: boolean) => {
-    setDailyData((prev) => {
-      const newData = deepCloneDailyData(prev);
-      
-      if (!newData[date]) {
-        newData[date] = {};
-      }
-      
-      newData[date][travellerId] = { morning, evening };
-      
-      return newData;
-    });
-
-    // Also update draft to keep in sync
-    setDraftDailyData((prev) => {
-      const newData = deepCloneDailyData(prev);
-      
-      if (!newData[date]) {
-        newData[date] = {};
-      }
-      
-      newData[date][travellerId] = { morning, evening };
-      
-      return newData;
-    });
-  };
-
-  const deleteTravellerParticipation = (travellerId: string, date: string) => {
-    setDailyData((prev) => {
-      const newData = deepCloneDailyData(prev);
-      
-      if (newData[date] && newData[date][travellerId]) {
-        delete newData[date][travellerId];
-        
-        // Clean up empty date entries
-        if (Object.keys(newData[date]).length === 0) {
-          delete newData[date];
-        }
-      }
-      
-      return newData;
-    });
-
-    // Also update draft to keep in sync
-    setDraftDailyData((prev) => {
-      const newData = deepCloneDailyData(prev);
-      
-      if (newData[date] && newData[date][travellerId]) {
-        delete newData[date][travellerId];
-        
-        if (Object.keys(newData[date]).length === 0) {
-          delete newData[date];
-        }
-      }
-      
-      return newData;
-    });
-  };
-
   const addCashPayment = (payment: Omit<CashPayment, 'id'>) => {
     const newPayment: CashPayment = {
       ...payment,
       id: generateId(),
     };
-    setCashPayments([...cashPayments, newPayment]);
+    setCashPayments((prev) => [...prev, newPayment]);
   };
 
-  const updateCashPayment = (id: string, updates: Partial<CashPayment>) => {
-    setCashPayments(cashPayments.map((p) => (p.id === id ? { ...p, ...updates } : p)));
+  const updateCashPayment = (id: string, updates: Partial<Omit<CashPayment, 'id'>>) => {
+    setCashPayments((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, ...updates } : p))
+    );
   };
 
   const removeCashPayment = (id: string) => {
-    setCashPayments(cashPayments.filter((p) => p.id !== id));
+    setCashPayments((prev) => prev.filter((p) => p.id !== id));
   };
 
   const addOtherPending = (pending: Omit<OtherPending, 'id'>) => {
@@ -427,7 +414,11 @@ export function useLedgerLocalState() {
       ...pending,
       id: generateId(),
     };
-    setOtherPending([...otherPending, newPending]);
+    setOtherPending((prev) => [...prev, newPending]);
+  };
+
+  const removeOtherPending = (id: string) => {
+    setOtherPending((prev) => prev.filter((p) => p.id !== id));
   };
 
   const addCarExpense = (expense: Omit<CarExpense, 'id'>) => {
@@ -435,66 +426,57 @@ export function useLedgerLocalState() {
       ...expense,
       id: generateId(),
     };
-    setCarExpenses([...carExpenses, newExpense]);
+    setCarExpenses((prev) => [...prev, newExpense]);
   };
 
-  const updateCarExpense = (id: string, updates: Partial<CarExpense>) => {
-    setCarExpenses(carExpenses.map((e) => (e.id === id ? { ...e, ...updates } : e)));
+  const updateCarExpense = (id: string, updates: Partial<Omit<CarExpense, 'id'>>) => {
+    setCarExpenses((prev) =>
+      prev.map((e) => (e.id === id ? { ...e, ...updates } : e))
+    );
   };
 
   const removeCarExpense = (id: string) => {
-    setCarExpenses(carExpenses.filter((e) => e.id !== id));
+    setCarExpenses((prev) => prev.filter((e) => e.id !== id));
   };
 
   const addCoTravellerIncome = (income: CoTravellerIncome) => {
-    setCoTravellerIncomes([...coTravellerIncomes, income]);
+    setCoTravellerIncomes((prev) => [...prev, income]);
   };
 
-  const updateCoTravellerIncome = (id: string, amount: number, date: string, note?: string) => {
-    setCoTravellerIncomes(
-      coTravellerIncomes.map((income) =>
-        income.id === id ? { ...income, amount, date, note } : income
-      )
+  const updateCoTravellerIncome = (id: string, updates: Partial<Omit<CoTravellerIncome, 'id'>>) => {
+    setCoTravellerIncomes((prev) =>
+      prev.map((i) => (i.id === id ? { ...i, ...updates } : i))
     );
   };
 
   const removeCoTravellerIncome = (id: string) => {
-    setCoTravellerIncomes(coTravellerIncomes.filter((income) => income.id !== id));
+    setCoTravellerIncomes((prev) => prev.filter((i) => i.id !== id));
+  };
+
+  const togglePerDayAutoToll = (dateKey: string) => {
+    setPerDayAutoTollSelection((prev) => ({
+      ...prev,
+      [dateKey]: !prev[dateKey],
+    }));
   };
 
   const clearAllLedgerData = () => {
     skipNextSave.current = true;
+    const defaultRange = getDefaultDateRange();
     setTravellers([]);
     setDailyData({});
     setDraftDailyData({});
+    setDateRange(defaultRange);
+    setRatePerTrip(50);
     setCashPayments([]);
     setOtherPending([]);
     setCarExpenses([]);
-    setCoTravellerIncomes([]);
-    
-    const defaultRange = getDefaultDateRange();
-    setDateRange(defaultRange);
-    setRatePerTrip(50);
     setIncludeSaturday(false);
     setIncludeSunday(false);
-    
-    const clearedState: StoredState = {
-      travellers: [],
-      dailyData: {},
-      dateRange: {
-        start: defaultRange.start.toISOString(),
-        end: defaultRange.end.toISOString(),
-      },
-      ratePerTrip: 50,
-      cashPayments: [],
-      otherPending: [],
-      carExpenses: [],
-      includeSaturday: false,
-      includeSunday: false,
-      coTravellerIncomes: [],
-    };
-    saveState(clearedState);
-    setStateRevision((prev) => prev + 1);
+    setCoTravellerIncomes([]);
+    setPerDayAutoTollSelection({});
+    setStateRevision(0);
+    localStorage.removeItem(STORAGE_KEY);
   };
 
   const clearDailyData = () => {
@@ -532,28 +514,28 @@ export function useLedgerLocalState() {
     };
   };
 
-  const applyMergedState = (mergedState: LocalLedgerState) => {
+  const applyMergedState = (state: LocalLedgerState) => {
     skipRevisionIncrement.current = true;
-    setTravellers(mergedState.travellers);
-    setDailyData(mergedState.dailyData);
-    setDraftDailyData(deepCloneDailyData(mergedState.dailyData));
+    setTravellers(state.travellers);
+    setDailyData(state.dailyData);
+    setDraftDailyData(deepCloneDailyData(state.dailyData));
     setDateRange({
-      start: new Date(mergedState.dateRange.start),
-      end: new Date(mergedState.dateRange.end),
+      start: new Date(state.dateRange.start),
+      end: new Date(state.dateRange.end),
     });
-    setRatePerTrip(mergedState.ratePerTrip);
-    setCashPayments(mergedState.cashPayments);
-    setOtherPending(mergedState.otherPending);
-    setCarExpenses(mergedState.carExpenses);
-    setIncludeSaturday(mergedState.includeSaturday);
-    setIncludeSunday(mergedState.includeSunday);
-    setCoTravellerIncomes(mergedState.coTravellerIncomes || []);
+    setRatePerTrip(state.ratePerTrip);
+    setCashPayments(state.cashPayments);
+    setOtherPending(state.otherPending);
+    setCarExpenses(state.carExpenses);
+    setIncludeSaturday(state.includeSaturday);
+    setIncludeSunday(state.includeSunday);
+    setCoTravellerIncomes(state.coTravellerIncomes || []);
   };
 
   const mergeRestoreFromBackup = (backupState: LocalLedgerState) => {
     const currentState = getPersistedState();
-    const merged = mergeLocalStates(currentState, backupState);
-    applyMergedState(merged);
+    const mergedState = mergeLocalStates(currentState, backupState);
+    applyMergedState(mergedState);
   };
 
   return {
@@ -568,23 +550,24 @@ export function useLedgerLocalState() {
     includeSaturday,
     includeSunday,
     coTravellerIncomes,
+    perDayAutoTollSelection,
     stateRevision,
     addTraveller,
     renameTraveller,
     removeTraveller,
     toggleDraftTrip,
     setDraftTripsForAllTravellers,
+    updateTravellerTrip,
     saveDraftDailyData,
     discardDraftDailyData,
     hasDraftChanges,
-    updateTravellerParticipation,
-    deleteTravellerParticipation,
     setDateRange,
     setRatePerTrip,
     addCashPayment,
     updateCashPayment,
     removeCashPayment,
     addOtherPending,
+    removeOtherPending,
     addCarExpense,
     updateCarExpense,
     removeCarExpense,
@@ -593,6 +576,7 @@ export function useLedgerLocalState() {
     removeCoTravellerIncome,
     setIncludeSaturday,
     setIncludeSunday,
+    togglePerDayAutoToll,
     clearAllLedgerData,
     clearDailyData,
     clearCashPayments,

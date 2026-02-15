@@ -10,13 +10,13 @@ export default function DateRangePicker() {
 
   return (
     <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center">
-      <span className="text-sm font-medium whitespace-nowrap">Date Range:</span>
-      <div className="flex flex-wrap gap-2 items-center">
+      <span className="text-sm font-medium">Date Range:</span>
+      <div className="flex gap-2">
         <Popover>
           <PopoverTrigger asChild>
-            <Button variant="outline" size="sm" className="justify-start text-left font-normal min-w-[140px]">
-              <CalendarIcon className="mr-2 h-4 w-4 flex-shrink-0" />
-              <span className="truncate">{format(dateRange.start, 'MMM dd, yyyy')}</span>
+            <Button variant="outline" size="sm" className="justify-start text-left font-normal">
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              {format(dateRange.start, 'MMM dd, yyyy')}
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0" align="start">
@@ -29,13 +29,13 @@ export default function DateRangePicker() {
           </PopoverContent>
         </Popover>
 
-        <span className="text-sm text-muted-foreground">to</span>
+        <span className="text-sm text-muted-foreground self-center">to</span>
 
         <Popover>
           <PopoverTrigger asChild>
-            <Button variant="outline" size="sm" className="justify-start text-left font-normal min-w-[140px]">
-              <CalendarIcon className="mr-2 h-4 w-4 flex-shrink-0" />
-              <span className="truncate">{format(dateRange.end, 'MMM dd, yyyy')}</span>
+            <Button variant="outline" size="sm" className="justify-start text-left font-normal">
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              {format(dateRange.end, 'MMM dd, yyyy')}
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0" align="start">

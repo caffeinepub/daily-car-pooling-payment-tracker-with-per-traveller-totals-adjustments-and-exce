@@ -1,53 +1,50 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "Project to implement UI and functionality fixes: add Logout in menu, restore multi-device data sync behavior (as in Draft 30), fix responsive date-range alignment on small screens, ensure key menu items are visible as tabs on laptop, and enable PDF/Excel export features without 'Not available' state.",
+  "summary": "Add enhanced PDF/print reporting on the Export Report page (traveller summary table + standard financial statements) with an explicit requirement to not impact the existing DataSync feature.",
   "architectural_notes": [
-    "Maintain feature parity with prior Draft 30 behavior; do not remove existing features without explicit user approval."
+    "Reporting/export changes must not impact or modify the existing DataSync feature/behavior."
   ],
   "known_issues": [
-    "Multi-device data sync stopped working (previously worked in Draft 30 within 2–5 seconds).",
-    "Export PDF/Excel shows 'Not available' and controls are disabled.",
-    "Payment History/Expense History/Export Report not visible in laptop browser navigation (hidden in hamburger).",
-    "Date range UI alignment breaks on small screens due to hamburger button."
+    "Current Export PDF report output is not meeting requirements; needs updated table layout/fields and additional report types."
   ],
   "isFixRequest": true,
   "existing_features": [
     {
-      "id": "feature-add-a-logout-action-inside-the-in-app-hamburger-menu-mobile-sidebar-so-users-can-log-out-from-the-menu-in-addition-to-any-existing-logout-access",
-      "title": "Add a Logout action inside the in-app hamburger/menu (mobile sidebar) so users can log out from the menu, in addition to any existing logout access.",
+      "id": "feature-update-the-export-report-ui-export-report-dialog-page-so-the-default-export-includes-all-travellers-while-still-supporting-an-explicit-selected-travellers-only-mode",
+      "title": "Update the Export Report UI (Export Report dialog/page) so the default export includes all travellers, while still supporting an explicit “Selected travellers only” mode.",
       "reqIds": [
         "REQ-1"
       ],
       "version": 1
     },
     {
-      "id": "feature-fix-and-restore-multi-device-data-synchronization-so-that-while-logged-in-with-the-same-account-on-multiple-devices-changes-made-on-one-device-are-reflected-on-the-other-within-2-5-seconds-matching-draft-30-behavior-across-all-ledger-user-inputs",
-      "title": "Fix and restore multi-device data synchronization so that while logged in with the same account on multiple devices, changes made on one device are reflected on the other within ~2–5 seconds (matching Draft 30 behavior) across all ledger/user inputs.",
+      "id": "feature-revise-the-exported-traveller-summary-table-pdf-print-and-csv-to-match-the-requested-columns-and-wording-traveller-name-trip-count-total-amount-total-payment-balance-state-ensure-the-table-is-produced-for-all-travellers-by-default",
+      "title": "Revise the exported traveller summary table (PDF/print and CSV) to match the requested columns and wording: Traveller Name, Trip Count, Total Amount, Total Payment, Balance, State. Ensure the table is produced for all travellers by default.",
       "reqIds": [
         "REQ-2"
       ],
       "version": 1
     },
     {
-      "id": "feature-make-the-date-range-ui-responsive-on-small-screens-and-fix-alignment-issues-introduced-by-the-hamburger-menu-button-so-the-date-range-controls-remain-usable-and-well-aligned-on-narrow-widths",
-      "title": "Make the Date Range UI responsive on small screens and fix alignment issues introduced by the hamburger/menu button so the date range controls remain usable and well-aligned on narrow widths.",
+      "id": "feature-add-new-report-types-to-the-export-report-page-monthly-report-profit-loss-statement-income-statement-and-expense-statement-generated-using-standard-accounting-style-structures-based-on-existing-ledger-data-income-from-trips-co-traveller-income-expenses-from-car-expenses",
+      "title": "Add new report types to the Export Report page: Monthly Report, Profit & Loss Statement, Income Statement, and Expense Statement, generated using standard accounting-style structures based on existing ledger data (income from trips + co-traveller income; expenses from car expenses).",
       "reqIds": [
         "REQ-3"
       ],
       "version": 1
     },
     {
-      "id": "feature-on-laptop-large-screens-ensure-payment-history-expense-history-and-export-report-are-visible-as-desktop-navigation-items-not-hidden-behind-the-hamburger-menu-while-keeping-them-in-the-hamburger-menu-for-small-screens",
-      "title": "On laptop/large screens, ensure Payment History, Expense History, and Export Report are visible as desktop navigation items (not hidden behind the hamburger menu), while keeping them in the hamburger menu for small screens.",
+      "id": "feature-implement-pdf-print-generation-for-the-new-report-types-with-a-clean-printable-layout-a4-consistent-typography-and-page-break-behavior-suitable-for-long-tables",
+      "title": "Implement PDF/print generation for the new report types with a clean, printable layout (A4), consistent typography, and page-break behavior suitable for long tables.",
       "reqIds": [
         "REQ-4"
       ],
       "version": 1
     },
     {
-      "id": "feature-enable-export-pdf-and-export-excel-so-they-are-not-shown-as-not-available-and-are-functional-when-selected-with-clear-user-feedback-on-completion-failure",
-      "title": "Enable Export PDF and Export Excel so they are not shown as \"Not available\" and are functional when selected, with clear user feedback on completion/failure.",
+      "id": "feature-ensure-all-reporting-changes-do-not-impact-the-existing-datasync-feature-sync-polling-merge-save-behavior-and-backend-app-data-persistence",
+      "title": "Ensure all reporting changes do not impact the existing DataSync feature (sync polling/merge/save behavior and backend app-data persistence).",
       "reqIds": [
         "REQ-5"
       ],
@@ -57,36 +54,18 @@
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "Add Logout button inside the app menu (hamburger/menu)",
+      "summary": "Revamp Export PDF report: include traveller summary table (Traveller Name, Trip Count, Total Amount, Total Payment, Balance, State) listing all travellers by default, with ability to filter/select users if needed.",
       "reqIds": [],
       "status": "pending"
     },
     {
       "id": "AR-2",
-      "summary": "Fix/restore multi-device data sync while logged in with same account to match Draft 30 behavior (updates within ~2–5 seconds)",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-3",
-      "summary": "Make Date Range UI responsive on small screens; fix alignment issues caused by hamburger button",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-4",
-      "summary": "On laptop/large screens, show Payment History, Expense History, and Export Report as visible tabs (not hidden in hamburger); keep hamburger-only on small screens",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-5",
-      "summary": "Enable Export PDF & Excel (currently disabled showing 'Not available'); make export functional",
+      "summary": "Add print/export options on Export Report page for standard-format Monthly Report, Profit & Loss Statement, Income Statement, and Expense Statement.",
       "reqIds": [],
       "status": "pending"
     }
   ],
-  "projectName": "Restore multi-device data sync, improve responsive navigation, and enable PDF/Excel export",
+  "projectName": "Revamp Export Report page with improved traveller PDF table and standard financial statements (no DataSync impact)",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

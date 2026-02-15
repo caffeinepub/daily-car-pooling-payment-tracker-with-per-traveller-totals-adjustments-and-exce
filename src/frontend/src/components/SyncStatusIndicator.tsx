@@ -1,12 +1,13 @@
-import { Cloud, CloudOff, RefreshCw } from 'lucide-react';
+import { Cloud, CloudOff, RefreshCw, AlertCircle } from 'lucide-react';
 import type { SyncStatus } from '../hooks/useAppDataSync';
 
 interface SyncStatusIndicatorProps {
   status: SyncStatus;
   lastSyncTime: Date | null;
+  error?: string | null;
 }
 
-export default function SyncStatusIndicator({ status, lastSyncTime }: SyncStatusIndicatorProps) {
+export default function SyncStatusIndicator({ status, lastSyncTime, error }: SyncStatusIndicatorProps) {
   const getStatusDisplay = () => {
     switch (status) {
       case 'syncing':
@@ -50,7 +51,8 @@ export default function SyncStatusIndicator({ status, lastSyncTime }: SyncStatus
       className={`flex items-center gap-1.5 text-xs ${display.className}`}
       role="status"
       aria-live="polite"
-      aria-label={`Sync status: ${display.text}`}
+      aria-label={`Sync status: ${display.text}${error ? ` - ${error}` : ''}`}
+      title={error || undefined}
     >
       {display.icon}
       <span className="hidden sm:inline">{display.text}</span>

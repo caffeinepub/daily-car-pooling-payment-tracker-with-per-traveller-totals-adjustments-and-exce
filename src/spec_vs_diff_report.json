@@ -1,68 +1,64 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-15T05:52:11.608Z",
-  "summary": "Most requested features appear implemented: mobile menu now includes Log out with matching clearing behavior; Date Range picker layout updated for small screens; desktop navigation/action items for Payment/Expense History and Export Report are indicated; PDF/Excel export paths are enabled with toasts; and a polling-based app data sync hook plus backend AppData/versioning changes were added. However, the diff summary is truncated for the sync hook and does not clearly show that polling is stopped/reset on logout or that the sync indicator is fully wired to show syncing/synced/failed across the app.",
+  "generatedAt": "2026-02-15T14:51:15.374Z",
+  "summary": "Frontend changes add traveller filter mode defaulting to “all”, update CSV traveller summary headers, and introduce new report types with accounting statement data generation and PDF routing. However, the diff also introduces backend migration/schema changes (traveller.name -> traveller.pseudo) that were not requested and may violate the reporting-only/no-DataSync-impact constraints. Evidence for the exact PDF traveller table headers and the actual PDF implementations/layout for the new report types is not present in the provided truncated diff.",
   "missing_requirements": [
     {
       "id": "REQ-2",
-      "requirement": "Logging out stops polling/sync activity and resets sync state to idle.",
-      "reason": "A new polling-based sync hook was added, but the shown portion does not include the effect/cleanup that starts/stops the polling interval, nor any explicit reset-to-idle behavior on logout; logout handling shown in LedgerPage clears identity/cache/localStorage but does not show interaction with the sync hook's internal timers/state.",
+      "requirement": "PDF/print output contains a traveller summary table with column headers exactly: “Traveller Name”, “Trip Count”, “Total Amount”, “Total Payment”, “Balance”, “State” (and produced for all travellers by default).",
+      "reason": "CSV export clearly shows the updated headers, but the provided exportPdf.ts excerpt does not include the traveller summary table rendering or its exact column header text, so implementation cannot be verified from the diff summary.",
       "evidence": [
-        "frontend/src/hooks/useAppDataSync.ts (truncated; polling interval refs exist but start/stop not shown)",
-        "frontend/src/features/ledger/LedgerPage.tsx (logout clears identity/query cache/localStorage but no sync-hook stop/reset shown)"
+        "frontend/src/utils/exportReport.ts",
+        "frontend/src/utils/exportPdf.ts"
       ]
     },
     {
-      "id": "REQ-2",
-      "requirement": "Sync status indicator updates to show syncing/synced/failed appropriately, and failures do not permanently stop future sync attempts while authenticated.",
-      "reason": "The sync hook defines statuses (idle/syncing/synced/failed), but the diff summary does not show UI wiring for the indicator (e.g., AppHeader) nor the retry behavior after failures (whether polling continues after entering 'failed').",
+      "id": "REQ-3",
+      "requirement": "Export Report UI offers selectable options for Monthly Report, Profit & Loss Statement, Income Statement, and Expense Statement; each can be exported as PDF/print from the Export Report page.",
+      "reason": "ReportType union includes the new types and exportPdf routes based on filters.reportType, but the UI portion showing the selectable options (e.g., SelectItems/labels) is not present in the truncated ExportReportDialog.tsx excerpt, so the actual UI options cannot be confirmed.",
       "evidence": [
-        "frontend/src/hooks/useAppDataSync.ts (truncated; status is set but retry/poll continuation not shown)",
-        "frontend-file-summaries.txt (mentions AppHeader has a sync status indicator, but no diff snippet shows it being connected to useAppDataSync changes)"
+        "frontend/src/features/ledger/ExportReportDialog.tsx",
+        "frontend/src/utils/exportPdf.ts"
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "requirement": "Implement PDF/print generation for the new report types with clean A4 printable layout and page-break behavior suitable for long tables (no row splits; clear headings at page boundaries).",
+      "reason": "exportPdf.ts routes to generateMonthlyReportPDF / generateProfitLossPDF / generateIncomeStatementPDF / generateExpenseStatementPDF, but the implementations of those functions (and their layout/page-break handling) are not shown in the diff excerpt, so compliance can’t be verified.",
+      "evidence": [
+        "frontend/src/utils/exportPdf.ts"
+      ]
+    },
+    {
+      "id": "REQ-5",
+      "requirement": "Reporting changes do not impact existing DataSync behavior; reporting is read-only with respect to ledger state; avoid schema/state migrations for reporting-only changes.",
+      "reason": "The diff introduces a backend migration and changes the Traveller type from {name} to {pseudo}, which is a schema/state migration and may affect persistence and sync behavior. This conflicts with the reporting-only/no-DataSync-impact constraint unless explicitly required (BuildRequest says not expected).",
+      "evidence": [
+        "backend/migration.mo",
+        "backend/main.mo"
       ]
     }
   ],
   "hallucinated_features": [
     {
-      "description": "Changed Daily Participation Grid behavior to keep weekend rows visible but disabled when weekend inclusion is unchecked, preserving saved weekend selections as read-only.",
-      "reason": "Not requested by any REQ; requirements focus on sync, navigation/layout, logout, and export.",
+      "description": "Backend schema/state migration changing travellers from having a `name` field to a `pseudo` field, including a migration runner wired into the main actor.",
+      "reason": "BuildRequest is frontend/reporting focused and explicitly notes avoiding schema/state migrations unless strictly required (not expected for reporting-only changes). This backend change is not requested by any REQ and risks impacting app-data persistence/DataSync.",
       "evidence": [
-        "frontend-file-summaries.txt (DailyParticipationGrid description)"
-      ]
-    },
-    {
-      "description": "Modified Trips & Payment summary UI to replace Weekday/Weekend columns with a single consolidated Trips column and other responsive column sizing changes.",
-      "reason": "Not requested by any REQ; could be an unrequested UX change.",
-      "evidence": [
-        "frontend-file-summaries.txt (SummaryPanel description)"
-      ]
-    },
-    {
-      "description": "Added/changed traveller name validation (case-insensitive/trimmed) and blocked deletion when a traveller has outstanding due.",
-      "reason": "Not requested by any REQ; unrelated to specified tasks.",
-      "evidence": [
-        "frontend-file-summaries.txt (TravellerManager description)"
-      ]
-    },
-    {
-      "description": "Added/changed auto-toll logic reading a fixed amount from 'carpool-auto-toll-settings' localStorage and using it when auto-adding Toll expenses.",
-      "reason": "Not requested by any REQ; unrelated to specified tasks.",
-      "evidence": [
-        "frontend-file-summaries.txt (useLedgerLocalState description)"
+        "backend/migration.mo",
+        "backend/main.mo"
       ]
     }
   ],
-  "confidence": 0.66,
+  "confidence": 0.72,
   "changed_files": [
     "backend/main.mo",
+    "backend/migration.mo",
     "frontend-file-summaries.txt",
-    "frontend/src/features/ledger/DateRangePicker.tsx",
     "frontend/src/features/ledger/ExportReportDialog.tsx",
-    "frontend/src/features/ledger/LedgerPage.tsx",
-    "frontend/src/features/ledger/MobileLedgerSidebarNav.tsx",
-    "frontend/src/hooks/useAppDataSync.ts",
+    "frontend/src/utils/accountingStatements.ts",
     "frontend/src/utils/exportPdf.ts",
+    "frontend/src/utils/exportReport.ts",
     "project_state.json"
   ]
 }

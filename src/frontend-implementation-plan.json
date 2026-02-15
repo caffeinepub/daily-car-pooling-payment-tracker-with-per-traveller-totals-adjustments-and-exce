@@ -1,122 +1,132 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Restore sync polling behavior, improve responsive navigation, and enable PDF/Excel exports",
+  "title": "Revamp Export Report: default all travellers, improved traveller summary table, and standard financial statements (frontend-only)",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Add a Log out action to the mobile hamburger/sidebar menu with the same logout behavior as the existing header logout.",
+      "summary": "Update Export Report UI so traveller filter defaults to “All travellers”, with a guarded “Selected travellers only” mode applied consistently across all traveller-dependent export sections.",
       "acceptanceCriteria": [
-        "On small screens, the hamburger/sidebar menu includes a clearly labeled \"Log out\" item.",
-        "Clicking \"Log out\" clears the Internet Identity session, clears React Query cache, and removes local storage key \"carpool-ledger-state\" (same behavior as existing header logout).",
-        "After logout, the app returns to the unauthenticated/login state and no user data remains visible."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/features/ledger/MobileLedgerSidebarNav.tsx",
-          "operation": "modify",
-          "description": "Add a new \"Log out\" menu item to the mobile sidebar action list and accept an onLogout callback prop to execute the logout flow from the menu."
-        },
-        {
-          "path": "frontend/src/features/ledger/LedgerPage.tsx",
-          "operation": "modify",
-          "description": "Wire the new MobileLedgerSidebarNav onLogout handler to the existing logout behavior (Internet Identity clear, React Query cache clear, remove localStorage key \"carpool-ledger-state\") and ensure the sidebar closes after logout."
-        }
-      ]
-    },
-    {
-      "id": "REQ-2",
-      "summary": "Restore multi-device sync behavior by hardening polling/merge and preventing echo saves so updates propagate cross-device within ~2–5 seconds while authenticated.",
-      "acceptanceCriteria": [
-        "When logged in as the same Internet Identity on Device A and Device B, edits to any ledger data on Device A (e.g., travellers, daily participation, payments, car expenses, other pending, co-traveller income, rate per trip, date-range-related state if persisted) are visible on Device B within 2–5 seconds without a manual refresh.",
-        "Edits made concurrently on both devices do not cause data loss; the final state is a merged result consistent with the existing merge strategy (non-destructive merge).",
-        "Sync status indicator updates to show syncing/synced/failed appropriately, and failures do not permanently stop future sync attempts while authenticated.",
-        "Logging out stops polling/sync activity and resets sync state to idle."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/hooks/useAppDataSync.ts",
-          "operation": "modify",
-          "description": "Adjust polling/merge logic to more reliably detect remote changes (prefer timestamp-based detection), reduce unnecessary sync churn, and prevent echo saves after applying remote merges so cross-device updates converge within the target 2–5 seconds."
-        },
-        {
-          "path": "frontend/src/components/SyncStatusIndicator.tsx",
-          "operation": "modify",
-          "description": "Ensure sync status UI covers syncing/synced/failed states clearly and can reflect the restored behavior (including after retries) without getting stuck; keep accessibility attributes consistent."
-        },
-        {
-          "path": "frontend/src/components/AppHeader.tsx",
-          "operation": "modify",
-          "description": "Ensure logout behavior continues to stop sync activity (via identity clearing), clears cached data, and removes \"carpool-ledger-state\"; keep it consistent with the mobile menu logout flow."
-        }
-      ]
-    },
-    {
-      "id": "REQ-3",
-      "summary": "Make the Date Range controls responsive on small screens and prevent layout collisions with the hamburger/menu button.",
-      "acceptanceCriteria": [
-        "On small screens, the Date Range label and the start/end date buttons wrap or stack cleanly without overlapping the page title/hamburger button.",
-        "Both date buttons remain fully visible and clickable at common narrow widths (e.g., ~320px).",
-        "On larger screens, Date Range layout remains aligned and consistent with existing design."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/features/ledger/LedgerPage.tsx",
-          "operation": "modify",
-          "description": "Update the top header layout to stack/wrap appropriately on narrow widths so the hamburger/title block and the DateRangePicker do not overlap (e.g., use responsive flex direction and spacing)."
-        },
-        {
-          "path": "frontend/src/features/ledger/DateRangePicker.tsx",
-          "operation": "modify",
-          "description": "Improve small-screen layout by allowing the date button row to wrap (or stack) and ensuring buttons can shrink without overflowing while staying fully clickable."
-        }
-      ]
-    },
-    {
-      "id": "REQ-4",
-      "summary": "Show Payment History, Expense History, and Export Report as visible desktop navigation actions while keeping them in the mobile hamburger menu.",
-      "acceptanceCriteria": [
-        "At laptop/desktop widths (i.e., where the desktop tab bar is shown), the UI includes visible, clickable navigation items labeled \"Payment History\", \"Expense History\", and \"Export Report\".",
-        "Clicking each item on desktop opens the same dialogs/views as the mobile menu actions.",
-        "At small/mobile widths, these items remain accessible from the hamburger/sidebar menu."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/features/ledger/LedgerPage.tsx",
-          "operation": "modify",
-          "description": "Add a desktop-visible action group (shown alongside the existing lg tab bar UI) for Payment History, Expense History, and Export Report, wired to open the same dialogs currently opened by mobile sidebar actions."
-        },
-        {
-          "path": "frontend/src/features/ledger/MobileLedgerSidebarNav.tsx",
-          "operation": "modify",
-          "description": "Keep the existing mobile action items for Payment History, Expense History, and Export Report and ensure behavior matches the new desktop actions."
-        }
-      ]
-    },
-    {
-      "id": "REQ-5",
-      "summary": "Enable functional PDF and Excel export options in Export Report with clear success/failure feedback.",
-      "acceptanceCriteria": [
-        "In the Export Report dialog, selecting PDF or Excel no longer shows \"Not Available\" messaging and does not disable the export action purely due to format choice.",
-        "Excel export produces a downloadable file (at minimum a .csv-compatible export is acceptable if generated by the existing Excel export utility) and completes successfully for typical ledger sizes.",
-        "PDF export triggers a functional PDF workflow without external services (e.g., a printable report view using the browser print-to-PDF flow) and provides a clear instruction or automatic print dialog.",
-        "Success and error toasts accurately reflect the outcome for CSV, Excel, and PDF exports."
+        "When the Export Report UI is opened, the traveller filter default is “All travellers”.",
+        "If the user switches to “Selected travellers only”, exporting is blocked with a clear error message unless at least 1 traveller is selected.",
+        "Exports (CSV/PDF/print) respect the traveller filter mode consistently across all traveller-dependent sections."
       ],
       "file_operations": [
         {
           "path": "frontend/src/features/ledger/ExportReportDialog.tsx",
           "operation": "modify",
-          "description": "Remove \"Not Available\" UI/disable logic for PDF/Excel, wire Excel to the existing exportToExcel utility, and wire PDF to a print-to-PDF workflow; update toast messages to reflect success/failure per format."
+          "description": "Update the Export Report dialog state and validation so “All travellers” is the default mode, and when “Selected travellers only” is chosen it blocks export with a clear English error unless at least one traveller is selected. Ensure the traveller filter mode is passed through to all export flows consistently. Use existing shadcn-ui Dialog/Select/Checkbox components (compose only; do not edit components under frontend/src/components/ui). Verify the component's usage instructions before implementing."
         },
         {
-          "path": "frontend/src/utils/exportExcel.ts",
+          "path": "frontend/src/utils/exportReport.ts",
           "operation": "modify",
-          "description": "Ensure the Excel export utility can be invoked reliably from the Export Report dialog for typical ledger sizes (CSV-compatible output acceptable) and supports the dialog’s filtered traveller selection where feasible."
+          "description": "Ensure the CSV export logic applies traveller filtering consistently to all traveller-dependent sections (daily grid, traveller summary, payment history), and that the filter mode behavior matches the UI contract (all vs selected). Keep export logic read-only (must not trigger any saves/sync side effects)."
+        }
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "summary": "Revise the exported traveller summary table for PDF/print and CSV to match the exact requested columns and human-readable “State”, listing all travellers by default.",
+      "acceptanceCriteria": [
+        "PDF/print output contains a traveller summary table with column headers exactly: “Traveller Name”, “Trip Count”, “Total Amount”, “Total Payment”, “Balance”, “State”.",
+        "CSV export contains the same column set and matches the calculated values used in the PDF/print export.",
+        "“State” is a human-readable status derived from the balance (e.g., Due/Overpaid/Settled) and is present for every traveller row.",
+        "The traveller summary table lists all travellers when traveller filter mode is “All travellers”."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/utils/exportPdf.ts",
+          "operation": "modify",
+          "description": "Update the PDF/print traveller summary table to use the exact requested column headers: “Traveller Name”, “Trip Count”, “Total Amount”, “Total Payment”, “Balance”, “State”. Ensure values are computed consistently with CSV, include State for every row, and default behavior lists all travellers when filter mode is “all”."
+        },
+        {
+          "path": "frontend/src/utils/exportReport.ts",
+          "operation": "modify",
+          "description": "Update the CSV traveller summary section header row to exactly: “Traveller Name”, “Trip Count”, “Total Amount”, “Total Payment”, “Balance”, “State”, and ensure the same calculations (including State derivation) are used as in PDF/print."
+        },
+        {
+          "path": "frontend/src/utils/ledgerBalances.ts",
+          "operation": "modify",
+          "description": "If needed for consistency/readability, add a small helper export (or adjust existing returned fields) to support the requested naming/mapping for “Trip Count/Total Amount/Total Payment/Balance/State” without changing ledger state. Keep calculations aligned between CSV and PDF/print."
+        }
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "summary": "Add selectable report types (Monthly Report, Profit & Loss Statement, Income Statement, Expense Statement) to Export Report and generate them from existing ledger data for PDF/print.",
+      "acceptanceCriteria": [
+        "The Export Report UI offers selectable options for: Monthly Report, Profit & Loss Statement, Income Statement, Expense Statement.",
+        "Each new report type can be exported as PDF/print from the Export Report page.",
+        "Each statement uses consistent “standard” labeling and presentation (sections, totals, and net results where applicable) and is derived only from existing stored ledger fields (no new required user inputs).",
+        "Monthly Report presents a month-by-month breakdown for the currently selected date range."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/features/ledger/ExportReportDialog.tsx",
+          "operation": "modify",
+          "description": "Add a “Report Type” selector to the Export Report UI with options: Monthly Report, Profit & Loss Statement, Income Statement, Expense Statement (alongside the existing default report type). Ensure these new report types are available for PDF/print export from this dialog, using existing shadcn-ui Select components (compose only; do not edit components under frontend/src/components/ui). Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/utils/accountingStatements.ts",
+          "operation": "create",
+          "description": "Create utilities to derive standard accounting-style statement data structures (Monthly breakdown, Profit & Loss, Income, Expense) using existing ledger data only (trip income + co-traveller income; expenses from car expenses) for the active date range. Keep the module computation-only (no persistence, no sync interactions)."
         },
         {
           "path": "frontend/src/utils/exportPdf.ts",
-          "operation": "create",
-          "description": "Implement a client-side, no-external-service printable report workflow (render/compose a printable view from the current ledger state + selected sections/travellers, open print dialog, and surface clear instructions/errors) to support browser print-to-PDF."
+          "operation": "modify",
+          "description": "Extend PDF/print generation to support rendering the new report types using the derived structures from frontend/src/utils/accountingStatements.ts. Ensure the traveller filter mode is respected where traveller-scoped totals apply, and co-traveller income and car expenses are included as specified."
+        },
+        {
+          "path": "frontend/src/utils/exportReport.ts",
+          "operation": "modify",
+          "description": "Extend ExportFilters to include the selected report type and route PDF/print export calls appropriately, while keeping existing CSV export behavior intact. If new report types are PDF/print-only, ensure the UI/export flow communicates this clearly in English and prevents unsupported format actions without side effects."
+        }
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "summary": "Implement clean A4 PDF/print layouts for new report types with consistent typography and robust page-break behavior for long tables.",
+      "acceptanceCriteria": [
+        "Printing/exporting any of the new report types opens a print dialog (or equivalent PDF/print flow) and produces a readable A4 layout without overlapping text.",
+        "Long tables do not break rows across pages; headings repeat or remain visually clear at page boundaries where applicable.",
+        "All user-facing text in the generated report is in English."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/utils/exportPdf.ts",
+          "operation": "modify",
+          "description": "Improve the print CSS/layout for statement outputs: enforce A4-friendly spacing/typography, prevent row splitting across pages for long tables, and ensure table headers remain clear at page boundaries (e.g., print-specific table header grouping). Ensure all user-facing labels for the new statements are in English."
+        },
+        {
+          "path": "frontend/src/utils/accountingStatements.ts",
+          "operation": "modify",
+          "description": "Ensure the derived statement structures include the needed section labels and total rows (e.g., totals and net results) to support standard presentation in PDF/print, without requiring any new user inputs."
+        }
+      ]
+    },
+    {
+      "id": "REQ-5",
+      "summary": "Keep reporting changes read-only and ensure they do not affect DataSync behavior or trigger any additional saves/sync status changes.",
+      "acceptanceCriteria": [
+        "No changes are made to the DataSync hook behavior (poll interval, debounce timing, merge-before-save logic) beyond any strictly necessary type wiring for new export options.",
+        "Exporting/printing reports does not trigger additional saves, modify ledger state, or change sync status behavior.",
+        "Existing sync continues to function across refresh/login/logout as before, and exporting reports does not introduce sync errors."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/features/ledger/ExportReportDialog.tsx",
+          "operation": "modify",
+          "description": "Ensure export actions remain purely read-only: do not update ledger state, do not write to local storage, and do not interact with sync triggers. Any new report-type UI state must be local to the dialog and not persisted."
+        },
+        {
+          "path": "frontend/src/utils/exportReport.ts",
+          "operation": "modify",
+          "description": "Verify export flows are computation/serialization/print only and do not call any save/sync logic. Keep any new filter/report-type wiring confined to export utilities and dialog-local state."
+        },
+        {
+          "path": "frontend/src/utils/exportPdf.ts",
+          "operation": "modify",
+          "description": "Ensure PDF/print generation remains side-effect free (beyond opening the print window) and does not alter app state or trigger DataSync-related writes."
         }
       ]
     }

@@ -1,326 +1,284 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { useLedgerState } from './LedgerStateContext';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
-import { Calendar, Edit2, Trash2 } from 'lucide-react';
-import { format, parseISO } from 'date-fns';
-import { getDaysInRange } from '../../utils/dateRange';
-import ResponsiveTableShell from '../../components/ResponsiveTableShell';
-import { Button } from '@/components/ui/button';
+import { getDaysInRange, formatDateKey, formatDisplayDate } from '../../utils/dateRange';
+import { isDateIncludedForCalculation } from '../../utils/weekendInclusion';
 import { formatCurrency } from '../../utils/money';
-import { getChargeClassName, getPaymentClassName } from '../../utils/paymentStatus';
-import EditTripHistoryTravellerDialog from './EditTripHistoryTravellerDialog';
-import EditCoTravellerIncomeDialog from './EditCoTravellerIncomeDialog';
-import DeleteTripHistoryRowAlertDialog from './DeleteTripHistoryRowAlertDialog';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import EmptyState from '../../components/EmptyState';
+import { History, Edit, Trash2 } from 'lucide-react';
+import { parseISO } from 'date-fns';
 import { toast } from 'sonner';
+import EditTripHistoryTravellerDialog from './EditTripHistoryTravellerDialog';
+import CoTravellerIncomeDialog from './CoTravellerIncomeDialog';
+import DeleteTripHistoryEntryAlertDialog from './DeleteTripHistoryEntryAlertDialog';
 
-interface TripHistoryRow {
-  travellerName: string;
-  travellerId?: string;
+interface TripEntry {
   date: string;
-  tripCount: number;
+  displayDate: string;
+  name: string;
+  count: number;
   amount: number;
   type: 'traveller' | 'coTraveller';
-  incomeId?: string;
+  travellerId?: string;
+  coTravellerIncomeId?: string;
   morning?: boolean;
   evening?: boolean;
-  note?: string;
 }
 
 export default function TripHistoryPanel() {
   const {
+    travellers,
     dateRange,
     dailyData,
-    travellers,
-    coTravellerIncomes,
     ratePerTrip,
-    updateTravellerParticipation,
-    deleteTravellerParticipation,
-    updateCoTravellerIncome,
+    includeSaturday,
+    includeSunday,
+    coTravellerIncomes,
+    updateTravellerTrip,
     removeCoTravellerIncome,
   } = useLedgerState();
 
-  const [editTravellerDialog, setEditTravellerDialog] = useState<{
-    open: boolean;
-    travellerName: string;
-    travellerId: string;
-    date: string;
-    morning: boolean;
-    evening: boolean;
-  } | null>(null);
+  const [editTravellerDialogOpen, setEditTravellerDialogOpen] = useState(false);
+  const [editCoTravellerDialogOpen, setEditCoTravellerDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedEntry, setSelectedEntry] = useState<TripEntry | null>(null);
 
-  const [editIncomeDialog, setEditIncomeDialog] = useState<{
-    open: boolean;
-    incomeId: string;
-    amount: number;
-    date: string;
-    note?: string;
-  } | null>(null);
+  const days = getDaysInRange(dateRange.start, dateRange.end);
 
-  const [deleteDialog, setDeleteDialog] = useState<{
-    open: boolean;
-    type: 'traveller' | 'coTraveller';
-    travellerName: string;
-    date: string;
-    onConfirm: () => void;
-  } | null>(null);
+  // Build trip entries
+  const tripEntries: TripEntry[] = [];
 
-  const tripHistory = useMemo(() => {
-    const rows: TripHistoryRow[] = [];
-    const datesInRange = getDaysInRange(dateRange.start, dateRange.end);
+  // Add traveller trips
+  days.forEach((day) => {
+    const dateKey = formatDateKey(day);
+    const isIncluded = isDateIncludedForCalculation(day, includeSaturday, includeSunday, dateKey, dailyData);
+    if (!isIncluded) return;
 
-    // Process regular traveller trips
-    datesInRange.forEach((date) => {
-      const dateKey = format(date, 'yyyy-MM-dd');
-      const dayData = dailyData[dateKey];
-
-      if (dayData) {
-        travellers.forEach((traveller) => {
-          const tripData = dayData[traveller.id];
-          if (tripData && (tripData.morning || tripData.evening)) {
-            const tripCount = (tripData.morning ? 1 : 0) + (tripData.evening ? 1 : 0);
-            const amount = tripCount * ratePerTrip;
-            rows.push({
-              travellerName: traveller.name,
-              travellerId: traveller.id,
-              date: dateKey,
-              tripCount,
-              amount,
-              type: 'traveller',
-              morning: tripData.morning,
-              evening: tripData.evening,
-            });
-          }
-        });
-      }
-    });
-
-    // Process co-traveller income entries
-    coTravellerIncomes.forEach((income) => {
-      try {
-        const incomeDate = parseISO(income.date);
-        if (incomeDate >= dateRange.start && incomeDate <= dateRange.end) {
-          rows.push({
-            travellerName: 'Other Co-Traveller',
-            date: income.date,
-            tripCount: 1,
-            amount: income.amount,
-            type: 'coTraveller',
-            incomeId: income.id,
-            note: income.note,
+    travellers.forEach((traveller) => {
+      const tripData = dailyData[dateKey]?.[traveller.id];
+      if (tripData) {
+        const count = (tripData.morning ? 1 : 0) + (tripData.evening ? 1 : 0);
+        if (count > 0) {
+          tripEntries.push({
+            date: dateKey,
+            displayDate: formatDisplayDate(day),
+            name: traveller.name,
+            count,
+            amount: count * ratePerTrip,
+            type: 'traveller',
+            travellerId: traveller.id,
+            morning: tripData.morning,
+            evening: tripData.evening,
           });
         }
-      } catch {
-        // Skip invalid dates
       }
     });
+  });
 
-    // Sort by date descending, then by name
-    rows.sort((a, b) => {
-      const dateCompare = b.date.localeCompare(a.date);
-      if (dateCompare !== 0) return dateCompare;
-      return a.travellerName.localeCompare(b.travellerName);
-    });
+  // Add co-traveller income entries
+  coTravellerIncomes.forEach((income) => {
+    try {
+      const incomeDate = parseISO(income.date);
+      if (incomeDate >= dateRange.start && incomeDate <= dateRange.end) {
+        tripEntries.push({
+          date: income.date,
+          displayDate: formatDisplayDate(incomeDate),
+          name: 'Other Co-Traveller',
+          count: 1,
+          amount: income.amount,
+          type: 'coTraveller',
+          coTravellerIncomeId: income.id,
+        });
+      }
+    } catch {
+      // Skip invalid dates
+    }
+  });
 
-    return rows;
-  }, [dateRange, dailyData, travellers, coTravellerIncomes, ratePerTrip]);
+  // Sort by date
+  tripEntries.sort((a, b) => a.date.localeCompare(b.date));
 
-  const totals = useMemo(() => {
-    const totalTrips = tripHistory.reduce((sum, row) => sum + row.tripCount, 0);
-    const totalAmount = tripHistory.reduce((sum, row) => sum + row.amount, 0);
-    return { totalTrips, totalAmount };
-  }, [tripHistory]);
+  // Calculate total
+  const totalTrips = tripEntries.reduce((sum, entry) => sum + entry.count, 0);
+  const totalAmount = tripEntries.reduce((sum, entry) => sum + entry.amount, 0);
 
-  const handleEditTraveller = (row: TripHistoryRow) => {
-    if (row.type === 'traveller' && row.travellerId) {
-      setEditTravellerDialog({
-        open: true,
-        travellerName: row.travellerName,
-        travellerId: row.travellerId,
-        date: row.date,
-        morning: row.morning || false,
-        evening: row.evening || false,
-      });
+  const handleEditTraveller = (entry: TripEntry) => {
+    setSelectedEntry(entry);
+    setEditTravellerDialogOpen(true);
+  };
+
+  const handleEditCoTraveller = (entry: TripEntry) => {
+    const income = coTravellerIncomes.find((i) => i.id === entry.coTravellerIncomeId);
+    if (income) {
+      setSelectedEntry(entry);
+      setEditCoTravellerDialogOpen(true);
     }
   };
 
-  const handleSaveTravellerEdit = (travellerId: string, date: string, morning: boolean, evening: boolean) => {
-    updateTravellerParticipation(travellerId, date, morning, evening);
-    toast.success('Trip updated successfully');
+  const handleDeleteEntry = (entry: TripEntry) => {
+    setSelectedEntry(entry);
+    setDeleteDialogOpen(true);
   };
 
-  const handleDeleteTraveller = (row: TripHistoryRow) => {
-    if (row.type === 'traveller' && row.travellerId) {
-      setDeleteDialog({
-        open: true,
-        type: 'traveller',
-        travellerName: row.travellerName,
-        date: format(parseISO(row.date), 'MMM dd, yyyy'),
-        onConfirm: () => {
-          deleteTravellerParticipation(row.travellerId!, row.date);
-          toast.success('Trip deleted successfully');
-        },
-      });
+  const handleConfirmDelete = () => {
+    if (!selectedEntry) return;
+
+    if (selectedEntry.type === 'traveller' && selectedEntry.travellerId) {
+      // Clear morning and evening for this traveller on this date
+      updateTravellerTrip(selectedEntry.date, selectedEntry.travellerId, false, false);
+      toast.success('Trip entry deleted successfully');
+    } else if (selectedEntry.type === 'coTraveller' && selectedEntry.coTravellerIncomeId) {
+      removeCoTravellerIncome(selectedEntry.coTravellerIncomeId);
+      toast.success('Co-traveller income entry deleted successfully');
     }
+
+    setDeleteDialogOpen(false);
+    setSelectedEntry(null);
   };
 
-  const handleEditIncome = (row: TripHistoryRow) => {
-    if (row.type === 'coTraveller' && row.incomeId) {
-      setEditIncomeDialog({
-        open: true,
-        incomeId: row.incomeId,
-        amount: row.amount,
-        date: row.date,
-        note: row.note,
-      });
-    }
-  };
-
-  const handleSaveIncomeEdit = (incomeId: string, amount: number, date: string, note?: string) => {
-    updateCoTravellerIncome(incomeId, amount, date, note);
-    toast.success('Co-traveller income updated successfully');
-  };
-
-  const handleDeleteIncome = (row: TripHistoryRow) => {
-    if (row.type === 'coTraveller' && row.incomeId) {
-      setDeleteDialog({
-        open: true,
-        type: 'coTraveller',
-        travellerName: row.travellerName,
-        date: format(parseISO(row.date), 'MMM dd, yyyy'),
-        onConfirm: () => {
-          removeCoTravellerIncome(row.incomeId!);
-          toast.success('Co-traveller income deleted successfully');
-        },
-      });
-    }
-  };
+  if (tripEntries.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <History className="h-5 w-5" />
+            Trip History
+          </CardTitle>
+          <CardDescription>View all trips within the selected date range</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <EmptyState
+            icon={History}
+            title="No trips recorded"
+            description="Trip data will appear here once you mark trips in the Daily Participation grid or add Other Co-Traveller income"
+          />
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <>
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5" />
+            <History className="h-5 w-5" />
             Trip History
           </CardTitle>
-          <CardDescription>
-            View and manage trip entries by traveller and date for the selected range
-          </CardDescription>
+          <CardDescription>All trips within the selected date range</CardDescription>
         </CardHeader>
-        <CardContent>
-          {tripHistory.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <p>No trips recorded in the selected date range</p>
-            </div>
-          ) : (
-            <ResponsiveTableShell>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Traveller Name</TableHead>
-                    <TableHead>Trip Date</TableHead>
-                    <TableHead className="text-right">Trip Count</TableHead>
-                    <TableHead className="text-right">Amount</TableHead>
-                    <TableHead className="text-center">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {tripHistory.map((row, index) => (
-                    <TableRow key={`${row.date}-${row.travellerName}-${index}`}>
-                      <TableCell className="font-medium">
-                        {row.travellerName}
-                        {row.type === 'coTraveller' && (
-                          <span className="ml-2 text-xs text-muted-foreground">(Income)</span>
+        <CardContent className="space-y-4">
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Name</TableHead>
+                  <TableHead className="text-center">Count</TableHead>
+                  <TableHead className="text-right">Amount</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {tripEntries.map((entry, idx) => (
+                  <TableRow key={`${entry.date}-${entry.name}-${idx}`}>
+                    <TableCell className="font-medium">{entry.displayDate}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        {entry.name}
+                        {entry.type === 'coTraveller' && (
+                          <Badge variant="outline" className="text-xs">
+                            Other
+                          </Badge>
                         )}
-                      </TableCell>
-                      <TableCell>
-                        {format(parseISO(row.date), 'MMM dd, yyyy (EEE)')}
-                      </TableCell>
-                      <TableCell className="text-right font-medium">
-                        {row.tripCount}
-                      </TableCell>
-                      <TableCell className={`text-right font-medium ${row.type === 'traveller' ? getChargeClassName() : getPaymentClassName()}`}>
-                        {formatCurrency(row.amount)}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <div className="flex items-center justify-center gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => row.type === 'traveller' ? handleEditTraveller(row) : handleEditIncome(row)}
-                          >
-                            <Edit2 className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-destructive hover:text-destructive"
-                            onClick={() => row.type === 'traveller' ? handleDeleteTraveller(row) : handleDeleteIncome(row)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-                <TableFooter>
-                  <TableRow>
-                    <TableCell colSpan={2} className="font-semibold">
-                      Total
+                      </div>
                     </TableCell>
-                    <TableCell className="text-right font-semibold">
-                      {totals.totalTrips}
+                    <TableCell className="text-center">
+                      <Badge variant="secondary">{entry.count}</Badge>
                     </TableCell>
-                    <TableCell className="text-right font-semibold">
-                      {formatCurrency(totals.totalAmount)}
+                    <TableCell className="text-right font-medium">{formatCurrency(entry.amount)}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() =>
+                            entry.type === 'traveller' ? handleEditTraveller(entry) : handleEditCoTraveller(entry)
+                          }
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDeleteEntry(entry)}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
                     </TableCell>
-                    <TableCell />
                   </TableRow>
-                </TableFooter>
-              </Table>
-            </ResponsiveTableShell>
-          )}
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+
+          {/* Total Summary */}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 p-4 bg-muted/50 rounded-lg border">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium">Total Trips:</span>
+              <Badge variant="default" className="text-base px-3 py-1">
+                {totalTrips}
+              </Badge>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium">Total Amount:</span>
+              <span className="text-lg font-bold">{formatCurrency(totalAmount)}</span>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
-      {editTravellerDialog && (
-        <EditTripHistoryTravellerDialog
-          open={editTravellerDialog.open}
-          onOpenChange={(open) => !open && setEditTravellerDialog(null)}
-          travellerName={editTravellerDialog.travellerName}
-          travellerId={editTravellerDialog.travellerId}
-          date={editTravellerDialog.date}
-          currentMorning={editTravellerDialog.morning}
-          currentEvening={editTravellerDialog.evening}
-          onSave={handleSaveTravellerEdit}
-        />
-      )}
+      {/* Edit Dialogs */}
+      <EditTripHistoryTravellerDialog
+        open={editTravellerDialogOpen}
+        onOpenChange={setEditTravellerDialogOpen}
+        entry={
+          selectedEntry && selectedEntry.type === 'traveller'
+            ? {
+                dateKey: selectedEntry.date,
+                displayDate: selectedEntry.displayDate,
+                travellerId: selectedEntry.travellerId!,
+                travellerName: selectedEntry.name,
+                morning: selectedEntry.morning || false,
+                evening: selectedEntry.evening || false,
+              }
+            : null
+        }
+      />
 
-      {editIncomeDialog && (
-        <EditCoTravellerIncomeDialog
-          open={editIncomeDialog.open}
-          onOpenChange={(open) => !open && setEditIncomeDialog(null)}
-          incomeId={editIncomeDialog.incomeId}
-          currentAmount={editIncomeDialog.amount}
-          currentDate={editIncomeDialog.date}
-          currentNote={editIncomeDialog.note}
-          onSave={handleSaveIncomeEdit}
-        />
-      )}
+      <CoTravellerIncomeDialog
+        open={editCoTravellerDialogOpen}
+        onOpenChange={setEditCoTravellerDialogOpen}
+        mode="edit"
+        existingIncome={
+          selectedEntry && selectedEntry.type === 'coTraveller' && selectedEntry.coTravellerIncomeId
+            ? coTravellerIncomes.find((i) => i.id === selectedEntry.coTravellerIncomeId)
+            : undefined
+        }
+      />
 
-      {deleteDialog && (
-        <DeleteTripHistoryRowAlertDialog
-          open={deleteDialog.open}
-          onOpenChange={(open) => !open && setDeleteDialog(null)}
-          rowType={deleteDialog.type}
-          travellerName={deleteDialog.travellerName}
-          date={deleteDialog.date}
-          onConfirmDelete={deleteDialog.onConfirm}
-        />
-      )}
+      <DeleteTripHistoryEntryAlertDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        entryType={selectedEntry?.type || 'traveller'}
+        entryName={selectedEntry?.name || ''}
+        entryDate={selectedEntry?.displayDate || ''}
+        onConfirmDelete={handleConfirmDelete}
+      />
     </>
   );
 }

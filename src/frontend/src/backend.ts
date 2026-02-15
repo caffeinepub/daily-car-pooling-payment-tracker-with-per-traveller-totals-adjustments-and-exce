@@ -120,10 +120,10 @@ export interface backendInterface {
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
     fetchAppData(): Promise<AppData | null>;
     getAllBalances(): Promise<Array<[Principal, bigint]>>;
-    getBalance(user: Principal): Promise<bigint>;
+    getBalance(): Promise<bigint>;
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
-    getCoTravellerIncomes(principal: Principal): Promise<Array<CoTravellerIncome>>;
+    getCoTravellerIncomes(user: Principal): Promise<Array<CoTravellerIncome>>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     isCallerAdmin(): Promise<boolean>;
     saveAppData(newAppData: AppData): Promise<void>;
@@ -203,17 +203,17 @@ export class Backend implements backendInterface {
             return result;
         }
     }
-    async getBalance(arg0: Principal): Promise<bigint> {
+    async getBalance(): Promise<bigint> {
         if (this.processError) {
             try {
-                const result = await this.actor.getBalance(arg0);
+                const result = await this.actor.getBalance();
                 return result;
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
-            const result = await this.actor.getBalance(arg0);
+            const result = await this.actor.getBalance();
             return result;
         }
     }

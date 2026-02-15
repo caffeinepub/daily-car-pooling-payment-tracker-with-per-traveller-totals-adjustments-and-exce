@@ -36,7 +36,7 @@ export interface _SERVICE {
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
   'fetchAppData' : ActorMethod<[], [] | [AppData]>,
   'getAllBalances' : ActorMethod<[], Array<[Principal, bigint]>>,
-  'getBalance' : ActorMethod<[Principal], bigint>,
+  'getBalance' : ActorMethod<[], bigint>,
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
   'getCoTravellerIncomes' : ActorMethod<[Principal], Array<CoTravellerIncome>>,

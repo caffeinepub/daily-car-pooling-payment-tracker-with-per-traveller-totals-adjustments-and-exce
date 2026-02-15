@@ -1,259 +1,303 @@
-import { format, parseISO } from 'date-fns';
-import { getDaysInRange, formatDateKey } from './dateRange';
+import { format } from 'date-fns';
+import { formatCurrency } from './money';
+import { getDaysInRange, formatDateKey, formatDisplayDate } from './dateRange';
 import { isDateIncludedForCalculation } from './weekendInclusion';
-import { calculateIncomeFromDailyData } from './tripCalculations';
-import type { Traveller, DateRange, DailyData, CashPayment, OtherPending, CarExpense, CoTravellerIncome } from '../hooks/useLedgerLocalState';
+import { calculateTravellerBalance } from './ledgerBalances';
+import type { Traveller, DailyData, DateRange, CashPayment, CarExpense, CoTravellerIncome } from '../hooks/useLedgerLocalState';
+import { generatePDFReport } from './exportPdf';
+import type { ReportType } from '../features/ledger/ExportReportDialog';
 
-interface LedgerState {
-  travellers: Traveller[];
-  dateRange: DateRange;
-  dailyData: DailyData;
-  ratePerTrip: number;
-  cashPayments: CashPayment[];
-  otherPending: OtherPending[];
-  carExpenses: CarExpense[];
-  includeSaturday: boolean;
-  includeSunday: boolean;
-  coTravellerIncomes: CoTravellerIncome[];
-}
-
-interface ExportFilters {
+export interface ExportFilters {
+  reportType: ReportType;
   includeDailyGrid: boolean;
   includeSummary: boolean;
   includePayments: boolean;
   includeCarExpenses: boolean;
   includeOverallSummary: boolean;
+  travellerFilterMode: 'all' | 'selected';
   selectedTravellerIds: string[];
+  expenseCategory: string;
+  expenseSearchQuery: string;
+  paymentTravellerId: string;
 }
 
-function filterTravellers(travellers: Traveller[], selectedIds: string[]): Traveller[] {
-  return travellers.filter((t) => selectedIds.includes(t.id));
+interface LedgerState {
+  travellers: Traveller[];
+  dailyData: DailyData;
+  dateRange: DateRange;
+  ratePerTrip: number;
+  cashPayments: CashPayment[];
+  carExpenses: CarExpense[];
+  includeSaturday: boolean;
+  includeSunday: boolean;
+  coTravellerIncomes: CoTravellerIncome[];
+  otherPending?: any[];
 }
 
-function arrayToCSV(data: any[][]): string {
-  return data
-    .map((row) =>
-      row
-        .map((cell) => {
-          const cellStr = String(cell ?? '');
-          if (cellStr.includes(',') || cellStr.includes('"') || cellStr.includes('\n')) {
-            return `"${cellStr.replace(/"/g, '""')}"`;
-          }
-          return cellStr;
-        })
-        .join(',')
-    )
-    .join('\n');
-}
-
-function downloadFile(filename: string, content: string, mimeType: string): void {
-  const blob = new Blob([content], { type: mimeType });
-  const link = document.createElement('a');
-  const url = URL.createObjectURL(blob);
-
-  link.setAttribute('href', url);
-  link.setAttribute('download', filename);
-  link.style.visibility = 'hidden';
-
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-
-  URL.revokeObjectURL(url);
+function escapeCSV(value: string | number): string {
+  const str = String(value);
+  if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+    return `"${str.replace(/"/g, '""')}"`;
+  }
+  return str;
 }
 
 export async function exportToCSV(state: LedgerState, filters: ExportFilters): Promise<void> {
-  const { travellers, dateRange, dailyData, ratePerTrip, cashPayments, otherPending, carExpenses, includeSaturday, includeSunday, coTravellerIncomes } = state;
-  const filteredTravellers = filterTravellers(travellers, filters.selectedTravellerIds);
-  const days = getDaysInRange(dateRange.start, dateRange.end);
+  const lines: string[] = [];
 
-  const sections: string[] = [];
+  // Header
+  lines.push(`Carpool Ledger Report`);
+  lines.push(`Date Range: ${format(state.dateRange.start, 'MMM dd, yyyy')} - ${format(state.dateRange.end, 'MMM dd, yyyy')}`);
+  lines.push(`Generated: ${format(new Date(), 'MMM dd, yyyy HH:mm')}`);
+  lines.push('');
 
-  // Daily Grid
-  if (filters.includeDailyGrid) {
-    const gridData: any[][] = [];
-    const headerRow = ['Date', 'Day'];
-    filteredTravellers.forEach((t) => {
-      headerRow.push(`${t.name} (AM)`, `${t.name} (PM)`);
-    });
-    gridData.push(headerRow);
+  // Filter travellers
+  const filteredTravellers =
+    filters.travellerFilterMode === 'selected'
+      ? state.travellers.filter((t) => filters.selectedTravellerIds.includes(t.id))
+      : state.travellers;
 
-    days.forEach((day) => {
-      const dateKey = formatDateKey(day);
-      const isIncluded = isDateIncludedForCalculation(day, includeSaturday, includeSunday, dateKey, dailyData);
-      const row: any[] = [format(day, 'dd-MM'), format(day, 'EEEE')];
-
-      filteredTravellers.forEach((t) => {
-        const tripData = dailyData[dateKey]?.[t.id] || { morning: false, evening: false };
-        if (isIncluded) {
-          row.push(tripData.morning ? 1 : 0, tripData.evening ? 1 : 0);
-        } else {
-          row.push('-', '-');
-        }
-      });
-
-      gridData.push(row);
-    });
-
-    sections.push('Daily Grid\n' + arrayToCSV(gridData));
+  if (filteredTravellers.length === 0 && filters.travellerFilterMode === 'selected') {
+    lines.push('No travellers selected for export');
+    downloadCSV(lines.join('\n'), 'carpool-report.csv');
+    return;
   }
 
-  // Trips & Payment
-  if (filters.includeSummary) {
-    const summaryData: any[][] = [];
-    summaryData.push(['Traveller', 'Total Trips', 'Rate/Trip', 'Total Charge', 'Other Pending', 'Payments', 'Balance']);
+  const days = getDaysInRange(state.dateRange.start, state.dateRange.end);
 
-    filteredTravellers.forEach((t) => {
-      let totalTrips = 0;
+  // Daily Participation Grid
+  if (filters.includeDailyGrid) {
+    lines.push('DAILY PARTICIPATION GRID');
+    lines.push('');
+
+    if (filteredTravellers.length === 0) {
+      lines.push('No data available');
+    } else {
+      const headerRow = ['Date', ...filteredTravellers.flatMap((t) => [`${t.name} AM`, `${t.name} PM`])];
+      lines.push(headerRow.map(escapeCSV).join(','));
 
       days.forEach((day) => {
         const dateKey = formatDateKey(day);
-        const isIncluded = isDateIncludedForCalculation(day, includeSaturday, includeSunday, dateKey, dailyData);
-        if (!isIncluded) return;
+        const isIncluded = isDateIncludedForCalculation(
+          day,
+          state.includeSaturday,
+          state.includeSunday,
+          dateKey,
+          state.dailyData
+        );
 
-        const tripData = dailyData[dateKey]?.[t.id];
-        if (tripData) {
-          const tripCount = (tripData.morning ? 1 : 0) + (tripData.evening ? 1 : 0);
-          totalTrips += tripCount;
+        if (isIncluded) {
+          const row = [formatDisplayDate(day)];
+          filteredTravellers.forEach((t) => {
+            const tripData = state.dailyData[dateKey]?.[t.id] || { morning: false, evening: false };
+            row.push(tripData.morning ? 'Yes' : 'No');
+            row.push(tripData.evening ? 'Yes' : 'No');
+          });
+          lines.push(row.map(escapeCSV).join(','));
         }
       });
+    }
 
-      const totalCharge = totalTrips * ratePerTrip;
-
-      const paymentsInRange = cashPayments
-        .filter((p) => {
-          if (p.travellerId !== t.id) return false;
-          try {
-            const paymentDate = parseISO(p.date);
-            return paymentDate >= dateRange.start && paymentDate <= dateRange.end;
-          } catch {
-            return false;
-          }
-        })
-        .reduce((sum, p) => sum + p.amount, 0);
-
-      const otherPendingInRange = otherPending
-        .filter((p) => {
-          if (p.travellerId !== t.id) return false;
-          try {
-            const pendingDate = parseISO(p.date);
-            return pendingDate >= dateRange.start && pendingDate <= dateRange.end;
-          } catch {
-            return false;
-          }
-        })
-        .reduce((sum, p) => sum + p.amount, 0);
-
-      const balance = totalCharge + otherPendingInRange - paymentsInRange;
-
-      summaryData.push([t.name, totalTrips, ratePerTrip, totalCharge, otherPendingInRange, paymentsInRange, balance]);
-    });
-
-    sections.push('Trips & Payment\n' + arrayToCSV(summaryData));
+    lines.push('');
   }
 
-  // Payments
-  if (filters.includePayments) {
-    const paymentsData: any[][] = [];
-    paymentsData.push(['Date', 'Traveller', 'Amount', 'Note']);
+  // Per-Traveller Summary with updated column headers
+  if (filters.includeSummary) {
+    lines.push('PER-TRAVELLER SUMMARY');
+    lines.push('');
 
-    const filteredPayments = cashPayments.filter((p) => {
-      if (!filters.selectedTravellerIds.includes(p.travellerId)) return false;
-      try {
-        const paymentDate = parseISO(p.date);
-        return paymentDate >= dateRange.start && paymentDate <= dateRange.end;
-      } catch {
-        return false;
-      }
+    if (filteredTravellers.length === 0) {
+      lines.push('No data available');
+    } else {
+      lines.push(['Traveller Name', 'Trip Count', 'Total Amount', 'Total Payment', 'Balance', 'State'].map(escapeCSV).join(','));
+
+      filteredTravellers.forEach((t) => {
+        const balance = calculateTravellerBalance(
+          t.id,
+          state.dailyData,
+          state.dateRange,
+          state.ratePerTrip,
+          state.cashPayments,
+          state.includeSaturday,
+          state.includeSunday,
+          state.otherPending
+        );
+
+        const state_status = balance.balance > 0 ? 'Due' : balance.balance < 0 ? 'Overpaid' : 'Settled';
+
+        lines.push(
+          [
+            t.name,
+            balance.totalTrips,
+            formatCurrency(balance.totalCharge),
+            formatCurrency(balance.totalPayments),
+            formatCurrency(Math.abs(balance.balance)),
+            state_status,
+          ]
+            .map(escapeCSV)
+            .join(',')
+        );
+      });
+    }
+
+    lines.push('');
+  }
+
+  // Payment History
+  if (filters.includePayments) {
+    lines.push('PAYMENT HISTORY');
+    lines.push('');
+
+    let filteredPayments = state.cashPayments.filter((p) => {
+      const paymentDate = new Date(p.date);
+      return paymentDate >= state.dateRange.start && paymentDate <= state.dateRange.end;
     });
 
-    filteredPayments
-      .sort((a, b) => a.date.localeCompare(b.date))
-      .forEach((p) => {
-        const traveller = travellers.find((t) => t.id === p.travellerId);
-        paymentsData.push([
-          format(parseISO(p.date), 'dd-MM-yyyy'),
-          traveller?.name || 'Unknown',
-          p.amount,
-          p.note || '',
-        ]);
-      });
+    // Apply traveller filter mode
+    if (filters.travellerFilterMode === 'selected') {
+      filteredPayments = filteredPayments.filter((p) => filters.selectedTravellerIds.includes(p.travellerId));
+    }
 
-    sections.push('Payment History\n' + arrayToCSV(paymentsData));
+    // Apply payment-specific traveller filter
+    if (filters.paymentTravellerId !== 'all') {
+      filteredPayments = filteredPayments.filter((p) => p.travellerId === filters.paymentTravellerId);
+    }
+
+    if (filteredPayments.length === 0) {
+      lines.push('No data available');
+    } else {
+      lines.push(['Date', 'Traveller', 'Amount', 'Note'].map(escapeCSV).join(','));
+
+      filteredPayments
+        .sort((a, b) => a.date.localeCompare(b.date))
+        .forEach((p) => {
+          const traveller = state.travellers.find((t) => t.id === p.travellerId);
+          lines.push(
+            [
+              format(new Date(p.date), 'MMM dd, yyyy'),
+              traveller?.name || 'Unknown',
+              formatCurrency(p.amount),
+              p.note || '',
+            ]
+              .map(escapeCSV)
+              .join(',')
+          );
+        });
+    }
+
+    lines.push('');
   }
 
   // Car Expenses
   if (filters.includeCarExpenses) {
-    const expensesData: any[][] = [];
-    expensesData.push(['Date', 'Category', 'Amount', 'Note']);
+    lines.push('CAR EXPENSES');
+    lines.push('');
 
-    const filteredExpenses = carExpenses.filter((e) => {
-      try {
-        const expenseDate = parseISO(e.date);
-        return expenseDate >= dateRange.start && expenseDate <= dateRange.end;
-      } catch {
-        return false;
-      }
+    let filteredExpenses = state.carExpenses.filter((e) => {
+      const expenseDate = new Date(e.date);
+      return expenseDate >= state.dateRange.start && expenseDate <= state.dateRange.end;
     });
 
-    filteredExpenses
-      .sort((a, b) => a.date.localeCompare(b.date))
-      .forEach((e) => {
-        expensesData.push([
-          format(parseISO(e.date), 'dd-MM-yyyy'),
-          e.category,
-          e.amount,
-          e.note || '',
-        ]);
-      });
+    // Apply category filter
+    if (filters.expenseCategory !== 'all') {
+      filteredExpenses = filteredExpenses.filter((e) => e.category === filters.expenseCategory);
+    }
 
-    sections.push('Car Expenses\n' + arrayToCSV(expensesData));
+    // Apply search query filter
+    if (filters.expenseSearchQuery.trim()) {
+      const query = filters.expenseSearchQuery.toLowerCase();
+      filteredExpenses = filteredExpenses.filter(
+        (e) =>
+          e.category.toLowerCase().includes(query) ||
+          (e.note && e.note.toLowerCase().includes(query))
+      );
+    }
+
+    if (filteredExpenses.length === 0) {
+      lines.push('No data available');
+    } else {
+      lines.push(['Date', 'Category', 'Amount', 'Note'].map(escapeCSV).join(','));
+
+      filteredExpenses
+        .sort((a, b) => a.date.localeCompare(b.date))
+        .forEach((e) => {
+          lines.push(
+            [format(new Date(e.date), 'MMM dd, yyyy'), e.category, formatCurrency(e.amount), e.note || '']
+              .map(escapeCSV)
+              .join(',')
+          );
+        });
+    }
+
+    lines.push('');
   }
 
   // Overall Summary
   if (filters.includeOverallSummary) {
-    const totalIncome = calculateIncomeFromDailyData(
-      dailyData,
-      dateRange,
-      ratePerTrip,
-      includeSaturday,
-      includeSunday,
-      coTravellerIncomes
-    );
+    lines.push('OVERALL SUMMARY');
+    lines.push('');
 
-    const totalExpense = carExpenses
+    // Calculate totals
+    let totalIncome = 0;
+    days.forEach((day) => {
+      const dateKey = formatDateKey(day);
+      const isIncluded = isDateIncludedForCalculation(
+        day,
+        state.includeSaturday,
+        state.includeSunday,
+        dateKey,
+        state.dailyData
+      );
+
+      if (isIncluded) {
+        filteredTravellers.forEach((t) => {
+          const tripData = state.dailyData[dateKey]?.[t.id];
+          if (tripData) {
+            const count = (tripData.morning ? 1 : 0) + (tripData.evening ? 1 : 0);
+            totalIncome += count * state.ratePerTrip;
+          }
+        });
+      }
+    });
+
+    // Add co-traveller incomes
+    state.coTravellerIncomes.forEach((income) => {
+      const incomeDate = new Date(income.date);
+      if (incomeDate >= state.dateRange.start && incomeDate <= state.dateRange.end) {
+        totalIncome += income.amount;
+      }
+    });
+
+    const totalExpenses = state.carExpenses
       .filter((e) => {
-        try {
-          const expenseDate = parseISO(e.date);
-          return expenseDate >= dateRange.start && expenseDate <= dateRange.end;
-        } catch {
-          return false;
-        }
+        const expenseDate = new Date(e.date);
+        return expenseDate >= state.dateRange.start && expenseDate <= state.dateRange.end;
       })
       .reduce((sum, e) => sum + e.amount, 0);
 
-    const profitLoss = totalIncome - totalExpense;
+    const netBalance = totalIncome - totalExpenses;
 
-    const overallData: any[][] = [];
-    overallData.push(['Metric', 'Amount']);
-    overallData.push(['Total Income', totalIncome]);
-    overallData.push(['Total Expense', totalExpense]);
-    overallData.push(['Profit/Loss', profitLoss]);
-
-    sections.push('Overall Summary\n' + arrayToCSV(overallData));
+    lines.push(['Metric', 'Amount'].map(escapeCSV).join(','));
+    lines.push(['Total Income', formatCurrency(totalIncome)].map(escapeCSV).join(','));
+    lines.push(['Total Expenses', formatCurrency(totalExpenses)].map(escapeCSV).join(','));
+    lines.push(['Net Balance', formatCurrency(netBalance)].map(escapeCSV).join(','));
   }
 
-  const csvContent = sections.join('\n\n\n');
-  const filename = `Carpool_Report_${format(dateRange.start, 'yyyy-MM-dd')}_to_${format(dateRange.end, 'yyyy-MM-dd')}.csv`;
-
-  downloadFile(filename, csvContent, 'text/csv;charset=utf-8;');
+  downloadCSV(lines.join('\n'), 'carpool-report.csv');
 }
 
-// PDF and Excel exports are not available as the required packages are not installed
-export async function exportToPDF(_state: LedgerState, _filters: ExportFilters): Promise<void> {
-  throw new Error('PDF export is not available. Please use CSV export instead.');
+export async function exportToPDF(state: LedgerState, filters: ExportFilters): Promise<void> {
+  await generatePDFReport(state, filters);
 }
 
-export async function exportToExcel(_state: LedgerState, _filters: ExportFilters): Promise<void> {
-  throw new Error('Excel export is not available. Please use CSV export instead.');
+function downloadCSV(content: string, filename: string): void {
+  const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  const url = URL.createObjectURL(blob);
+  link.setAttribute('href', url);
+  link.setAttribute('download', filename);
+  link.style.visibility = 'hidden';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 }

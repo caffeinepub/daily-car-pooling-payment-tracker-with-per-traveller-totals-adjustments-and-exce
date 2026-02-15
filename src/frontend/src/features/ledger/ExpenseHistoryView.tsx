@@ -23,91 +23,93 @@ export default function ExpenseHistoryView() {
   // Get unique categories
   const categories = Array.from(new Set(carExpenses.map((e) => e.category))).sort();
 
-  // Filter expenses by date range, category, and search query
-  const filteredExpenses = carExpenses
-    .filter((expense) => {
-      // Filter by date range
-      try {
-        const expenseDate = parseISO(expense.date);
-        if (expenseDate < dateRange.start || expenseDate > dateRange.end) {
-          return false;
-        }
-      } catch {
-        return false;
-      }
+  // Filter expenses by date range, category, and search
+  const filteredExpenses = carExpenses.filter((expense) => {
+    try {
+      const expenseDate = parseISO(expense.date);
+      const inRange = expenseDate >= dateRange.start && expenseDate <= dateRange.end;
+      const matchesCategory = selectedCategory === 'all' || expense.category === selectedCategory;
+      const matchesSearch =
+        searchQuery === '' ||
+        expense.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        expense.note?.toLowerCase().includes(searchQuery.toLowerCase());
+      return inRange && matchesCategory && matchesSearch;
+    } catch {
+      return false;
+    }
+  });
 
-      // Filter by category
-      if (selectedCategory !== 'all' && expense.category !== selectedCategory) {
-        return false;
-      }
+  // Sort by date descending
+  const sortedExpenses = [...filteredExpenses].sort((a, b) => {
+    try {
+      return parseISO(b.date).getTime() - parseISO(a.date).getTime();
+    } catch {
+      return 0;
+    }
+  });
 
-      // Filter by search query
-      if (searchQuery) {
-        const query = searchQuery.toLowerCase();
-        const matchesCategory = expense.category.toLowerCase().includes(query);
-        const matchesNote = expense.note?.toLowerCase().includes(query);
-        return matchesCategory || matchesNote;
-      }
+  const handleUpdateExpense = (id: string, updates: Partial<CarExpense>) => {
+    updateCarExpense(id, updates);
+    setEditingExpense(null);
+  };
 
-      return true;
-    })
-    .sort((a, b) => {
-      // Sort by date, newest first
-      try {
-        const dateA = parseISO(a.date);
-        const dateB = parseISO(b.date);
-        return dateB.getTime() - dateA.getTime();
-      } catch {
-        return 0;
-      }
-    });
+  const handleConfirmDelete = () => {
+    if (deletingExpense) {
+      removeCarExpense(deletingExpense.id);
+      setDeletingExpense(null);
+    }
+  };
+
+  if (carExpenses.length === 0) {
+    return (
+      <EmptyState
+        icon={Car}
+        title="No Expense Records"
+        description="Start tracking expenses by adding your first expense record."
+      />
+    );
+  }
 
   return (
     <div className="space-y-4">
-      {/* Filter Controls */}
-      <div className="flex flex-col gap-4">
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="flex-1">
-            <Label htmlFor="category-filter">Filter by Category</Label>
-            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-              <SelectTrigger id="category-filter">
-                <SelectValue placeholder="Select category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All categories</SelectItem>
-                {categories.map((cat) => (
-                  <SelectItem key={cat} value={cat}>
-                    {cat}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex-1">
-            <Label htmlFor="search-query">Search</Label>
-            <Input
-              id="search-query"
-              placeholder="Search by category or note..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
+      {/* Filters */}
+      <div className="flex flex-col sm:flex-row gap-4">
+        <div className="flex-1 space-y-2">
+          <Label htmlFor="search">Search</Label>
+          <Input
+            id="search"
+            placeholder="Search by category or note..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
         </div>
-        <p className="text-xs text-muted-foreground">
-          Showing expenses from {format(dateRange.start, 'MMM dd, yyyy')} to{' '}
-          {format(dateRange.end, 'MMM dd, yyyy')}
-        </p>
+        <div className="w-full sm:w-48 space-y-2">
+          <Label htmlFor="category-filter">Category</Label>
+          <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+            <SelectTrigger id="category-filter">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Categories</SelectItem>
+              {categories.map((cat) => (
+                <SelectItem key={cat} value={cat}>
+                  {cat}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
-      {/* Expenses Table */}
-      {filteredExpenses.length === 0 ? (
+      {/* Results */}
+      {sortedExpenses.length === 0 ? (
         <EmptyState
           icon={Car}
-          title="No expenses found"
-          description="Car expenses will appear here once they are recorded"
+          title="No Matching Expenses"
+          description="Try adjusting your filters or search query."
         />
       ) : (
-        <div className="border rounded-lg overflow-hidden">
+        <div className="rounded-md border">
           <Table>
             <TableHeader>
               <TableRow>
@@ -119,25 +121,24 @@ export default function ExpenseHistoryView() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredExpenses.map((expense) => (
+              {sortedExpenses.map((expense) => (
                 <TableRow key={expense.id}>
-                  <TableCell className="font-medium">
-                    {format(parseISO(expense.date), 'MMM dd, yyyy')}
-                  </TableCell>
+                  <TableCell>{format(parseISO(expense.date), 'MMM dd, yyyy')}</TableCell>
                   <TableCell>{expense.category}</TableCell>
-                  <TableCell className="text-right font-semibold">
-                    {formatCurrency(expense.amount)}
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end gap-1">
+                      <IndianRupee className="h-3 w-3" />
+                      <span>{formatCurrency(expense.amount)}</span>
+                    </div>
                   </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {expense.note || '—'}
-                  </TableCell>
+                  <TableCell className="text-muted-foreground">{expense.note || '—'}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
                       <Button
                         variant="ghost"
                         size="icon"
                         onClick={() => setEditingExpense(expense)}
-                        className="h-8 w-8"
+                        aria-label="Edit expense"
                       >
                         <Pencil className="h-4 w-4" />
                       </Button>
@@ -145,9 +146,9 @@ export default function ExpenseHistoryView() {
                         variant="ghost"
                         size="icon"
                         onClick={() => setDeletingExpense(expense)}
-                        className="h-8 w-8 text-destructive hover:text-destructive"
+                        aria-label="Delete expense"
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>
                     </div>
                   </TableCell>
@@ -164,22 +165,16 @@ export default function ExpenseHistoryView() {
           expense={editingExpense}
           open={!!editingExpense}
           onOpenChange={(open) => !open && setEditingExpense(null)}
-          onUpdateExpense={(expenseId, updates) => {
-            updateCarExpense(expenseId, updates);
-            setEditingExpense(null);
-          }}
+          onUpdateExpense={handleUpdateExpense}
         />
       )}
 
-      {/* Delete Confirmation Dialog */}
+      {/* Delete Confirmation */}
       {deletingExpense && (
         <DeleteCarExpenseAlertDialog
           open={!!deletingExpense}
           onOpenChange={(open) => !open && setDeletingExpense(null)}
-          onConfirmDelete={() => {
-            removeCarExpense(deletingExpense.id);
-            setDeletingExpense(null);
-          }}
+          onConfirmDelete={handleConfirmDelete}
           category={deletingExpense.category}
           amount={deletingExpense.amount}
         />

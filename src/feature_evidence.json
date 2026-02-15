@@ -2,11 +2,11 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-add-a-logout-action-inside-the-in-app-hamburger-menu-mobile-sidebar-so-users-can-log-out-from-the-menu-in-addition-to-any-existing-logout-access",
-      "featureTitle": "Add a Logout action inside the in-app hamburger/menu (mobile sidebar) so users can log out from the menu, in addition to any existing logout access.",
+      "featureId": "feature-update-the-export-report-ui-export-report-dialog-page-so-the-default-export-includes-all-travellers-while-still-supporting-an-explicit-selected-travellers-only-mode",
+      "featureTitle": "Update the Export Report UI (Export Report dialog/page) so the default export includes all travellers, while still supporting an explicit “Selected travellers only” mode.",
       "files": [
-        "frontend/src/features/ledger/LedgerPage.tsx",
-        "frontend/src/features/ledger/MobileLedgerSidebarNav.tsx"
+        "frontend/src/features/ledger/ExportReportDialog.tsx",
+        "frontend/src/utils/exportReport.ts"
       ],
       "components": [
         "authorization@4.0.0",
@@ -22,10 +22,11 @@
       "confidence": "high"
     },
     {
-      "featureId": "feature-fix-and-restore-multi-device-data-synchronization-so-that-while-logged-in-with-the-same-account-on-multiple-devices-changes-made-on-one-device-are-reflected-on-the-other-within-2-5-seconds-matching-draft-30-behavior-across-all-ledger-user-inputs",
-      "featureTitle": "Fix and restore multi-device data synchronization so that while logged in with the same account on multiple devices, changes made on one device are reflected on the other within ~2–5 seconds (matching Draft 30 behavior) across all ledger/user inputs.",
+      "featureId": "feature-revise-the-exported-traveller-summary-table-pdf-print-and-csv-to-match-the-requested-columns-and-wording-traveller-name-trip-count-total-amount-total-payment-balance-state-ensure-the-table-is-produced-for-all-travellers-by-default",
+      "featureTitle": "Revise the exported traveller summary table (PDF/print and CSV) to match the requested columns and wording: Traveller Name, Trip Count, Total Amount, Total Payment, Balance, State. Ensure the table is produced for all travellers by default.",
       "files": [
-        "frontend/src/hooks/useAppDataSync.ts"
+        "frontend/src/utils/exportPdf.ts",
+        "frontend/src/utils/exportReport.ts"
       ],
       "components": [
         "authorization@4.0.0",
@@ -41,11 +42,13 @@
       "confidence": "high"
     },
     {
-      "featureId": "feature-make-the-date-range-ui-responsive-on-small-screens-and-fix-alignment-issues-introduced-by-the-hamburger-menu-button-so-the-date-range-controls-remain-usable-and-well-aligned-on-narrow-widths",
-      "featureTitle": "Make the Date Range UI responsive on small screens and fix alignment issues introduced by the hamburger/menu button so the date range controls remain usable and well-aligned on narrow widths.",
+      "featureId": "feature-add-new-report-types-to-the-export-report-page-monthly-report-profit-loss-statement-income-statement-and-expense-statement-generated-using-standard-accounting-style-structures-based-on-existing-ledger-data-income-from-trips-co-traveller-income-expenses-from-car-expenses",
+      "featureTitle": "Add new report types to the Export Report page: Monthly Report, Profit & Loss Statement, Income Statement, and Expense Statement, generated using standard accounting-style structures based on existing ledger data (income from trips + co-traveller income; expenses from car expenses).",
       "files": [
-        "frontend/src/features/ledger/DateRangePicker.tsx",
-        "frontend/src/features/ledger/LedgerPage.tsx"
+        "frontend/src/features/ledger/ExportReportDialog.tsx",
+        "frontend/src/utils/accountingStatements.ts",
+        "frontend/src/utils/exportPdf.ts",
+        "frontend/src/utils/exportReport.ts"
       ],
       "components": [
         "authorization@4.0.0",
@@ -61,11 +64,11 @@
       "confidence": "high"
     },
     {
-      "featureId": "feature-on-laptop-large-screens-ensure-payment-history-expense-history-and-export-report-are-visible-as-desktop-navigation-items-not-hidden-behind-the-hamburger-menu-while-keeping-them-in-the-hamburger-menu-for-small-screens",
-      "featureTitle": "On laptop/large screens, ensure Payment History, Expense History, and Export Report are visible as desktop navigation items (not hidden behind the hamburger menu), while keeping them in the hamburger menu for small screens.",
+      "featureId": "feature-implement-pdf-print-generation-for-the-new-report-types-with-a-clean-printable-layout-a4-consistent-typography-and-page-break-behavior-suitable-for-long-tables",
+      "featureTitle": "Implement PDF/print generation for the new report types with a clean, printable layout (A4), consistent typography, and page-break behavior suitable for long tables.",
       "files": [
-        "frontend/src/features/ledger/LedgerPage.tsx",
-        "frontend/src/features/ledger/MobileLedgerSidebarNav.tsx"
+        "frontend/src/utils/accountingStatements.ts",
+        "frontend/src/utils/exportPdf.ts"
       ],
       "components": [
         "authorization@4.0.0",
@@ -81,11 +84,12 @@
       "confidence": "high"
     },
     {
-      "featureId": "feature-enable-export-pdf-and-export-excel-so-they-are-not-shown-as-not-available-and-are-functional-when-selected-with-clear-user-feedback-on-completion-failure",
-      "featureTitle": "Enable Export PDF and Export Excel so they are not shown as \"Not available\" and are functional when selected, with clear user feedback on completion/failure.",
+      "featureId": "feature-ensure-all-reporting-changes-do-not-impact-the-existing-datasync-feature-sync-polling-merge-save-behavior-and-backend-app-data-persistence",
+      "featureTitle": "Ensure all reporting changes do not impact the existing DataSync feature (sync polling/merge/save behavior and backend app-data persistence).",
       "files": [
         "frontend/src/features/ledger/ExportReportDialog.tsx",
-        "frontend/src/utils/exportPdf.ts"
+        "frontend/src/utils/exportPdf.ts",
+        "frontend/src/utils/exportReport.ts"
       ],
       "components": [
         "authorization@4.0.0",

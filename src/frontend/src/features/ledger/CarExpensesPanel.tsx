@@ -14,7 +14,6 @@ import { toast } from 'sonner';
 import { formatCurrency } from '../../utils/money';
 import { Separator } from '@/components/ui/separator';
 import { useAutoTollSettings } from '../../hooks/useAutoTollSettings';
-import { formatDateKey } from '../../utils/dateRange';
 
 const PREDEFINED_CATEGORIES = [
   'CNG BRD',
@@ -78,7 +77,7 @@ export default function CarExpensesPanel() {
       date,
       note: note || undefined,
     });
-    toast.success(`Car expense of ₹${numAmount} added for ${finalCategory}`);
+    toast.success(`Expense of ₹${numAmount} added for ${finalCategory}`);
     
     // Reset form
     setCategory('');
@@ -95,10 +94,6 @@ export default function CarExpensesPanel() {
     if (!isNaN(num) && num > 0) {
       setAutoTollAmount(num);
     }
-  };
-
-  const handleAutoTollToggle = (checked: boolean) => {
-    setAutoTollEnabled(checked);
   };
 
   // Calculate totals for the current date range
@@ -128,124 +123,130 @@ export default function CarExpensesPanel() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Car className="h-5 w-5" />
-          Car Expenses
+          Expense Record
         </CardTitle>
-        <CardDescription>Track daily car expenses by category</CardDescription>
+        <CardDescription>Track daily expenses by category</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Auto Toll Add Section */}
+        {/* Auto Toll Add Section - Global Toggle */}
         <div className="rounded-lg border p-4 space-y-3 bg-muted/30">
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
-              <Label htmlFor="auto-toll-toggle" className="text-base font-medium">
-                Auto Toll Add
-              </Label>
+              <Label htmlFor="auto-toll-toggle" className="text-base font-medium">Auto Toll Add</Label>
               <p className="text-sm text-muted-foreground">
-                Automatically add toll expense when participation is saved
+                Automatically add toll expenses for new days
               </p>
             </div>
             <Switch
               id="auto-toll-toggle"
               checked={autoTollEnabled}
-              onCheckedChange={handleAutoTollToggle}
+              onCheckedChange={setAutoTollEnabled}
             />
           </div>
-
+          
           <div className="space-y-2">
-            <Label htmlFor="auto-toll-amount">Toll Amount (₹)</Label>
-            <Input
-              id="auto-toll-amount"
-              type="number"
-              value={localAutoTollAmount}
-              onChange={(e) => handleAutoTollAmountChange(e.target.value)}
-              disabled={!autoTollEnabled}
-              placeholder="Enter toll amount"
-            />
+            <Label htmlFor="auto-toll-amount">Toll Amount</Label>
+            <div className="relative">
+              <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                id="auto-toll-amount"
+                type="number"
+                min="1"
+                step="1"
+                value={localAutoTollAmount}
+                onChange={(e) => handleAutoTollAmountChange(e.target.value)}
+                className="pl-9"
+                placeholder="30"
+                disabled={autoTollEnabled}
+                readOnly={autoTollEnabled}
+              />
+            </div>
+            {autoTollEnabled && (
+              <p className="text-xs text-muted-foreground">
+                Turn off Auto Toll Add to edit the amount
+              </p>
+            )}
           </div>
         </div>
 
         <Separator />
 
-        {/* Add Expense Button */}
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button className="w-full">
-              <Plus className="h-4 w-4 mr-2" />
-              Add Car Expense
+              <Plus className="mr-2 h-4 w-4" />
+              Add Expense
             </Button>
           </DialogTrigger>
           <DialogContent>
-            <form onSubmit={handleSubmit}>
-              <DialogHeader>
-                <DialogTitle>Add Car Expense</DialogTitle>
-                <DialogDescription>
-                  Record a new car expense for tracking
-                </DialogDescription>
-              </DialogHeader>
-
-              <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label htmlFor="category">Category</Label>
-                  <Select value={category} onValueChange={setCategory}>
-                    <SelectTrigger id="category">
-                      <SelectValue placeholder="Select category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {PREDEFINED_CATEGORIES.map((cat) => (
-                        <SelectItem key={cat} value={cat}>
-                          {cat}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {category === 'Other' && (
-                  <div className="space-y-2">
-                    <Label htmlFor="custom-category">Custom Category</Label>
-                    <Input
-                      id="custom-category"
-                      value={customCategory}
-                      onChange={(e) => setCustomCategory(e.target.value)}
-                      placeholder="Enter category name"
-                    />
-                  </div>
-                )}
-
-                <div className="space-y-2">
-                  <Label htmlFor="amount">Amount (₹)</Label>
-                  <Input
-                    id="amount"
-                    type="number"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    placeholder="Enter amount"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="date">Date</Label>
-                  <Input
-                    id="date"
-                    type="date"
-                    value={date}
-                    onChange={(e) => setDate(e.target.value)}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="note">Note (Optional)</Label>
-                  <Textarea
-                    id="note"
-                    value={note}
-                    onChange={(e) => setNote(e.target.value)}
-                    placeholder="Add a note"
-                    rows={3}
-                  />
-                </div>
-
-                {error && <p className="text-sm text-destructive">{error}</p>}
+            <DialogHeader>
+              <DialogTitle>Add Expense</DialogTitle>
+              <DialogDescription>Record a new expense</DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="category">Category</Label>
+                <Select value={category} onValueChange={setCategory}>
+                  <SelectTrigger id="category">
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PREDEFINED_CATEGORIES.map((cat) => (
+                      <SelectItem key={cat} value={cat}>
+                        {cat}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
+
+              {category === 'Other' && (
+                <div className="space-y-2">
+                  <Label htmlFor="customCategory">Custom Category</Label>
+                  <Input
+                    id="customCategory"
+                    value={customCategory}
+                    onChange={(e) => setCustomCategory(e.target.value)}
+                    placeholder="Enter category name"
+                  />
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <Label htmlFor="amount">Amount (₹)</Label>
+                <Input
+                  id="amount"
+                  type="number"
+                  min="0.01"
+                  step="0.01"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  placeholder="0.00"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="date">Date</Label>
+                <Input
+                  id="date"
+                  type="date"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="note">Note (optional)</Label>
+                <Textarea
+                  id="note"
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  placeholder="Add any additional details"
+                  rows={3}
+                />
+              </div>
+
+              {error && <p className="text-sm text-destructive">{error}</p>}
 
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setOpen(false)}>
@@ -257,29 +258,22 @@ export default function CarExpensesPanel() {
           </DialogContent>
         </Dialog>
 
-        {/* Expense Summary */}
-        <div className="rounded-lg border p-4 space-y-3">
-          <h3 className="text-sm font-semibold flex items-center gap-2">
-            <IndianRupee className="h-4 w-4" />
-            Expense Summary (Selected Range)
-          </h3>
-          {Object.keys(totals.categoryTotals).length === 0 ? (
-            <p className="text-sm text-muted-foreground">No expenses recorded in this range</p>
-          ) : (
-            <div className="space-y-2">
-              {Object.entries(totals.categoryTotals).map(([cat, total]) => (
-                <div key={cat} className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">{cat}</span>
-                  <span className="font-medium">{formatCurrency(total)}</span>
-                </div>
-              ))}
-              <Separator />
-              <div className="flex justify-between text-base font-semibold">
-                <span>Total</span>
-                <span>{formatCurrency(totals.grandTotal)}</span>
+        {/* Totals Summary */}
+        <div className="space-y-2">
+          <h3 className="text-sm font-semibold">Totals for Selected Range</h3>
+          <div className="space-y-1 text-sm">
+            {Object.entries(totals.categoryTotals).map(([cat, total]) => (
+              <div key={cat} className="flex justify-between">
+                <span className="text-muted-foreground">{cat}:</span>
+                <span className="font-medium">{formatCurrency(total)}</span>
               </div>
+            ))}
+            <Separator className="my-2" />
+            <div className="flex justify-between font-semibold text-base">
+              <span>Grand Total:</span>
+              <span>{formatCurrency(totals.grandTotal)}</span>
             </div>
-          )}
+          </div>
         </div>
       </CardContent>
     </Card>

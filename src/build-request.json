@@ -1,114 +1,115 @@
 {
   "kind": "build_request",
-  "title": "Restore multi-device data sync, improve responsive navigation, and enable PDF/Excel export",
+  "title": "Revamp Export Report page with improved traveller PDF table and standard financial statements (no DataSync impact)",
   "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Add a Logout action inside the in-app hamburger/menu (mobile sidebar) so users can log out from the menu, in addition to any existing logout access.",
+      "text": "Update the Export Report UI (Export Report dialog/page) so the default export includes all travellers, while still supporting an explicit “Selected travellers only” mode.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-4"
+          "msg-user"
         ],
         "quotes": [
-          "Logout Button needs to be add",
-          "1. inside menue"
+          "should it list all travellers by default",
+          "Export report page"
         ]
       },
       "acceptanceCriteria": [
-        "On small screens, the hamburger/sidebar menu includes a clearly labeled \"Log out\" item.",
-        "Clicking \"Log out\" clears the Internet Identity session, clears React Query cache, and removes local storage key \"carpool-ledger-state\" (same behavior as existing header logout).",
-        "After logout, the app returns to the unauthenticated/login state and no user data remains visible."
+        "When the Export Report UI is opened, the traveller filter default is “All travellers”.",
+        "If the user switches to “Selected travellers only”, exporting is blocked with a clear error message unless at least 1 traveller is selected.",
+        "Exports (CSV/PDF/print) respect the traveller filter mode consistently across all traveller-dependent sections."
       ]
     },
     {
       "id": "REQ-2",
-      "text": "Fix and restore multi-device data synchronization so that while logged in with the same account on multiple devices, changes made on one device are reflected on the other within ~2–5 seconds (matching Draft 30 behavior) across all ledger/user inputs.",
-      "target": "both",
+      "text": "Revise the exported traveller summary table (PDF/print and CSV) to match the requested columns and wording: Traveller Name, Trip Count, Total Amount, Total Payment, Balance, State. Ensure the table is produced for all travellers by default.",
+      "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-4"
+          "msg-user"
         ],
         "quotes": [
-          "All Data Sync between multiple device while logged in with same account which was working in Draft 30 for all data and all user inputs",
-          "Same as working in draft 30 - Sync data between 2-5 seconds"
+          "Traveller name, Trip Count, Total Amount, Total payment,Balance, State i want this kind of table for all user or selected user"
         ]
       },
       "acceptanceCriteria": [
-        "When logged in as the same Internet Identity on Device A and Device B, edits to any ledger data on Device A (e.g., travellers, daily participation, payments, car expenses, other pending, co-traveller income, rate per trip, date-range-related state if persisted) are visible on Device B within 2–5 seconds without a manual refresh.",
-        "Edits made concurrently on both devices do not cause data loss; the final state is a merged result consistent with the existing merge strategy (non-destructive merge).",
-        "Sync status indicator updates to show syncing/synced/failed appropriately, and failures do not permanently stop future sync attempts while authenticated.",
-        "Logging out stops polling/sync activity and resets sync state to idle."
+        "PDF/print output contains a traveller summary table with column headers exactly: “Traveller Name”, “Trip Count”, “Total Amount”, “Total Payment”, “Balance”, “State”.",
+        "CSV export contains the same column set and matches the calculated values used in the PDF/print export.",
+        "“State” is a human-readable status derived from the balance (e.g., Due/Overpaid/Settled) and is present for every traveller row.",
+        "The traveller summary table lists all travellers when traveller filter mode is “All travellers”."
       ]
     },
     {
       "id": "REQ-3",
-      "text": "Make the Date Range UI responsive on small screens and fix alignment issues introduced by the hamburger/menu button so the date range controls remain usable and well-aligned on narrow widths.",
+      "text": "Add new report types to the Export Report page: Monthly Report, Profit & Loss Statement, Income Statement, and Expense Statement, generated using standard accounting-style structures based on existing ledger data (income from trips + co-traveller income; expenses from car expenses).",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-4"
+          "msg-user"
         ],
         "quotes": [
-          "Make Date range responsive to fit in small screen size alignment changed due humberge button"
+          "Follow standards",
+          "Also add option to print Monthly report, Profit Loss statement, Income Statement, Expense Staement"
         ]
       },
       "acceptanceCriteria": [
-        "On small screens, the Date Range label and the start/end date buttons wrap or stack cleanly without overlapping the page title/hamburger button.",
-        "Both date buttons remain fully visible and clickable at common narrow widths (e.g., ~320px).",
-        "On larger screens, Date Range layout remains aligned and consistent with existing design."
+        "The Export Report UI offers selectable options for: Monthly Report, Profit & Loss Statement, Income Statement, Expense Statement.",
+        "Each new report type can be exported as PDF/print from the Export Report page.",
+        "Each statement uses consistent “standard” labeling and presentation (sections, totals, and net results where applicable) and is derived only from existing stored ledger fields (no new required user inputs).",
+        "Monthly Report presents a month-by-month breakdown for the currently selected date range."
       ]
     },
     {
       "id": "REQ-4",
-      "text": "On laptop/large screens, ensure Payment History, Expense History, and Export Report are visible as desktop navigation items (not hidden behind the hamburger menu), while keeping them in the hamburger menu for small screens.",
+      "text": "Implement PDF/print generation for the new report types with a clean, printable layout (A4), consistent typography, and page-break behavior suitable for long tables.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-4"
+          "msg-user"
         ],
         "quotes": [
-          "Payment History, Expense Historu & Export report not showing in Laptop Browser i thing all items in humburge menue should be visible on laptop as well",
-          "Yes in laptop only in small size it should be in Humburge menu only"
+          "Export PDF report not upto the mark",
+          "add option to print Monthly report, Profit Loss statement, Income Statement, Expense Staement"
         ]
       },
       "acceptanceCriteria": [
-        "At laptop/desktop widths (i.e., where the desktop tab bar is shown), the UI includes visible, clickable navigation items labeled \"Payment History\", \"Expense History\", and \"Export Report\".",
-        "Clicking each item on desktop opens the same dialogs/views as the mobile menu actions.",
-        "At small/mobile widths, these items remain accessible from the hamburger/sidebar menu."
+        "Printing/exporting any of the new report types opens a print dialog (or equivalent PDF/print flow) and produces a readable A4 layout without overlapping text.",
+        "Long tables do not break rows across pages; headings repeat or remain visually clear at page boundaries where applicable.",
+        "All user-facing text in the generated report is in English."
       ]
     },
     {
       "id": "REQ-5",
-      "text": "Enable Export PDF and Export Excel so they are not shown as \"Not available\" and are functional when selected, with clear user feedback on completion/failure.",
-      "target": "frontend",
+      "text": "Ensure all reporting changes do not impact the existing DataSync feature (sync polling/merge/save behavior and backend app-data persistence).",
+      "target": "both",
       "source": {
         "messageIds": [
-          "msg-4"
+          "msg-user"
         ],
         "quotes": [
-          "Why Export PDF & Excel showing Not available ?",
-          "Buttons are Disabled and drop down shows not available"
+          "please make sure data sync not impact",
+          "Do not impact DataSync feature"
         ]
       },
       "acceptanceCriteria": [
-        "In the Export Report dialog, selecting PDF or Excel no longer shows \"Not Available\" messaging and does not disable the export action purely due to format choice.",
-        "Excel export produces a downloadable file (at minimum a .csv-compatible export is acceptable if generated by the existing Excel export utility) and completes successfully for typical ledger sizes.",
-        "PDF export triggers a functional PDF workflow without external services (e.g., a printable report view using the browser print-to-PDF flow) and provides a clear instruction or automatic print dialog.",
-        "Success and error toasts accurately reflect the outcome for CSV, Excel, and PDF exports."
+        "No changes are made to the DataSync hook behavior (poll interval, debounce timing, merge-before-save logic) beyond any strictly necessary type wiring for new export options.",
+        "Exporting/printing reports does not trigger additional saves, modify ledger state, or change sync status behavior.",
+        "Existing sync continues to function across refresh/login/logout as before, and exporting reports does not introduce sync errors."
       ]
     }
   ],
   "constraints": [
-    "Do not edit files under frontend/immutablePaths (e.g., frontend/src/hooks/useInternetIdentity.ts(x), frontend/src/hooks/useActor.ts, frontend/src/main.tsx, frontend/src/components/ui). Compose using them as-is.",
-    "Backend must remain a single Motoko actor in backend/main.mo; only add backend/migration.mo if a stable-state schema change is required.",
-    "Do not add real-time technologies that are unsupported (e.g., WebSockets). Sync must use the existing polling/merge approach."
+    "Do not modify or weaken the existing DataSync behavior; reporting must be read-only with respect to ledger state.",
+    "Frontend files under frontend/src/components/ui and other immutablePaths must not be edited directly; compose them instead.",
+    "Keep backend as single-actor Motoko architecture; avoid schema/state migrations unless strictly required (not expected for reporting-only changes).",
+    "Use English for any user-facing text."
   ],
   "nonGoals": [
-    "Implementing third-party authentication providers beyond Internet Identity.",
-    "Adding external databases or non-Motoko backend services.",
-    "Adding true real-time push sync; the target behavior must be achieved via polling/refresh mechanics within platform constraints."
+    "Adding new backend storage fields or new accounting categories beyond what already exists in the ledger data.",
+    "Integrating external PDF generation services or third-party reporting tools.",
+    "Real-time collaboration or multi-user shared ledgers beyond the current per-user data model."
   ],
   "imageRequirements": {
     "required": [],

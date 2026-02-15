@@ -37,10 +37,10 @@ export interface backendInterface {
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
     fetchAppData(): Promise<AppData | null>;
     getAllBalances(): Promise<Array<[Principal, bigint]>>;
-    getBalance(user: Principal): Promise<bigint>;
+    getBalance(): Promise<bigint>;
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
-    getCoTravellerIncomes(principal: Principal): Promise<Array<CoTravellerIncome>>;
+    getCoTravellerIncomes(user: Principal): Promise<Array<CoTravellerIncome>>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     isCallerAdmin(): Promise<boolean>;
     saveAppData(newAppData: AppData): Promise<void>;

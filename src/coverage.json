@@ -1,7 +1,7 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-15T05:52:11.611Z",
+  "generatedAt": "2026-02-15T14:51:15.377Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
@@ -12,67 +12,73 @@
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Add a Logout action inside the in-app hamburger/menu (mobile sidebar) so users can log out from the menu, in addition to any existing logout access.",
+        "summary": "Update the Export Report UI (Export Report dialog/page) so the default export includes all travellers, while still supporting an explicit “Selected travellers only” mode.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/features/ledger/MobileLedgerSidebarNav.tsx",
-          "frontend/src/features/ledger/LedgerPage.tsx"
+          "frontend/src/features/ledger/ExportReportDialog.tsx",
+          "frontend/src/utils/exportReport.ts"
         ],
         "matchedFiles": [
-          "frontend/src/features/ledger/MobileLedgerSidebarNav.tsx",
-          "frontend/src/features/ledger/LedgerPage.tsx"
+          "frontend/src/features/ledger/ExportReportDialog.tsx",
+          "frontend/src/utils/exportReport.ts"
         ]
       },
       {
         "id": "REQ-2",
-        "summary": "Fix and restore multi-device data synchronization so that while logged in with the same account on multiple devices, changes made on one device are reflected on the other within ~2–5 seconds (matching Draft 30 behavior) across all ledger/user inputs.",
+        "summary": "Revise the exported traveller summary table (PDF/print and CSV) to match the requested columns and wording: Traveller Name, Trip Count, Total Amount, Total Payment, Balance, State. Ensure the table is produced for all travellers by default.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/hooks/useAppDataSync.ts",
-          "frontend/src/components/SyncStatusIndicator.tsx",
-          "frontend/src/components/AppHeader.tsx"
+          "frontend/src/utils/exportPdf.ts",
+          "frontend/src/utils/exportReport.ts",
+          "frontend/src/utils/ledgerBalances.ts"
         ],
         "matchedFiles": [
-          "frontend/src/hooks/useAppDataSync.ts"
+          "frontend/src/utils/exportPdf.ts",
+          "frontend/src/utils/exportReport.ts"
         ]
       },
       {
         "id": "REQ-3",
-        "summary": "Make the Date Range UI responsive on small screens and fix alignment issues introduced by the hamburger/menu button so the date range controls remain usable and well-aligned on narrow widths.",
+        "summary": "Add new report types to the Export Report page: Monthly Report, Profit & Loss Statement, Income Statement, and Expense Statement, generated using standard accounting-style structures based on existing ledger data (income from trips + co-traveller income; expenses from car expenses).",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/features/ledger/LedgerPage.tsx",
-          "frontend/src/features/ledger/DateRangePicker.tsx"
+          "frontend/src/features/ledger/ExportReportDialog.tsx",
+          "frontend/src/utils/accountingStatements.ts",
+          "frontend/src/utils/exportPdf.ts",
+          "frontend/src/utils/exportReport.ts"
         ],
         "matchedFiles": [
-          "frontend/src/features/ledger/LedgerPage.tsx",
-          "frontend/src/features/ledger/DateRangePicker.tsx"
+          "frontend/src/features/ledger/ExportReportDialog.tsx",
+          "frontend/src/utils/accountingStatements.ts",
+          "frontend/src/utils/exportPdf.ts",
+          "frontend/src/utils/exportReport.ts"
         ]
       },
       {
         "id": "REQ-4",
-        "summary": "On laptop/large screens, ensure Payment History, Expense History, and Export Report are visible as desktop navigation items (not hidden behind the hamburger menu), while keeping them in the hamburger menu for small screens.",
+        "summary": "Implement PDF/print generation for the new report types with a clean, printable layout (A4), consistent typography, and page-break behavior suitable for long tables.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/features/ledger/LedgerPage.tsx",
-          "frontend/src/features/ledger/MobileLedgerSidebarNav.tsx"
+          "frontend/src/utils/exportPdf.ts",
+          "frontend/src/utils/accountingStatements.ts"
         ],
         "matchedFiles": [
-          "frontend/src/features/ledger/LedgerPage.tsx",
-          "frontend/src/features/ledger/MobileLedgerSidebarNav.tsx"
+          "frontend/src/utils/exportPdf.ts",
+          "frontend/src/utils/accountingStatements.ts"
         ]
       },
       {
         "id": "REQ-5",
-        "summary": "Enable Export PDF and Export Excel so they are not shown as \"Not available\" and are functional when selected, with clear user feedback on completion/failure.",
+        "summary": "Ensure all reporting changes do not impact the existing DataSync feature (sync polling/merge/save behavior and backend app-data persistence).",
         "status": "implemented",
         "plannedFiles": [
           "frontend/src/features/ledger/ExportReportDialog.tsx",
-          "frontend/src/utils/exportExcel.ts",
+          "frontend/src/utils/exportReport.ts",
           "frontend/src/utils/exportPdf.ts"
         ],
         "matchedFiles": [
           "frontend/src/features/ledger/ExportReportDialog.tsx",
+          "frontend/src/utils/exportReport.ts",
           "frontend/src/utils/exportPdf.ts"
         ]
       }
@@ -80,16 +86,19 @@
   },
   "changedFiles": [
     "backend/main.mo",
+    "backend/migration.mo",
     "build-request.json",
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/features/ledger/DateRangePicker.tsx",
+    "frontend/src/backend.d.ts",
+    "frontend/src/backend.ts",
+    "frontend/src/declarations/backend.did.d.ts",
+    "frontend/src/declarations/backend.did.js",
     "frontend/src/features/ledger/ExportReportDialog.tsx",
-    "frontend/src/features/ledger/LedgerPage.tsx",
-    "frontend/src/features/ledger/MobileLedgerSidebarNav.tsx",
-    "frontend/src/hooks/useAppDataSync.ts",
+    "frontend/src/utils/accountingStatements.ts",
     "frontend/src/utils/exportPdf.ts",
+    "frontend/src/utils/exportReport.ts",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

@@ -5,13 +5,14 @@ import Runtime "mo:core/Runtime";
 import Time "mo:core/Time";
 import Nat "mo:core/Nat";
 import Array "mo:core/Array";
-import Principal "mo:core/Principal";
-import Iter "mo:core/Iter";
 import Order "mo:core/Order";
+import Principal "mo:core/Principal";
 
+import Migration "migration";
 import MixinAuthorization "authorization/MixinAuthorization";
 import AccessControl "authorization/access-control";
 
+(with migration = Migration.run)
 actor {
   let accessControlState = AccessControl.initState();
   include MixinAuthorization(accessControlState);
@@ -60,7 +61,7 @@ actor {
   module Traveller {
     public type Traveller = {
       principal : Principal;
-      name : Text;
+      pseudo : Text;
     };
   };
 
@@ -93,6 +94,7 @@ actor {
     if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
       Runtime.trap("Unauthorized: Only users can save profiles");
     };
+
     let currentTime = Time.now();
 
     let existingAppData = switch (userAppData.get(caller)) {
@@ -171,12 +173,11 @@ actor {
     balanceList.toArray().sort(compareByAmount);
   };
 
-  public query ({ caller }) func getBalance(user : Principal) : async Nat {
-    if (caller != user and not AccessControl.hasPermission(accessControlState, caller, #admin)) {
-      Runtime.trap("Unauthorized: Only admins can view other users' balances");
+  public query ({ caller }) func getBalance() : async Nat {
+    if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
+      Runtime.trap("Unauthorized: Only users can view their balance");
     };
-
-    switch (pendingBalances.get(user)) {
+    switch (pendingBalances.get(caller)) {
       case (null) { 0 };
       case (?balance) { balance };
     };
@@ -230,12 +231,11 @@ actor {
     };
   };
 
-  public query ({ caller }) func getCoTravellerIncomes(principal : Principal) : async [CoTravellerIncome.CoTravellerIncome] {
-    if (principal != caller and not AccessControl.isAdmin(accessControlState, caller)) {
-      Runtime.trap("Unauthorized: Only admins can view other users' incomes");
+  public query ({ caller }) func getCoTravellerIncomes(user : Principal) : async [CoTravellerIncome.CoTravellerIncome] {
+    if (caller != user and not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Can only view your own co-traveller incomes");
     };
-
-    switch (coTravellerIncomes.get(principal)) {
+    switch (coTravellerIncomes.get(user)) {
       case (null) { [] };
       case (?incomes) { incomes.toArray() };
     };

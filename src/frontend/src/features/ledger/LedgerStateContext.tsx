@@ -8,10 +8,11 @@ import type {
   OtherPending,
   CarExpense,
   CoTravellerIncome,
+  PerDayAutoTollSelection,
 } from '../../hooks/useLedgerLocalState';
 import type { LocalLedgerState } from '../../utils/backupRestore';
 
-interface LedgerState {
+interface LedgerStateContextValue {
   travellers: Traveller[];
   dailyData: DailyData;
   draftDailyData: DailyData;
@@ -23,42 +24,44 @@ interface LedgerState {
   includeSaturday: boolean;
   includeSunday: boolean;
   coTravellerIncomes: CoTravellerIncome[];
+  perDayAutoTollSelection: PerDayAutoTollSelection;
   stateRevision: number;
   addTraveller: (name: string) => void;
   renameTraveller: (id: string, newName: string) => void;
   removeTraveller: (id: string) => void;
   toggleDraftTrip: (dateKey: string, travellerId: string, period: 'morning' | 'evening') => void;
   setDraftTripsForAllTravellers: (dateKey: string, morning: boolean, evening: boolean) => void;
+  updateTravellerTrip: (dateKey: string, travellerId: string, morning: boolean, evening: boolean) => void;
   saveDraftDailyData: () => void;
   discardDraftDailyData: () => void;
   hasDraftChanges: () => boolean;
-  updateTravellerParticipation: (travellerId: string, date: string, morning: boolean, evening: boolean) => void;
-  deleteTravellerParticipation: (travellerId: string, date: string) => void;
   setDateRange: (range: DateRange) => void;
   setRatePerTrip: (rate: number) => void;
   addCashPayment: (payment: Omit<CashPayment, 'id'>) => void;
-  updateCashPayment: (id: string, updates: Partial<CashPayment>) => void;
+  updateCashPayment: (id: string, updates: Partial<Omit<CashPayment, 'id'>>) => void;
   removeCashPayment: (id: string) => void;
   addOtherPending: (pending: Omit<OtherPending, 'id'>) => void;
+  removeOtherPending: (id: string) => void;
   addCarExpense: (expense: Omit<CarExpense, 'id'>) => void;
-  updateCarExpense: (id: string, updates: Partial<CarExpense>) => void;
+  updateCarExpense: (id: string, updates: Partial<Omit<CarExpense, 'id'>>) => void;
   removeCarExpense: (id: string) => void;
   addCoTravellerIncome: (income: CoTravellerIncome) => void;
-  updateCoTravellerIncome: (id: string, amount: number, date: string, note?: string) => void;
+  updateCoTravellerIncome: (id: string, updates: Partial<Omit<CoTravellerIncome, 'id'>>) => void;
   removeCoTravellerIncome: (id: string) => void;
   setIncludeSaturday: (include: boolean) => void;
   setIncludeSunday: (include: boolean) => void;
+  togglePerDayAutoToll: (dateKey: string) => void;
   clearAllLedgerData: () => void;
   clearDailyData: () => void;
   clearCashPayments: () => void;
   clearOtherPending: () => void;
   clearCarExpenses: () => void;
   getPersistedState: () => LocalLedgerState;
-  applyMergedState: (mergedState: LocalLedgerState) => void;
+  applyMergedState: (state: LocalLedgerState) => void;
   mergeRestoreFromBackup: (backupState: LocalLedgerState) => void;
 }
 
-const LedgerStateContext = createContext<LedgerState | undefined>(undefined);
+const LedgerStateContext = createContext<LedgerStateContextValue | null>(null);
 
 export function LedgerStateProvider({ children }: { children: ReactNode }) {
   const ledgerState = useLedgerLocalState();

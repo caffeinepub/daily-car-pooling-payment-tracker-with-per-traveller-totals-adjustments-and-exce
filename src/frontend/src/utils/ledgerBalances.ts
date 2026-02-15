@@ -3,9 +3,16 @@ import { getDaysInRange, formatDateKey } from './dateRange';
 import { isDateIncludedForCalculation } from './weekendInclusion';
 import type { Traveller, DateRange, DailyData, CashPayment, OtherPending } from '../hooks/useLedgerLocalState';
 
+export interface TravellerBalanceResult {
+  totalTrips: number;
+  totalCharge: number;
+  totalPayments: number;
+  balance: number;
+}
+
 /**
  * Calculate the balance for a specific traveller within the given date range
- * Returns the total amount owed (positive) or overpaid (negative)
+ * Returns an object with total trips, charges, payments, and balance
  * 
  * Weekend trips are included if:
  * - The relevant weekend checkbox is enabled, OR
@@ -13,14 +20,14 @@ import type { Traveller, DateRange, DailyData, CashPayment, OtherPending } from 
  */
 export function calculateTravellerBalance(
   travellerId: string,
-  dateRange: DateRange,
   dailyData: DailyData,
+  dateRange: DateRange,
   ratePerTrip: number,
   cashPayments: CashPayment[],
-  otherPending: OtherPending[],
   includeSaturday: boolean,
-  includeSunday: boolean
-): number {
+  includeSunday: boolean,
+  otherPending?: OtherPending[]
+): TravellerBalanceResult {
   const days = getDaysInRange(dateRange.start, dateRange.end);
   
   // Calculate total trips
@@ -52,19 +59,29 @@ export function calculateTravellerBalance(
     })
     .reduce((sum, p) => sum + p.amount, 0);
 
-  // Calculate other pending in range
-  const otherPendingInRange = otherPending
-    .filter((p) => {
-      if (p.travellerId !== travellerId) return false;
-      try {
-        const pendingDate = parseISO(p.date);
-        return pendingDate >= dateRange.start && pendingDate <= dateRange.end;
-      } catch {
-        return false;
-      }
-    })
-    .reduce((sum, p) => sum + p.amount, 0);
+  // Calculate other pending in range (if provided)
+  let otherPendingInRange = 0;
+  if (otherPending) {
+    otherPendingInRange = otherPending
+      .filter((p) => {
+        if (p.travellerId !== travellerId) return false;
+        try {
+          const pendingDate = parseISO(p.date);
+          return pendingDate >= dateRange.start && pendingDate <= dateRange.end;
+        } catch {
+          return false;
+        }
+      })
+      .reduce((sum, p) => sum + p.amount, 0);
+  }
 
   // Balance = charges + other pending - payments
-  return totalCharge + otherPendingInRange - paymentsInRange;
+  const balance = totalCharge + otherPendingInRange - paymentsInRange;
+
+  return {
+    totalTrips,
+    totalCharge,
+    totalPayments: paymentsInRange,
+    balance,
+  };
 }

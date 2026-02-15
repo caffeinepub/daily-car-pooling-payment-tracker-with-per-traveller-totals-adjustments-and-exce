@@ -42,7 +42,7 @@ export const idlService = IDL.Service({
       [IDL.Vec(IDL.Tuple(IDL.Principal, IDL.Nat))],
       ['query'],
     ),
-  'getBalance' : IDL.Func([IDL.Principal], [IDL.Nat], ['query']),
+  'getBalance' : IDL.Func([], [IDL.Nat], ['query']),
   'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
   'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
   'getCoTravellerIncomes' : IDL.Func(
@@ -102,7 +102,7 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Vec(IDL.Tuple(IDL.Principal, IDL.Nat))],
         ['query'],
       ),
-    'getBalance' : IDL.Func([IDL.Principal], [IDL.Nat], ['query']),
+    'getBalance' : IDL.Func([], [IDL.Nat], ['query']),
     'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
     'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
     'getCoTravellerIncomes' : IDL.Func(

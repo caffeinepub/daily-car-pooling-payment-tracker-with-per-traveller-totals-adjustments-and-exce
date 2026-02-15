@@ -13,7 +13,7 @@ export default function ExpenseHistoryDialog({ open, onOpenChange }: ExpenseHist
         <DialogHeader>
           <DialogTitle>Expense History</DialogTitle>
           <DialogDescription>
-            View and manage car expenses within the selected date range
+            View and manage expense records within the selected date range
           </DialogDescription>
         </DialogHeader>
         <ExpenseHistoryView />

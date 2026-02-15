@@ -28,15 +28,9 @@ export default function TravellerManager() {
   const [editingName, setEditingName] = useState('');
 
   const handleAdd = () => {
-    const trimmed = newName.trim();
-    if (trimmed) {
-      try {
-        addTraveller(trimmed);
-        setNewName('');
-        toast.success(`${trimmed} added successfully`);
-      } catch (error: any) {
-        toast.error(error.message || 'Failed to add traveller');
-      }
+    if (newName.trim()) {
+      addTraveller(newName.trim());
+      setNewName('');
     }
   };
 
@@ -47,14 +41,9 @@ export default function TravellerManager() {
 
   const saveEdit = () => {
     if (editingId && editingName.trim()) {
-      try {
-        renameTraveller(editingId, editingName.trim());
-        setEditingId(null);
-        setEditingName('');
-        toast.success('Traveller renamed successfully');
-      } catch (error: any) {
-        toast.error(error.message || 'Failed to rename traveller');
-      }
+      renameTraveller(editingId, editingName.trim());
+      setEditingId(null);
+      setEditingName('');
     }
   };
 
@@ -65,19 +54,19 @@ export default function TravellerManager() {
 
   const handleRemove = (id: string, name: string) => {
     // Calculate the traveller's balance
-    const balance = calculateTravellerBalance(
+    const balanceResult = calculateTravellerBalance(
       id,
-      dateRange,
       dailyData,
+      dateRange,
       ratePerTrip,
       cashPayments,
-      otherPending,
       includeSaturday,
-      includeSunday
+      includeSunday,
+      otherPending
     );
 
     // Block deletion if traveller has outstanding balance
-    if (balance !== 0) {
+    if (balanceResult.balance !== 0) {
       toast.error('Cannot delete traveller: outstanding due amount must be settled first');
       return;
     }

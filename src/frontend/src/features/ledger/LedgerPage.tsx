@@ -1,271 +1,333 @@
 import { useState } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Button } from '@/components/ui/button';
-import { Menu, Plus, CreditCard, Car as CarIcon, FileText } from 'lucide-react';
-import { useInternetIdentity } from '../../hooks/useInternetIdentity';
-import { useQueryClient } from '@tanstack/react-query';
+import AppHeader from '../../components/AppHeader';
 import TravellerManager from './TravellerManager';
 import DateRangePicker from './DateRangePicker';
 import DailyParticipationGrid from './DailyParticipationGrid';
 import SummaryPanel from './SummaryPanel';
-import TripHistoryPanel from './TripHistoryPanel';
-import PaymentSummaryPanel from './PaymentSummaryPanel';
 import CarExpensesPanel from './CarExpensesPanel';
 import OverallSummaryPanel from './OverallSummaryPanel';
 import BackupRestorePanel from './BackupRestorePanel';
 import ClearDataPanel from './ClearDataPanel';
+import RatePerTripControl from './RatePerTripControl';
 import PaymentHistoryDialog from './PaymentHistoryDialog';
 import ExpenseHistoryDialog from './ExpenseHistoryDialog';
 import ExportReportDialog from './ExportReportDialog';
 import CoTravellerIncomeDialog from './CoTravellerIncomeDialog';
 import MobileLedgerSidebarNav from './MobileLedgerSidebarNav';
-import UnsavedChangesConfirmDialog from './UnsavedChangesConfirmDialog';
-import { useLedgerState } from './LedgerStateContext';
+import TripHistoryPanel from './TripHistoryPanel';
+import PaymentSummaryPanel from './PaymentSummaryPanel';
+import { LedgerStateProvider, useLedgerState } from './LedgerStateContext';
+import { useAppDataSync } from '../../hooks/useAppDataSync';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Calendar, Users, Receipt, Car, TrendingUp, Database, Trash2, Menu, UserPlus, History, DollarSign, FileText, MoreVertical } from 'lucide-react';
+import { SiCaffeine } from 'react-icons/si';
 
-export default function LedgerPage() {
-  const [activeTab, setActiveTab] = useState('grid');
-  const [paymentHistoryOpen, setPaymentHistoryOpen] = useState(false);
-  const [expenseHistoryOpen, setExpenseHistoryOpen] = useState(false);
-  const [exportOpen, setExportOpen] = useState(false);
-  const [coTravellerIncomeOpen, setCoTravellerIncomeOpen] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [unsavedDialogOpen, setUnsavedDialogOpen] = useState(false);
+// Tab label mapping
+const TAB_LABELS: Record<string, string> = {
+  travellers: 'Travellers',
+  grid: 'Daily',
+  summary: 'Summary',
+  car: 'Expense Record',
+  overall: 'Overall',
+  backup: 'Backup',
+  clear: 'Clear Data',
+  tripHistory: 'Trip History',
+  paymentSummary: 'Trips & Payment',
+};
+
+function LedgerPageContent() {
+  const [activeTab, setActiveTab] = useState('grid'); // Default to Daily Participation
   const [pendingTab, setPendingTab] = useState<string | null>(null);
+  const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isPaymentHistoryOpen, setIsPaymentHistoryOpen] = useState(false);
+  const [isExpenseHistoryOpen, setIsExpenseHistoryOpen] = useState(false);
+  const [isExportOpen, setIsExportOpen] = useState(false);
+  const [isCoTravellerIncomeOpen, setIsCoTravellerIncomeOpen] = useState(false);
+  const { hasDraftChanges, discardDraftDailyData, getPersistedState, applyMergedState, stateRevision } = useLedgerState();
 
-  const { hasDraftChanges, discardDraftDailyData } = useLedgerState();
-  const { clear } = useInternetIdentity();
-  const queryClient = useQueryClient();
-
-  const getActiveTabLabel = () => {
-    const labels: Record<string, string> = {
-      travellers: 'Travellers',
-      grid: 'Daily Participation',
-      summary: 'Trips & Payment',
-      'trip-history': 'Trip History',
-      'payment-summary': 'Payment Summary',
-      car: 'Car Expenses',
-      overall: 'Overall Summary',
-      backup: 'Backup & Restore',
-      clear: 'Clear Data',
-    };
-    return labels[activeTab] || 'Carpool Menu';
-  };
-
-  const handleLogout = async () => {
-    await clear();
-    queryClient.clear();
-    localStorage.removeItem('carpool-ledger-state');
-    setMobileMenuOpen(false);
-  };
+  // Initialize sync
+  const { syncStatus, lastSyncTime, error: syncError } = useAppDataSync({
+    getLocalState: getPersistedState,
+    applyMergedState,
+    stateRevision,
+  });
 
   const handleTabChange = (newTab: string) => {
-    // Check if leaving Daily Participation tab with unsaved changes
+    // Check for unsaved changes when leaving the Daily tab
     if (activeTab === 'grid' && newTab !== 'grid' && hasDraftChanges()) {
       setPendingTab(newTab);
-      setUnsavedDialogOpen(true);
+      setShowUnsavedDialog(true);
     } else {
       setActiveTab(newTab);
     }
+  };
+
+  const handleDiscardChanges = () => {
+    discardDraftDailyData();
+    if (pendingTab) {
+      setActiveTab(pendingTab);
+    }
+    setShowUnsavedDialog(false);
+    setPendingTab(null);
   };
 
   const handleStay = () => {
-    setUnsavedDialogOpen(false);
+    setShowUnsavedDialog(false);
     setPendingTab(null);
   };
 
-  const handleDiscard = () => {
-    discardDraftDailyData();
-    setUnsavedDialogOpen(false);
-    if (pendingTab) {
-      setActiveTab(pendingTab);
-      setPendingTab(null);
-    }
+  const handleSaveAndNext = () => {
+    setActiveTab('summary');
   };
 
-  const handleMobileTabSelect = (newTab: string) => {
-    // Check if leaving Daily Participation tab with unsaved changes
-    if (activeTab === 'grid' && newTab !== 'grid' && hasDraftChanges()) {
-      setPendingTab(newTab);
-      setUnsavedDialogOpen(true);
-    } else {
-      setActiveTab(newTab);
-      setMobileMenuOpen(false);
-    }
+  const handleOpenPaymentHistory = () => {
+    setIsPaymentHistoryOpen(true);
+    setIsSidebarOpen(false);
   };
 
-  const handleMobileAction = (action: () => void) => {
-    // Check if leaving Daily Participation tab with unsaved changes
-    if (activeTab === 'grid' && hasDraftChanges()) {
-      setPendingTab('action');
-      setUnsavedDialogOpen(true);
-      // Store the action to execute after discard
-      (window as any).__pendingAction = action;
-    } else {
-      setMobileMenuOpen(false);
-      action();
-    }
+  const handleOpenExpenseHistory = () => {
+    setIsExpenseHistoryOpen(true);
+    setIsSidebarOpen(false);
   };
 
-  const handleDiscardWithAction = () => {
-    discardDraftDailyData();
-    setUnsavedDialogOpen(false);
-    setMobileMenuOpen(false);
-    
-    if (pendingTab === 'action' && (window as any).__pendingAction) {
-      const action = (window as any).__pendingAction;
-      delete (window as any).__pendingAction;
-      action();
-    } else if (pendingTab) {
-      setActiveTab(pendingTab);
-    }
-    
-    setPendingTab(null);
+  const handleOpenExport = () => {
+    setIsExportOpen(true);
+    setIsSidebarOpen(false);
+  };
+
+  const handleLogout = () => {
+    // Reset local ledger state on logout
+    applyMergedState({
+      travellers: [],
+      dailyData: {},
+      dateRange: { start: new Date().toISOString(), end: new Date().toISOString() },
+      ratePerTrip: 50,
+      cashPayments: [],
+      otherPending: [],
+      carExpenses: [],
+      includeSaturday: false,
+      includeSunday: false,
+      coTravellerIncomes: [],
+    });
   };
 
   return (
-    <div className="container mx-auto p-4 space-y-6">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          {/* Mobile menu button */}
+    <div className="min-h-screen flex flex-col">
+      <AppHeader syncStatus={syncStatus} lastSyncTime={lastSyncTime} syncError={syncError} onLogout={handleLogout} />
+
+      <main className="flex-1 container py-6 px-4 space-y-6">
+        {/* Date Range, Rate, and Other Co-Traveller */}
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+            <DateRangePicker />
+            {activeTab === 'grid' && (
+              <Button
+                variant="outline"
+                size="default"
+                onClick={() => setIsCoTravellerIncomeOpen(true)}
+                className="gap-2"
+              >
+                <UserPlus className="h-4 w-4" />
+                Other Co-Traveller
+              </Button>
+            )}
+          </div>
+          <div className="flex justify-start">
+            <RatePerTripControl />
+          </div>
+        </div>
+
+        {/* Mobile Hamburger Button with active tab label */}
+        <div className="sm:hidden">
           <Button
             variant="outline"
-            size="icon"
-            className="lg:hidden"
-            onClick={() => setMobileMenuOpen(true)}
+            size="default"
+            onClick={() => setIsSidebarOpen(true)}
+            className="w-full justify-start gap-2"
+            aria-expanded={isSidebarOpen}
+            aria-label="Open Carpool Menu"
           >
             <Menu className="h-5 w-5" />
+            <span>{TAB_LABELS[activeTab] || 'Carpool Menu'}</span>
           </Button>
-          <div>
-            <h1 className="text-2xl font-bold">Carpool Ledger</h1>
-            <p className="text-sm text-muted-foreground lg:hidden">{getActiveTabLabel()}</p>
-          </div>
-        </div>
-        <DateRangePicker />
-      </div>
-
-      <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-        {/* Desktop navigation */}
-        <div className="hidden lg:flex items-center justify-between gap-4">
-          <TabsList>
-            <TabsTrigger value="travellers">Travellers</TabsTrigger>
-            <TabsTrigger value="grid">Daily Participation</TabsTrigger>
-            <TabsTrigger value="summary">Trips & Payment</TabsTrigger>
-            <TabsTrigger value="trip-history">Trip History</TabsTrigger>
-            <TabsTrigger value="payment-summary">Payment Summary</TabsTrigger>
-            <TabsTrigger value="car">Car Expenses</TabsTrigger>
-            <TabsTrigger value="overall">Overall Summary</TabsTrigger>
-            <TabsTrigger value="backup">Backup & Restore</TabsTrigger>
-            <TabsTrigger value="clear">Clear Data</TabsTrigger>
-          </TabsList>
-
-          {/* Desktop action buttons */}
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPaymentHistoryOpen(true)}
-              className="gap-2"
-            >
-              <CreditCard className="h-4 w-4" />
-              Payment History
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setExpenseHistoryOpen(true)}
-              className="gap-2"
-            >
-              <CarIcon className="h-4 w-4" />
-              Expense History
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setExportOpen(true)}
-              className="gap-2"
-            >
-              <FileText className="h-4 w-4" />
-              Export Report
-            </Button>
-          </div>
         </div>
 
-        {/* Other Co-Traveller button (shown only on Daily tab) */}
-        {activeTab === 'grid' && (
-          <div className="flex justify-end">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCoTravellerIncomeOpen(true)}
-              className="gap-2"
-            >
-              <Plus className="h-4 w-4" />
-              Other Co-Traveller
-            </Button>
+        {/* Mobile Sidebar Navigation */}
+        <MobileLedgerSidebarNav
+          isOpen={isSidebarOpen}
+          onClose={() => setIsSidebarOpen(false)}
+          activeTab={activeTab}
+          onTabSelect={handleTabChange}
+          onOpenPaymentHistory={handleOpenPaymentHistory}
+          onOpenExpenseHistory={handleOpenExpenseHistory}
+          onOpenExport={handleOpenExport}
+        />
+
+        {/* Unified Tab Navigation for Desktop/Tablet */}
+        <Tabs value={activeTab} onValueChange={handleTabChange}>
+          <div className="hidden sm:flex items-center gap-4">
+            <TabsList className="grid grid-cols-7 h-auto flex-1">
+              <TabsTrigger value="travellers" className="flex flex-col sm:flex-row items-center gap-1 py-2">
+                <Users className="h-4 w-4" />
+                <span className="text-xs sm:text-sm">Travellers</span>
+              </TabsTrigger>
+              <TabsTrigger value="grid" className="flex flex-col sm:flex-row items-center gap-1 py-2">
+                <Calendar className="h-4 w-4" />
+                <span className="text-xs sm:text-sm">Daily</span>
+              </TabsTrigger>
+              <TabsTrigger value="summary" className="flex flex-col sm:flex-row items-center gap-1 py-2">
+                <Receipt className="h-4 w-4" />
+                <span className="text-xs sm:text-sm">Summary</span>
+              </TabsTrigger>
+              <TabsTrigger value="car" className="flex flex-col sm:flex-row items-center gap-1 py-2">
+                <Car className="h-4 w-4" />
+                <span className="text-xs sm:text-sm">Expense</span>
+              </TabsTrigger>
+              <TabsTrigger value="overall" className="flex flex-col sm:flex-row items-center gap-1 py-2">
+                <TrendingUp className="h-4 w-4" />
+                <span className="text-xs sm:text-sm">Overall</span>
+              </TabsTrigger>
+              <TabsTrigger value="tripHistory" className="flex flex-col sm:flex-row items-center gap-1 py-2">
+                <History className="h-4 w-4" />
+                <span className="text-xs sm:text-sm">Trip History</span>
+              </TabsTrigger>
+              <TabsTrigger value="paymentSummary" className="flex flex-col sm:flex-row items-center gap-1 py-2">
+                <DollarSign className="h-4 w-4" />
+                <span className="text-xs sm:text-sm">Payment</span>
+              </TabsTrigger>
+            </TabsList>
+
+            {/* Desktop Actions Menu */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={handleOpenPaymentHistory}>
+                  <Receipt className="mr-2 h-4 w-4" />
+                  Payment History
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleOpenExpenseHistory}>
+                  <Car className="mr-2 h-4 w-4" />
+                  Expense History
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleOpenExport}>
+                  <FileText className="mr-2 h-4 w-4" />
+                  Export
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleTabChange('backup')}>
+                  <Database className="mr-2 h-4 w-4" />
+                  Backup
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleTabChange('clear')}>
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Clear Data
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
-        )}
 
-        <TabsContent value="travellers">
-          <TravellerManager />
-        </TabsContent>
+          <TabsContent value="travellers" className="mt-6">
+            <TravellerManager />
+          </TabsContent>
+          <TabsContent value="grid" className="mt-6">
+            <DailyParticipationGrid onSaveAndNext={handleSaveAndNext} />
+          </TabsContent>
+          <TabsContent value="summary" className="mt-6">
+            <SummaryPanel />
+          </TabsContent>
+          <TabsContent value="car" className="mt-6">
+            <CarExpensesPanel />
+          </TabsContent>
+          <TabsContent value="overall" className="mt-6">
+            <OverallSummaryPanel />
+          </TabsContent>
+          <TabsContent value="tripHistory" className="mt-6">
+            <TripHistoryPanel />
+          </TabsContent>
+          <TabsContent value="paymentSummary" className="mt-6">
+            <PaymentSummaryPanel />
+          </TabsContent>
+          <TabsContent value="backup" className="mt-6">
+            <BackupRestorePanel />
+          </TabsContent>
+          <TabsContent value="clear" className="mt-6">
+            <ClearDataPanel />
+          </TabsContent>
+        </Tabs>
 
-        <TabsContent value="grid">
-          <DailyParticipationGrid />
-        </TabsContent>
+        {/* Dialogs */}
+        <PaymentHistoryDialog open={isPaymentHistoryOpen} onOpenChange={setIsPaymentHistoryOpen} />
+        <ExpenseHistoryDialog open={isExpenseHistoryOpen} onOpenChange={setIsExpenseHistoryOpen} />
+        <ExportReportDialog open={isExportOpen} onOpenChange={setIsExportOpen} />
+        <CoTravellerIncomeDialog open={isCoTravellerIncomeOpen} onOpenChange={setIsCoTravellerIncomeOpen} />
 
-        <TabsContent value="summary">
-          <SummaryPanel />
-        </TabsContent>
+        {/* Unsaved Changes Dialog */}
+        <AlertDialog open={showUnsavedDialog} onOpenChange={setShowUnsavedDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Unsaved Changes</AlertDialogTitle>
+              <AlertDialogDescription>
+                You have unsaved changes in the Daily Participation grid. Do you want to discard them?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={handleStay}>Stay</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDiscardChanges} className="bg-destructive hover:bg-destructive/90">
+                Discard Changes
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </main>
 
-        <TabsContent value="trip-history">
-          <TripHistoryPanel />
-        </TabsContent>
-
-        <TabsContent value="payment-summary">
-          <PaymentSummaryPanel />
-        </TabsContent>
-
-        <TabsContent value="car">
-          <CarExpensesPanel />
-        </TabsContent>
-
-        <TabsContent value="overall">
-          <OverallSummaryPanel />
-        </TabsContent>
-
-        <TabsContent value="backup">
-          <BackupRestorePanel />
-        </TabsContent>
-
-        <TabsContent value="clear">
-          <ClearDataPanel />
-        </TabsContent>
-      </Tabs>
-
-      {/* Mobile sidebar navigation */}
-      <MobileLedgerSidebarNav
-        isOpen={mobileMenuOpen}
-        onClose={() => setMobileMenuOpen(false)}
-        activeTab={activeTab}
-        onTabSelect={handleMobileTabSelect}
-        onOpenPaymentHistory={() => handleMobileAction(() => setPaymentHistoryOpen(true))}
-        onOpenExpenseHistory={() => handleMobileAction(() => setExpenseHistoryOpen(true))}
-        onOpenExport={() => handleMobileAction(() => setExportOpen(true))}
-        onLogout={handleLogout}
-      />
-
-      {/* Dialogs */}
-      <PaymentHistoryDialog open={paymentHistoryOpen} onOpenChange={setPaymentHistoryOpen} />
-      <ExpenseHistoryDialog open={expenseHistoryOpen} onOpenChange={setExpenseHistoryOpen} />
-      <ExportReportDialog open={exportOpen} onOpenChange={setExportOpen} />
-      <CoTravellerIncomeDialog open={coTravellerIncomeOpen} onOpenChange={setCoTravellerIncomeOpen} />
-      
-      {/* Unsaved changes confirmation */}
-      <UnsavedChangesConfirmDialog
-        open={unsavedDialogOpen}
-        onStay={handleStay}
-        onDiscard={pendingTab === 'action' ? handleDiscardWithAction : handleDiscard}
-      />
+      {/* Footer */}
+      <footer className="border-t py-6 px-4 bg-muted/30">
+        <div className="container flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
+          <p>© {new Date().getFullYear()} Carpool Ledger. All rights reserved.</p>
+          <p className="flex items-center gap-1.5">
+            Built with <SiCaffeine className="h-4 w-4 text-primary" /> using{' '}
+            <a
+              href={`https://caffeine.ai/?utm_source=Caffeine-footer&utm_medium=referral&utm_content=${encodeURIComponent(
+                typeof window !== 'undefined' ? window.location.hostname : 'carpool-ledger'
+              )}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline hover:text-foreground transition-colors"
+            >
+              caffeine.ai
+            </a>
+          </p>
+        </div>
+      </footer>
     </div>
+  );
+}
+
+export default function LedgerPage() {
+  return (
+    <LedgerStateProvider>
+      <LedgerPageContent />
+    </LedgerStateProvider>
   );
 }

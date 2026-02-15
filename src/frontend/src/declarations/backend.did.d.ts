@@ -16,6 +16,12 @@ export interface AppData {
   'ledgerState' : [] | [string],
   'userProfile' : [] | [UserProfile],
 }
+export interface CoTravellerIncome {
+  'date' : Date,
+  'note' : [] | [string],
+  'amount' : bigint,
+}
+export interface Date { 'day' : bigint, 'month' : bigint, 'year' : bigint }
 export type Time = bigint;
 export interface UserProfile { 'name' : string }
 export type UserRole = { 'admin' : null } |
@@ -23,12 +29,17 @@ export type UserRole = { 'admin' : null } |
   { 'guest' : null };
 export interface _SERVICE {
   '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
+  'addCoTravellerIncome' : ActorMethod<
+    [bigint, Date, [] | [string]],
+    undefined
+  >,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
   'fetchAppData' : ActorMethod<[], [] | [AppData]>,
   'getAllBalances' : ActorMethod<[], Array<[Principal, bigint]>>,
   'getBalance' : ActorMethod<[Principal], bigint>,
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
+  'getCoTravellerIncomes' : ActorMethod<[Principal], Array<CoTravellerIncome>>,
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
   'saveAppData' : ActorMethod<[AppData], undefined>,

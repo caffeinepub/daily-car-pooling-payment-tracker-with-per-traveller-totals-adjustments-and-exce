@@ -1,43 +1,43 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "App to store and sync all user-entered data (e.g., name, trip checkbox, payment info, and similar inputs) privately per Internet Identity across multiple devices, using frequent polling (every 2–5 seconds) to simulate near-instant updates.",
+  "summary": "Implement app-wide default date range (current week Monday–Friday) and add Auto Toll functionality in Car Expense menu (toggle + amount input + weekday auto-add).",
   "architectural_notes": [
-    "Sync is simulated via automatic client polling every ~2–5 seconds (no true real-time sync).",
-    "All synced data is private and scoped per Internet Identity user across devices."
+    "Date range components across the app should default to the current week (Mon–Fri) consistently.",
+    "Auto Toll is configured in Car Expense menu; when enabled, a weekday scheduler/trigger should auto-create daily toll expense entries using the configured amount."
   ],
   "known_issues": [],
   "isFixRequest": false,
   "existing_features": [
     {
-      "id": "feature-implement-frontend-multi-device-sync-that-a-loads-the-caller-s-backend-saved-app-data-on-login-b-merges-it-non-destructively-with-existing-local-ledger-state-using-deterministic-merge-rules-and-c-continuously-polls-the-backend-every-2-5-seconds-to-incorporate-updates-made-on-other-devices",
-      "title": "Implement frontend multi-device sync that (a) loads the caller’s backend-saved app data on login, (b) merges it non-destructively with existing local ledger state using deterministic merge rules, and (c) continuously polls the backend every 2–5 seconds to incorporate updates made on other devices.",
+      "id": "feature-update-the-app-s-default-date-range-selection-so-that-on-initial-load-it-is-always-set-to-the-current-week-from-monday-through-friday-inclusive-matching-the-date-range-ui-shown-in-the-provided-screenshot-this-default-must-apply-everywhere-in-the-app-where-a-date-range-is-displayed-used",
+      "title": "Update the app’s default date range selection so that on initial load it is always set to the current week from Monday through Friday (inclusive), matching the date-range UI shown in the provided screenshot. This default must apply everywhere in the app where a date range is displayed/used.",
+      "reqIds": [
+        "REQ-1"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-an-auto-toll-add-toggle-control-inside-the-car-expense-menu-panel-when-enabled-it-turns-on-the-automatic-toll-creation-behavior-described-in-req-4-when-disabled-no-automatic-toll-entries-are-created",
+      "title": "Add an \"Auto Toll Add\" toggle control inside the Car Expense menu/panel. When enabled, it turns on the automatic toll creation behavior described in REQ-4; when disabled, no automatic toll entries are created.",
+      "reqIds": [
+        "REQ-2"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-a-toll-amount-input-beside-the-auto-toll-add-toggle-in-the-car-expense-menu-panel-the-amount-input-must-be-editable-only-when-auto-toll-is-off-when-auto-toll-is-on-the-input-becomes-read-only-and-the-auto-added-toll-expense-amount-uses-this-value",
+      "title": "Add a toll amount input beside the \"Auto Toll Add\" toggle in the Car Expense menu/panel. The amount input must be editable only when Auto Toll is OFF; when Auto Toll is ON, the input becomes read-only and the auto-added toll expense amount uses this value.",
+      "reqIds": [
+        "REQ-3"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-when-auto-toll-add-is-on-automatically-add-a-toll-car-expense-entry-for-each-weekday-monday-friday-using-the-configured-toll-amount-the-system-must-avoid-creating-duplicate-auto-added-toll-entries-for-the-same-date",
+      "title": "When \"Auto Toll Add\" is ON, automatically add a Toll car expense entry for each weekday (Monday–Friday) using the configured toll amount. The system must avoid creating duplicate auto-added toll entries for the same date.",
       "reqIds": [
         "REQ-4"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-implement-frontend-outbound-syncing-so-that-local-user-input-changes-are-saved-back-to-the-backend-with-reasonable-debouncing-batching-and-do-not-overwrite-newer-remote-data-without-applying-the-same-deterministic-merge-rules",
-      "title": "Implement frontend outbound syncing so that local user input changes are saved back to the backend (with reasonable debouncing/batching) and do not overwrite newer remote data without applying the same deterministic merge rules.",
-      "reqIds": [
-        "REQ-5"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-add-a-small-ui-sync-status-indicator-for-authenticated-users-that-clearly-communicates-sync-state-in-english-e-g-synced-syncing-offline-sync-failed-without-exposing-private-data",
-      "title": "Add a small UI sync status indicator for authenticated users that clearly communicates sync state in English (e.g., “Synced”, “Syncing…”, “Offline / Sync failed”), without exposing private data.",
-      "reqIds": [
-        "REQ-6"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-apply-a-coherent-distinctive-visual-theme-across-the-app-colors-typography-spacing-appropriate-for-a-personal-ledger-trip-tracker-avoiding-a-blue-purple-dominant-palette-unless-already-present-keep-the-design-consistent-across-authentication-profile-setup-and-ledger-pages",
-      "title": "Apply a coherent, distinctive visual theme across the app (colors, typography, spacing) appropriate for a personal ledger/trip tracker, avoiding a blue/purple-dominant palette unless already present; keep the design consistent across authentication, profile setup, and ledger pages.",
-      "reqIds": [
-        "REQ-7"
       ],
       "version": 1
     }
@@ -45,36 +45,24 @@
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "Private per-Internet-Identity multi-device data sync for all user inputs (e.g., name, trip checkbox, payment info) using 2–5 second polling to simulate instant updates",
+      "summary": "Set default date range everywhere in the app to current week Monday–Friday",
       "reqIds": [],
       "status": "pending"
     },
     {
       "id": "AR-2",
-      "summary": "Extend the backend data model to store and retrieve the authenticated caller’s full app data (at minimum: the caller’s user profile plus the entire ledger/local state currently stored under the localStorage key \"carpool-ledger-state\"), scoped privately per Internet Identity principal.",
-      "reqIds": [
-        "REQ-1"
-      ],
+      "summary": "Add 'Auto Toll Add' toggle in Car Expense menu to auto-create a toll expense entry each weekday when enabled",
+      "reqIds": [],
       "status": "pending"
     },
     {
       "id": "AR-3",
-      "summary": "Add backend APIs to support multi-device syncing: (1) fetch the caller’s current saved app data, (2) save/commit updated app data for the caller, and (3) include metadata (e.g., lastUpdated timestamp and/or version counter) to enable safe polling and conflict handling.",
-      "reqIds": [
-        "REQ-2"
-      ],
-      "status": "pending"
-    },
-    {
-      "id": "AR-4",
-      "summary": "Persist the synced per-user app data across canister upgrades, and add a conditional migration that preserves existing backend user profile data into the new persisted structure (so current users do not lose their saved name).",
-      "reqIds": [
-        "REQ-3"
-      ],
+      "summary": "Add toll amount input next to Auto Toll toggle; editable only when toggle is OFF and read-only when ON; auto-added toll uses this amount",
+      "reqIds": [],
       "status": "pending"
     }
   ],
-  "projectName": "Private per-Internet-Identity multi-device sync for all user inputs with 2–5s polling",
+  "projectName": "App-wide current-week (Mon–Fri) default date range + Auto Toll Add in Car Expense",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

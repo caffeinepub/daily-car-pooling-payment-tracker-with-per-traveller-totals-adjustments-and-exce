@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import type { LocalLedgerState } from '../utils/backupRestore';
 import { mergeLocalStates } from '../utils/backupRestore';
+import { getCurrentWeekMondayToFriday } from '../utils/dateRange';
 
 export interface Traveller {
   id: string;
@@ -47,6 +48,12 @@ export interface CarExpense {
   note?: string;
 }
 
+export interface CoTravellerIncome {
+  id: string;
+  amount: number;
+  date: string;
+}
+
 const STORAGE_KEY = 'carpool-ledger-state';
 
 interface StoredState {
@@ -59,6 +66,7 @@ interface StoredState {
   carExpenses: CarExpense[];
   includeSaturday: boolean;
   includeSunday: boolean;
+  coTravellerIncomes: CoTravellerIncome[];
 }
 
 // Simple UUID generator
@@ -67,10 +75,7 @@ function generateId(): string {
 }
 
 function getDefaultDateRange(): DateRange {
-  const today = new Date();
-  const start = new Date(today.getFullYear(), today.getMonth(), 1);
-  const end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-  return { start, end };
+  return getCurrentWeekMondayToFriday();
 }
 
 // Deep clone helper to prevent shared references
@@ -97,6 +102,7 @@ function loadState(): StoredState {
         ...parsed,
         includeSaturday: parsed.includeSaturday ?? false,
         includeSunday: parsed.includeSunday ?? false,
+        coTravellerIncomes: parsed.coTravellerIncomes ?? [],
       };
     }
   } catch (error) {
@@ -117,6 +123,7 @@ function loadState(): StoredState {
     carExpenses: [],
     includeSaturday: false,
     includeSunday: false,
+    coTravellerIncomes: [],
   };
 }
 
@@ -139,6 +146,7 @@ export function useLedgerLocalState() {
   const [carExpenses, setCarExpenses] = useState<CarExpense[]>([]);
   const [includeSaturday, setIncludeSaturday] = useState(false);
   const [includeSunday, setIncludeSunday] = useState(false);
+  const [coTravellerIncomes, setCoTravellerIncomes] = useState<CoTravellerIncome[]>([]);
   const [stateRevision, setStateRevision] = useState(0);
   
   // Track if we should skip the next save (used for clearAllLedgerData)
@@ -163,6 +171,7 @@ export function useLedgerLocalState() {
     setCarExpenses(loaded.carExpenses);
     setIncludeSaturday(loaded.includeSaturday);
     setIncludeSunday(loaded.includeSunday);
+    setCoTravellerIncomes(loaded.coTravellerIncomes);
   }, []);
 
   // Save state whenever it changes and increment revision
@@ -185,6 +194,7 @@ export function useLedgerLocalState() {
       carExpenses,
       includeSaturday,
       includeSunday,
+      coTravellerIncomes,
     };
     saveState(state);
 
@@ -193,7 +203,7 @@ export function useLedgerLocalState() {
       setStateRevision((prev) => prev + 1);
     }
     skipRevisionIncrement.current = false;
-  }, [travellers, dailyData, dateRange, ratePerTrip, cashPayments, otherPending, carExpenses, includeSaturday, includeSunday]);
+  }, [travellers, dailyData, dateRange, ratePerTrip, cashPayments, otherPending, carExpenses, includeSaturday, includeSunday, coTravellerIncomes]);
 
   const addTraveller = (name: string) => {
     const newTraveller: Traveller = {
@@ -243,7 +253,6 @@ export function useLedgerLocalState() {
 
   const setDraftTripsForAllTravellers = (dateKey: string, morning: boolean, evening: boolean) => {
     setDraftDailyData((prev) => {
-      // Deep clone to ensure immutability
       const newData = deepCloneDailyData(prev);
       
       if (!newData[dateKey]) {
@@ -251,7 +260,6 @@ export function useLedgerLocalState() {
       }
       
       travellers.forEach((t) => {
-        // Create new TripData object for each traveller
         newData[dateKey][t.id] = { morning, evening };
       });
       
@@ -260,13 +268,10 @@ export function useLedgerLocalState() {
   };
 
   const saveDraftDailyData = () => {
-    // Deep clone draft before saving to prevent future shared references
-    const clonedDraft = deepCloneDailyData(draftDailyData);
-    setDailyData(clonedDraft);
+    setDailyData(deepCloneDailyData(draftDailyData));
   };
 
   const discardDraftDailyData = () => {
-    // Deep clone saved data when discarding to prevent shared references
     setDraftDailyData(deepCloneDailyData(dailyData));
   };
 
@@ -282,7 +287,7 @@ export function useLedgerLocalState() {
     setCashPayments([...cashPayments, newPayment]);
   };
 
-  const updateCashPayment = (id: string, updates: Partial<Omit<CashPayment, 'id'>>) => {
+  const updateCashPayment = (id: string, updates: Partial<CashPayment>) => {
     setCashPayments(cashPayments.map((p) => (p.id === id ? { ...p, ...updates } : p)));
   };
 
@@ -306,7 +311,7 @@ export function useLedgerLocalState() {
     setCarExpenses([...carExpenses, newExpense]);
   };
 
-  const updateCarExpense = (id: string, updates: Partial<Omit<CarExpense, 'id'>>) => {
+  const updateCarExpense = (id: string, updates: Partial<CarExpense>) => {
     setCarExpenses(carExpenses.map((e) => (e.id === id ? { ...e, ...updates } : e)));
   };
 
@@ -314,30 +319,46 @@ export function useLedgerLocalState() {
     setCarExpenses(carExpenses.filter((e) => e.id !== id));
   };
 
-  // Clear functions for Clear Data tab
+  const addCoTravellerIncome = (income: CoTravellerIncome) => {
+    setCoTravellerIncomes([...coTravellerIncomes, income]);
+  };
+
   const clearAllLedgerData = () => {
-    const defaultRange = getDefaultDateRange();
-    
-    // Reset all state to defaults
+    skipNextSave.current = true;
     setTravellers([]);
     setDailyData({});
     setDraftDailyData({});
-    setDateRange(defaultRange);
-    setRatePerTrip(50);
     setCashPayments([]);
     setOtherPending([]);
     setCarExpenses([]);
+    setCoTravellerIncomes([]);
+    
+    const defaultRange = getDefaultDateRange();
+    setDateRange(defaultRange);
+    setRatePerTrip(50);
     setIncludeSaturday(false);
     setIncludeSunday(false);
     
-    // Remove from localStorage and skip the next auto-save
-    localStorage.removeItem(STORAGE_KEY);
-    skipNextSave.current = true;
-    // Don't skip revision increment - we want to sync the clear
+    const clearedState: StoredState = {
+      travellers: [],
+      dailyData: {},
+      dateRange: {
+        start: defaultRange.start.toISOString(),
+        end: defaultRange.end.toISOString(),
+      },
+      ratePerTrip: 50,
+      cashPayments: [],
+      otherPending: [],
+      carExpenses: [],
+      includeSaturday: false,
+      includeSunday: false,
+      coTravellerIncomes: [],
+    };
+    saveState(clearedState);
+    setStateRevision((prev) => prev + 1);
   };
 
   const clearDailyData = () => {
-    // Clear both saved and draft daily data
     setDailyData({});
     setDraftDailyData({});
   };
@@ -354,7 +375,6 @@ export function useLedgerLocalState() {
     setCarExpenses([]);
   };
 
-  // Backup & Restore functions
   const getPersistedState = (): LocalLedgerState => {
     return {
       travellers,
@@ -369,79 +389,68 @@ export function useLedgerLocalState() {
       carExpenses,
       includeSaturday,
       includeSunday,
+      coTravellerIncomes,
     };
+  };
+
+  const applyMergedState = (mergedState: LocalLedgerState) => {
+    skipRevisionIncrement.current = true;
+    
+    setTravellers(mergedState.travellers);
+    const newDailyData = mergedState.dailyData;
+    setDailyData(newDailyData);
+    setDraftDailyData(deepCloneDailyData(newDailyData));
+    setDateRange({
+      start: new Date(mergedState.dateRange.start),
+      end: new Date(mergedState.dateRange.end),
+    });
+    setRatePerTrip(mergedState.ratePerTrip);
+    setCashPayments(mergedState.cashPayments);
+    setOtherPending(mergedState.otherPending);
+    setCarExpenses(mergedState.carExpenses);
+    setIncludeSaturday(mergedState.includeSaturday);
+    setIncludeSunday(mergedState.includeSunday);
+    setCoTravellerIncomes(mergedState.coTravellerIncomes || []);
   };
 
   const mergeRestoreFromBackup = (backupState: LocalLedgerState) => {
     const currentState = getPersistedState();
     const merged = mergeLocalStates(currentState, backupState);
-
-    // Apply merged state
-    setTravellers(merged.travellers);
-    const mergedDailyData = merged.dailyData;
-    setDailyData(mergedDailyData);
-    // Update draft to match merged saved data (discard any unsaved changes)
-    setDraftDailyData(deepCloneDailyData(mergedDailyData));
-    setDateRange({
-      start: new Date(merged.dateRange.start),
-      end: new Date(merged.dateRange.end),
-    });
-    setRatePerTrip(merged.ratePerTrip);
-    setCashPayments(merged.cashPayments);
-    setOtherPending(merged.otherPending);
-    setCarExpenses(merged.carExpenses);
-    setIncludeSaturday(merged.includeSaturday);
-    setIncludeSunday(merged.includeSunday);
-  };
-
-  // Apply merged state from sync (used by sync hook)
-  const applyMergedState = (state: LocalLedgerState) => {
-    skipRevisionIncrement.current = true; // Don't trigger sync on external merge
-    setTravellers(state.travellers);
-    const mergedDailyData = state.dailyData;
-    setDailyData(mergedDailyData);
-    setDraftDailyData(deepCloneDailyData(mergedDailyData));
-    setDateRange({
-      start: new Date(state.dateRange.start),
-      end: new Date(state.dateRange.end),
-    });
-    setRatePerTrip(state.ratePerTrip);
-    setCashPayments(state.cashPayments);
-    setOtherPending(state.otherPending);
-    setCarExpenses(state.carExpenses);
-    setIncludeSaturday(state.includeSaturday);
-    setIncludeSunday(state.includeSunday);
+    applyMergedState(merged);
   };
 
   return {
     travellers,
+    dailyData,
+    draftDailyData,
+    dateRange,
+    ratePerTrip,
+    cashPayments,
+    otherPending,
+    carExpenses,
+    includeSaturday,
+    includeSunday,
+    coTravellerIncomes,
+    stateRevision,
     addTraveller,
     renameTraveller,
     removeTraveller,
-    dailyData,
-    draftDailyData,
     toggleDraftTrip,
     setDraftTripsForAllTravellers,
     saveDraftDailyData,
     discardDraftDailyData,
     hasDraftChanges,
-    dateRange,
     setDateRange,
-    ratePerTrip,
     setRatePerTrip,
-    cashPayments,
     addCashPayment,
     updateCashPayment,
     removeCashPayment,
-    otherPending,
     addOtherPending,
-    carExpenses,
     addCarExpense,
     updateCarExpense,
     removeCarExpense,
-    includeSaturday,
+    addCoTravellerIncome,
     setIncludeSaturday,
-    includeSunday,
     setIncludeSunday,
     clearAllLedgerData,
     clearDailyData,
@@ -449,8 +458,7 @@ export function useLedgerLocalState() {
     clearOtherPending,
     clearCarExpenses,
     getPersistedState,
-    mergeRestoreFromBackup,
     applyMergedState,
-    stateRevision,
+    mergeRestoreFromBackup,
   };
 }

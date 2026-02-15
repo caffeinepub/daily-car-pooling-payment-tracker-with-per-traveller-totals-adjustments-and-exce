@@ -2,7 +2,7 @@ import { format, parseISO } from 'date-fns';
 import { getDaysInRange, formatDateKey } from './dateRange';
 import { isDateIncluded } from './weekendInclusion';
 import { calculateIncomeFromDailyData } from './tripCalculations';
-import type { Traveller, DateRange, DailyData, CashPayment, OtherPending, CarExpense } from '../hooks/useLedgerLocalState';
+import type { Traveller, DateRange, DailyData, CashPayment, OtherPending, CarExpense, CoTravellerIncome } from '../hooks/useLedgerLocalState';
 
 interface LedgerState {
   travellers: Traveller[];
@@ -14,6 +14,7 @@ interface LedgerState {
   carExpenses: CarExpense[];
   includeSaturday: boolean;
   includeSunday: boolean;
+  coTravellerIncomes: CoTravellerIncome[];
 }
 
 interface ExportFilters {
@@ -77,7 +78,7 @@ function getBalanceColor(balance: number): string {
 }
 
 export async function exportToCSV(state: LedgerState, filters: ExportFilters): Promise<void> {
-  const { travellers, dateRange, dailyData, ratePerTrip, cashPayments, otherPending, carExpenses, includeSaturday, includeSunday } = state;
+  const { travellers, dateRange, dailyData, ratePerTrip, cashPayments, otherPending, carExpenses, includeSaturday, includeSunday, coTravellerIncomes } = state;
   const filteredTravellers = filterTravellers(travellers, filters.selectedTravellerIds);
   const days = getDaysInRange(dateRange.start, dateRange.end);
 
@@ -192,14 +193,15 @@ export async function exportToCSV(state: LedgerState, filters: ExportFilters): P
     sections.push('Car Expenses\n' + arrayToCSV(expenseData));
   }
 
-  // Overall Summary - using dailyData-driven calculation
+  // Overall Summary - using dailyData-driven calculation with co-traveller income
   if (filters.includeOverallSummary) {
     const totalIncome = calculateIncomeFromDailyData(
       dailyData,
       dateRange,
       ratePerTrip,
       includeSaturday,
-      includeSunday
+      includeSunday,
+      coTravellerIncomes
     );
 
     const totalExpense = carExpenses
@@ -231,7 +233,7 @@ export async function exportToCSV(state: LedgerState, filters: ExportFilters): P
 
 export async function exportToPDF(state: LedgerState, filters: ExportFilters): Promise<void> {
   // For PDF, we'll generate an HTML document and use the browser's print functionality
-  const { travellers, dateRange, dailyData, ratePerTrip, cashPayments, otherPending, carExpenses, includeSaturday, includeSunday } = state;
+  const { travellers, dateRange, dailyData, ratePerTrip, cashPayments, otherPending, carExpenses, includeSaturday, includeSunday, coTravellerIncomes } = state;
   const filteredTravellers = filterTravellers(travellers, filters.selectedTravellerIds);
   const days = getDaysInRange(dateRange.start, dateRange.end);
 
@@ -380,14 +382,15 @@ export async function exportToPDF(state: LedgerState, filters: ExportFilters): P
     html += '</tbody></table>';
   }
 
-  // Overall Summary - using dailyData-driven calculation
+  // Overall Summary - using dailyData-driven calculation with co-traveller income
   if (filters.includeOverallSummary) {
     const totalIncome = calculateIncomeFromDailyData(
       dailyData,
       dateRange,
       ratePerTrip,
       includeSaturday,
-      includeSunday
+      includeSunday,
+      coTravellerIncomes
     );
 
     const totalExpense = carExpenses
@@ -426,7 +429,7 @@ export async function exportToPDF(state: LedgerState, filters: ExportFilters): P
 
 export async function exportToXLSX(state: LedgerState, filters: ExportFilters): Promise<void> {
   // Generate Excel-compatible HTML with inline styles
-  const { travellers, dateRange, dailyData, ratePerTrip, cashPayments, otherPending, carExpenses, includeSaturday, includeSunday } = state;
+  const { travellers, dateRange, dailyData, ratePerTrip, cashPayments, otherPending, carExpenses, includeSaturday, includeSunday, coTravellerIncomes } = state;
   const filteredTravellers = filterTravellers(travellers, filters.selectedTravellerIds);
   const days = getDaysInRange(dateRange.start, dateRange.end);
 
@@ -558,14 +561,15 @@ export async function exportToXLSX(state: LedgerState, filters: ExportFilters): 
     html += '</tbody></table><br/><br/>';
   }
 
-  // Overall Summary - using dailyData-driven calculation
+  // Overall Summary - using dailyData-driven calculation with co-traveller income
   if (filters.includeOverallSummary) {
     const totalIncome = calculateIncomeFromDailyData(
       dailyData,
       dateRange,
       ratePerTrip,
       includeSaturday,
-      includeSunday
+      includeSunday,
+      coTravellerIncomes
     );
 
     const totalExpense = carExpenses

@@ -1,67 +1,51 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-15T01:10:10.096Z",
-  "summary": "Diff adds per-principal backend AppData storage with fetch/save APIs and a migration module, plus frontend polling-based sync hook and a sync status indicator integrated into the header. However, some requirements are only partially evidenced due to truncation, and some acceptance criteria (notably explicit candid representation of full ledger state and confirmed upgrade persistence wiring) cannot be verified from the provided diff summary.",
+  "generatedAt": "2026-02-15T03:08:12.511Z",
+  "summary": "REQ-1 appears implemented by changing the persisted/default ledger dateRange to the current week Monday–Friday via new dateRange utilities. Auto Toll settings persistence and weekday auto-add logic are implemented, but the diff summary is truncated before showing the CarExpensesPanel JSX, so the presence/placement/labeling of the toggle and the amount input behavior in the UI cannot be confirmed from available evidence. Some extra behaviors were added (defaulting manual Toll amount to 30; auto-added note/toast).",
   "missing_requirements": [
     {
-      "id": "REQ-1",
-      "requirement": "Backend exposes candid types that can represent the full ledger/local state fields (travellers, daily trip checkboxes, rate per trip, payments, pending, expenses, date range, weekend flags) plus user profile.",
-      "reason": "Backend AppData stores ledger state only as `?Text` (JSON string). The diff summary does not show candid types modeling the ledger/local state structure as fields/types; thus the AC about candid types representing the full state is not met based on the evidence provided.",
+      "id": "REQ-2",
+      "requirement": "Add an \"Auto Toll Add\" toggle control inside the Car Expense menu/panel, clearly labeled, and persisted locally across reloads.",
+      "reason": "Local persistence logic for an enabled flag exists (useAutoTollSettings), but the provided CarExpensesPanel diff is truncated before any JSX/UI rendering, so the existence of a clearly labeled toggle inside the panel cannot be verified from the diff summary evidence.",
       "evidence": [
-        "backend/main.mo (AppData.ledgerState : ?Text)"
+        "frontend/src/hooks/useAutoTollSettings.ts",
+        "frontend/src/features/ledger/CarExpensesPanel.tsx (truncated before JSX)"
       ]
     },
     {
       "id": "REQ-3",
-      "requirement": "Persist the synced per-user app data across canister upgrades (stable storage) and perform conditional migration to preserve existing profile data.",
-      "reason": "A migration module is added and main.mo references `(with migration = Migration.run)`, but the diff summary does not show stable variables, preupgrade/postupgrade hooks, or stable state declarations ensuring `userAppData` persists across upgrades. Migration existence alone doesn’t prove upgrade persistence in Motoko.",
+      "requirement": "Add a toll amount input beside the \"Auto Toll Add\" toggle; editable only when Auto Toll is OFF, read-only/disabled when ON; persisted locally across reloads.",
+      "reason": "Local persistence logic for amount exists (useAutoTollSettings) and CarExpensesPanel has state for a local amount string, but the diff is truncated before showing the UI control and whether it is disabled/read-only when Auto Toll is ON and placed beside the toggle.",
       "evidence": [
-        "backend/migration.mo",
-        "backend/main.mo (with migration = Migration.run)",
-        "backend/main.mo (userAppData = Map.empty<Principal, AppData>())"
-      ]
-    },
-    {
-      "id": "REQ-5",
-      "requirement": "Frontend outbound syncing saves local changes back to backend with debouncing/batching and avoids overwriting newer remote data by applying deterministic merge rules; failures surface an understandable error state and retry on subsequent cycles.",
-      "reason": "The sync hook shows debounce constants and begins implementing merge-before-save, but the outbound save logic is truncated. From the summary alone, it’s not verifiable that local change detection triggers saves, that remote-newer detection/merge-before-save is fully implemented, or that retry behavior occurs after failures.",
-      "evidence": [
-        "frontend/src/hooks/useAppDataSync.ts (truncated: saveToBackend implementation)"
-      ]
-    },
-    {
-      "id": "REQ-7",
-      "requirement": "Apply a coherent, distinctive visual theme across the app (avoid blue/purple-dominant palette), consistently across auth/profile/ledger pages.",
-      "reason": "The diff summary indicates theme-related file summaries (e.g., `frontend/index.css`, `frontend/src/index.css`, `frontend/tailwind.config.js`) but those files are not actually listed under MODIFIED FILES with content, so theme changes cannot be verified from the provided diff summary evidence.",
-      "evidence": [
-        "frontend-file-summaries.txt (mentions theme files, but not shown as modified diffs)"
+        "frontend/src/hooks/useAutoTollSettings.ts",
+        "frontend/src/features/ledger/CarExpensesPanel.tsx (truncated before JSX)"
       ]
     }
   ],
   "hallucinated_features": [
     {
-      "description": "Clearing local ledger state on logout by removing localStorage key `carpool-ledger-state`.",
-      "reason": "BuildRequest did not request clearing local storage on logout as part of sync functionality; this is additional behavior beyond specified requirements.",
+      "description": "Automatically default the manual car expense form amount to \"30\" when category \"Toll\" is selected.",
+      "reason": "Not requested; requirements only specify an Auto Toll configured amount input and its use for auto-added tolls, not auto-filling the manual form amount on category selection.",
       "evidence": [
-        "frontend/src/components/AppHeader.tsx (handleLogout removes localStorage key)"
+        "frontend/src/features/ledger/CarExpensesPanel.tsx"
+      ]
+    },
+    {
+      "description": "Auto-added toll expenses include a fixed note \"Auto-added\" and show a success toast indicating how many were added.",
+      "reason": "Not requested in requirements/AC (no mention of notes/toasts for auto-created entries).",
+      "evidence": [
+        "frontend/src/features/ledger/CarExpensesPanel.tsx"
       ]
     }
   ],
   "confidence": 0.62,
   "changed_files": [
-    "backend/main.mo",
-    "backend/migration.mo",
     "frontend-file-summaries.txt",
-    "frontend/src/components/AppHeader.tsx",
-    "frontend/src/components/SyncStatusIndicator.tsx",
-    "frontend/src/features/ledger/BackupRestorePanel.tsx",
-    "frontend/src/features/ledger/LedgerPage.tsx",
-    "frontend/src/features/ledger/LedgerStateContext.tsx",
-    "frontend/src/hooks/useAppDataSync.ts",
+    "frontend/src/features/ledger/CarExpensesPanel.tsx",
+    "frontend/src/hooks/useAutoTollSettings.ts",
     "frontend/src/hooks/useLedgerLocalState.ts",
-    "frontend/src/hooks/useQueries.ts",
-    "frontend/src/utils/backupRestore.ts",
+    "frontend/src/utils/dateRange.ts",
     "project_state.json"
   ]
 }

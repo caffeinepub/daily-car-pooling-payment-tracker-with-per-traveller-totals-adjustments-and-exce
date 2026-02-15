@@ -2,16 +2,71 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-implement-frontend-multi-device-sync-that-a-loads-the-caller-s-backend-saved-app-data-on-login-b-merges-it-non-destructively-with-existing-local-ledger-state-using-deterministic-merge-rules-and-c-continuously-polls-the-backend-every-2-5-seconds-to-incorporate-updates-made-on-other-devices",
-      "featureTitle": "Implement frontend multi-device sync that (a) loads the caller’s backend-saved app data on login, (b) merges it non-destructively with existing local ledger state using deterministic merge rules, and (c) continuously polls the backend every 2–5 seconds to incorporate updates made on other devices.",
+      "featureId": "feature-update-the-app-s-default-date-range-selection-so-that-on-initial-load-it-is-always-set-to-the-current-week-from-monday-through-friday-inclusive-matching-the-date-range-ui-shown-in-the-provided-screenshot-this-default-must-apply-everywhere-in-the-app-where-a-date-range-is-displayed-used",
+      "featureTitle": "Update the app’s default date range selection so that on initial load it is always set to the current week from Monday through Friday (inclusive), matching the date-range UI shown in the provided screenshot. This default must apply everywhere in the app where a date range is displayed/used.",
       "files": [
-        "frontend/src/components/AppHeader.tsx",
-        "frontend/src/features/ledger/LedgerPage.tsx",
-        "frontend/src/features/ledger/LedgerStateContext.tsx",
-        "frontend/src/hooks/useAppDataSync.ts",
         "frontend/src/hooks/useLedgerLocalState.ts",
-        "frontend/src/hooks/useQueries.ts",
-        "frontend/src/utils/backupRestore.ts"
+        "frontend/src/utils/dateRange.ts"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-1"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-add-an-auto-toll-add-toggle-control-inside-the-car-expense-menu-panel-when-enabled-it-turns-on-the-automatic-toll-creation-behavior-described-in-req-4-when-disabled-no-automatic-toll-entries-are-created",
+      "featureTitle": "Add an \"Auto Toll Add\" toggle control inside the Car Expense menu/panel. When enabled, it turns on the automatic toll creation behavior described in REQ-4; when disabled, no automatic toll entries are created.",
+      "files": [
+        "frontend/src/features/ledger/CarExpensesPanel.tsx",
+        "frontend/src/hooks/useAutoTollSettings.ts"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-2"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-add-a-toll-amount-input-beside-the-auto-toll-add-toggle-in-the-car-expense-menu-panel-the-amount-input-must-be-editable-only-when-auto-toll-is-off-when-auto-toll-is-on-the-input-becomes-read-only-and-the-auto-added-toll-expense-amount-uses-this-value",
+      "featureTitle": "Add a toll amount input beside the \"Auto Toll Add\" toggle in the Car Expense menu/panel. The amount input must be editable only when Auto Toll is OFF; when Auto Toll is ON, the input becomes read-only and the auto-added toll expense amount uses this value.",
+      "files": [
+        "frontend/src/features/ledger/CarExpensesPanel.tsx",
+        "frontend/src/hooks/useAutoTollSettings.ts"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-3"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-when-auto-toll-add-is-on-automatically-add-a-toll-car-expense-entry-for-each-weekday-monday-friday-using-the-configured-toll-amount-the-system-must-avoid-creating-duplicate-auto-added-toll-entries-for-the-same-date",
+      "featureTitle": "When \"Auto Toll Add\" is ON, automatically add a Toll car expense entry for each weekday (Monday–Friday) using the configured toll amount. The system must avoid creating duplicate auto-added toll entries for the same date.",
+      "files": [
+        "frontend/src/features/ledger/CarExpensesPanel.tsx",
+        "frontend/src/utils/dateRange.ts"
       ],
       "components": [
         "authorization@4.0.0",
@@ -23,66 +78,6 @@
       ],
       "testIds": [
         "REQ-4"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-implement-frontend-outbound-syncing-so-that-local-user-input-changes-are-saved-back-to-the-backend-with-reasonable-debouncing-batching-and-do-not-overwrite-newer-remote-data-without-applying-the-same-deterministic-merge-rules",
-      "featureTitle": "Implement frontend outbound syncing so that local user input changes are saved back to the backend (with reasonable debouncing/batching) and do not overwrite newer remote data without applying the same deterministic merge rules.",
-      "files": [
-        "frontend/src/hooks/useAppDataSync.ts",
-        "frontend/src/hooks/useLedgerLocalState.ts"
-      ],
-      "components": [
-        "authorization@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "github-export-icp-cli@1.0.0"
-      ],
-      "testIds": [
-        "REQ-5"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-add-a-small-ui-sync-status-indicator-for-authenticated-users-that-clearly-communicates-sync-state-in-english-e-g-synced-syncing-offline-sync-failed-without-exposing-private-data",
-      "featureTitle": "Add a small UI sync status indicator for authenticated users that clearly communicates sync state in English (e.g., “Synced”, “Syncing…”, “Offline / Sync failed”), without exposing private data.",
-      "files": [
-        "frontend/src/components/AppHeader.tsx",
-        "frontend/src/components/SyncStatusIndicator.tsx",
-        "frontend/src/hooks/useAppDataSync.ts"
-      ],
-      "components": [
-        "authorization@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "github-export-icp-cli@1.0.0"
-      ],
-      "testIds": [
-        "REQ-6"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-apply-a-coherent-distinctive-visual-theme-across-the-app-colors-typography-spacing-appropriate-for-a-personal-ledger-trip-tracker-avoiding-a-blue-purple-dominant-palette-unless-already-present-keep-the-design-consistent-across-authentication-profile-setup-and-ledger-pages",
-      "featureTitle": "Apply a coherent, distinctive visual theme across the app (colors, typography, spacing) appropriate for a personal ledger/trip tracker, avoiding a blue/purple-dominant palette unless already present; keep the design consistent across authentication, profile setup, and ledger pages.",
-      "files": [
-        "frontend/src/components/AppHeader.tsx"
-      ],
-      "components": [
-        "authorization@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "github-export-icp-cli@1.0.0"
-      ],
-      "testIds": [
-        "REQ-7"
       ],
       "confidence": "high"
     }

@@ -8,6 +8,11 @@
 
 import { IDL } from '@icp-sdk/core/candid';
 
+export const Date = IDL.Record({
+  'day' : IDL.Nat,
+  'month' : IDL.Nat,
+  'year' : IDL.Nat,
+});
 export const UserRole = IDL.Variant({
   'admin' : IDL.Null,
   'user' : IDL.Null,
@@ -21,9 +26,15 @@ export const AppData = IDL.Record({
   'ledgerState' : IDL.Opt(IDL.Text),
   'userProfile' : IDL.Opt(UserProfile),
 });
+export const CoTravellerIncome = IDL.Record({
+  'date' : Date,
+  'note' : IDL.Opt(IDL.Text),
+  'amount' : IDL.Nat,
+});
 
 export const idlService = IDL.Service({
   '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
+  'addCoTravellerIncome' : IDL.Func([IDL.Nat, Date, IDL.Opt(IDL.Text)], [], []),
   'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
   'fetchAppData' : IDL.Func([], [IDL.Opt(AppData)], ['query']),
   'getAllBalances' : IDL.Func(
@@ -34,6 +45,11 @@ export const idlService = IDL.Service({
   'getBalance' : IDL.Func([IDL.Principal], [IDL.Nat], ['query']),
   'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
   'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
+  'getCoTravellerIncomes' : IDL.Func(
+      [IDL.Principal],
+      [IDL.Vec(CoTravellerIncome)],
+      ['query'],
+    ),
   'getUserProfile' : IDL.Func(
       [IDL.Principal],
       [IDL.Opt(UserProfile)],
@@ -48,6 +64,11 @@ export const idlService = IDL.Service({
 export const idlInitArgs = [];
 
 export const idlFactory = ({ IDL }) => {
+  const Date = IDL.Record({
+    'day' : IDL.Nat,
+    'month' : IDL.Nat,
+    'year' : IDL.Nat,
+  });
   const UserRole = IDL.Variant({
     'admin' : IDL.Null,
     'user' : IDL.Null,
@@ -61,9 +82,19 @@ export const idlFactory = ({ IDL }) => {
     'ledgerState' : IDL.Opt(IDL.Text),
     'userProfile' : IDL.Opt(UserProfile),
   });
+  const CoTravellerIncome = IDL.Record({
+    'date' : Date,
+    'note' : IDL.Opt(IDL.Text),
+    'amount' : IDL.Nat,
+  });
   
   return IDL.Service({
     '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
+    'addCoTravellerIncome' : IDL.Func(
+        [IDL.Nat, Date, IDL.Opt(IDL.Text)],
+        [],
+        [],
+      ),
     'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
     'fetchAppData' : IDL.Func([], [IDL.Opt(AppData)], ['query']),
     'getAllBalances' : IDL.Func(
@@ -74,6 +105,11 @@ export const idlFactory = ({ IDL }) => {
     'getBalance' : IDL.Func([IDL.Principal], [IDL.Nat], ['query']),
     'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
     'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
+    'getCoTravellerIncomes' : IDL.Func(
+        [IDL.Principal],
+        [IDL.Vec(CoTravellerIncome)],
+        ['query'],
+      ),
     'getUserProfile' : IDL.Func(
         [IDL.Principal],
         [IDL.Opt(UserProfile)],

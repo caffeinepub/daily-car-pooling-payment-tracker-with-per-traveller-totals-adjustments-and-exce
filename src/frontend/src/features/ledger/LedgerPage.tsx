@@ -8,13 +8,16 @@ import CarExpensesPanel from './CarExpensesPanel';
 import OverallSummaryPanel from './OverallSummaryPanel';
 import BackupRestorePanel from './BackupRestorePanel';
 import ClearDataPanel from './ClearDataPanel';
-import ExportButton from './ExportButton';
 import RatePerTripControl from './RatePerTripControl';
 import PaymentHistoryDialog from './PaymentHistoryDialog';
 import ExpenseHistoryDialog from './ExpenseHistoryDialog';
+import ExportReportDialog from './ExportReportDialog';
+import CoTravellerIncomeDialog from './CoTravellerIncomeDialog';
+import MobileLedgerSidebarNav from './MobileLedgerSidebarNav';
 import { LedgerStateProvider, useLedgerState } from './LedgerStateContext';
 import { useAppDataSync } from '../../hooks/useAppDataSync';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,12 +28,17 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Calendar, Users, Receipt, Car, TrendingUp, Database, Trash2 } from 'lucide-react';
+import { Calendar, Users, Receipt, Car, TrendingUp, Database, Trash2, Menu, UserPlus } from 'lucide-react';
 
 function LedgerPageContent() {
-  const [activeTab, setActiveTab] = useState('travellers');
+  const [activeTab, setActiveTab] = useState('grid'); // Default to Daily Participation
   const [pendingTab, setPendingTab] = useState<string | null>(null);
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isPaymentHistoryOpen, setIsPaymentHistoryOpen] = useState(false);
+  const [isExpenseHistoryOpen, setIsExpenseHistoryOpen] = useState(false);
+  const [isExportOpen, setIsExportOpen] = useState(false);
+  const [isCoTravellerIncomeOpen, setIsCoTravellerIncomeOpen] = useState(false);
   const { hasDraftChanges, discardDraftDailyData, getPersistedState, applyMergedState, stateRevision } = useLedgerState();
 
   // Initialize sync
@@ -68,29 +76,76 @@ function LedgerPageContent() {
     setActiveTab('summary');
   };
 
+  const handleOpenPaymentHistory = () => {
+    setIsPaymentHistoryOpen(true);
+    setIsSidebarOpen(false);
+  };
+
+  const handleOpenExpenseHistory = () => {
+    setIsExpenseHistoryOpen(true);
+    setIsSidebarOpen(false);
+  };
+
+  const handleOpenExport = () => {
+    setIsExportOpen(true);
+    setIsSidebarOpen(false);
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
       <AppHeader syncStatus={syncStatus} lastSyncTime={lastSyncTime} />
 
       <main className="flex-1 container py-6 px-4 space-y-6">
-        {/* Date Range, Rate, Payment History, Expense History & Export */}
+        {/* Date Range, Rate, and Other Co-Traveller */}
         <div className="flex flex-col gap-4">
           <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
             <DateRangePicker />
-            <div className="flex gap-2 flex-wrap">
-              <PaymentHistoryDialog />
-              <ExpenseHistoryDialog />
-              <ExportButton />
-            </div>
+            {activeTab === 'grid' && (
+              <Button
+                variant="outline"
+                size="default"
+                onClick={() => setIsCoTravellerIncomeOpen(true)}
+                className="gap-2"
+              >
+                <UserPlus className="h-4 w-4" />
+                Other Co-Traveller
+              </Button>
+            )}
           </div>
           <div className="flex justify-start">
             <RatePerTripControl />
           </div>
         </div>
 
-        {/* Unified Tab Navigation for All Screen Sizes */}
+        {/* Mobile Hamburger Button */}
+        <div className="sm:hidden">
+          <Button
+            variant="outline"
+            size="default"
+            onClick={() => setIsSidebarOpen(true)}
+            className="w-full justify-start gap-2"
+            aria-expanded={isSidebarOpen}
+            aria-label="Open Carpool Menu"
+          >
+            <Menu className="h-5 w-5" />
+            <span>Carpool Menu</span>
+          </Button>
+        </div>
+
+        {/* Mobile Sidebar Navigation */}
+        <MobileLedgerSidebarNav
+          isOpen={isSidebarOpen}
+          onClose={() => setIsSidebarOpen(false)}
+          activeTab={activeTab}
+          onTabSelect={handleTabChange}
+          onOpenPaymentHistory={handleOpenPaymentHistory}
+          onOpenExpenseHistory={handleOpenExpenseHistory}
+          onOpenExport={handleOpenExport}
+        />
+
+        {/* Unified Tab Navigation for Desktop/Tablet */}
         <Tabs value={activeTab} onValueChange={handleTabChange}>
-          <TabsList className="grid w-full grid-cols-7 h-auto">
+          <TabsList className="hidden sm:grid w-full grid-cols-7 h-auto">
             <TabsTrigger value="travellers" className="flex flex-col sm:flex-row items-center gap-1 py-2">
               <Users className="h-4 w-4" />
               <span className="text-xs sm:text-sm">Travellers</span>
@@ -143,6 +198,12 @@ function LedgerPageContent() {
           </TabsContent>
         </Tabs>
       </main>
+
+      {/* Dialogs */}
+      <PaymentHistoryDialog open={isPaymentHistoryOpen} onOpenChange={setIsPaymentHistoryOpen} />
+      <ExpenseHistoryDialog open={isExpenseHistoryOpen} onOpenChange={setIsExpenseHistoryOpen} />
+      <ExportReportDialog open={isExportOpen} onOpenChange={setIsExportOpen} />
+      <CoTravellerIncomeDialog open={isCoTravellerIncomeOpen} onOpenChange={setIsCoTravellerIncomeOpen} />
 
       {/* Unsaved Changes Dialog */}
       <AlertDialog open={showUnsavedDialog} onOpenChange={setShowUnsavedDialog}>

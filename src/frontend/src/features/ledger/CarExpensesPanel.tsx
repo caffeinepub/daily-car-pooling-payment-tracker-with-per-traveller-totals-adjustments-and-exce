@@ -7,11 +7,14 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Plus, Car } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Plus, Car, IndianRupee } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { toast } from 'sonner';
 import { formatCurrency } from '../../utils/money';
 import { Separator } from '@/components/ui/separator';
+import { useAutoTollSettings } from '../../hooks/useAutoTollSettings';
+import { getWeekdaysInRange } from '../../utils/dateRange';
 
 const PREDEFINED_CATEGORIES = [
   'CNG BRD',
@@ -24,6 +27,8 @@ const PREDEFINED_CATEGORIES = [
 
 export default function CarExpensesPanel() {
   const { dateRange, carExpenses, addCarExpense } = useLedgerState();
+  const { enabled: autoTollEnabled, amount: autoTollAmount, setEnabled: setAutoTollEnabled, setAmount: setAutoTollAmount } = useAutoTollSettings();
+  
   const [open, setOpen] = useState(false);
   const [category, setCategory] = useState('');
   const [customCategory, setCustomCategory] = useState('');
@@ -31,6 +36,12 @@ export default function CarExpensesPanel() {
   const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [note, setNote] = useState('');
   const [error, setError] = useState('');
+  const [localAutoTollAmount, setLocalAutoTollAmount] = useState(autoTollAmount.toString());
+
+  // Sync local amount input with persisted amount
+  useEffect(() => {
+    setLocalAutoTollAmount(autoTollAmount.toString());
+  }, [autoTollAmount]);
 
   // Default amount to 30 when Toll is selected
   useEffect(() => {
@@ -38,6 +49,35 @@ export default function CarExpensesPanel() {
       setAmount('30');
     }
   }, [category]);
+
+  // Auto-add toll expenses when enabled
+  useEffect(() => {
+    if (!autoTollEnabled) return;
+
+    const weekdays = getWeekdaysInRange(dateRange.start, dateRange.end);
+    const existingTollDates = new Set(
+      carExpenses
+        .filter((e) => e.category === 'Toll')
+        .map((e) => e.date)
+    );
+
+    let addedCount = 0;
+    weekdays.forEach((dateKey) => {
+      if (!existingTollDates.has(dateKey)) {
+        addCarExpense({
+          category: 'Toll',
+          amount: autoTollAmount,
+          date: dateKey,
+          note: 'Auto-added',
+        });
+        addedCount++;
+      }
+    });
+
+    if (addedCount > 0) {
+      toast.success(`Auto-added ${addedCount} toll expense(s) for weekdays`);
+    }
+  }, [autoTollEnabled, dateRange, autoTollAmount]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,6 +118,18 @@ export default function CarExpensesPanel() {
     setOpen(false);
   };
 
+  const handleAutoTollAmountChange = (value: string) => {
+    setLocalAutoTollAmount(value);
+    const num = parseFloat(value);
+    if (!isNaN(num) && num > 0) {
+      setAutoTollAmount(num);
+    }
+  };
+
+  const handleAutoTollToggle = (checked: boolean) => {
+    setAutoTollEnabled(checked);
+  };
+
   // Calculate totals for the current date range
   const totals = useMemo(() => {
     const expensesInRange = carExpenses.filter((expense) => {
@@ -110,6 +162,50 @@ export default function CarExpensesPanel() {
         <CardDescription>Track daily car expenses by category</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Auto Toll Add Section */}
+        <div className="rounded-lg border p-4 space-y-3 bg-muted/30">
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label htmlFor="auto-toll-toggle" className="text-base font-medium">
+                Auto Toll Add
+              </Label>
+              <p className="text-sm text-muted-foreground">
+                Automatically add toll expenses for weekdays
+              </p>
+            </div>
+            <Switch
+              id="auto-toll-toggle"
+              checked={autoTollEnabled}
+              onCheckedChange={handleAutoTollToggle}
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="auto-toll-amount">Toll Amount</Label>
+            <div className="relative">
+              <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                id="auto-toll-amount"
+                type="number"
+                min="1"
+                step="1"
+                value={localAutoTollAmount}
+                onChange={(e) => handleAutoTollAmountChange(e.target.value)}
+                disabled={autoTollEnabled}
+                className="pl-9"
+                placeholder="30"
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {autoTollEnabled 
+                ? 'Amount is read-only while Auto Toll is enabled' 
+                : 'Enter the toll amount to auto-add for each weekday'}
+            </p>
+          </div>
+        </div>
+
+        <Separator />
+
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button className="w-full">
@@ -141,7 +237,7 @@ export default function CarExpensesPanel() {
 
               {category === 'Other' && (
                 <div className="space-y-2">
-                  <Label htmlFor="customCategory">Custom Category Name</Label>
+                  <Label htmlFor="customCategory">Custom Category</Label>
                   <Input
                     id="customCategory"
                     value={customCategory}
@@ -156,6 +252,7 @@ export default function CarExpensesPanel() {
                 <Input
                   id="amount"
                   type="number"
+                  min="0.01"
                   step="0.01"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
@@ -196,25 +293,22 @@ export default function CarExpensesPanel() {
           </DialogContent>
         </Dialog>
 
-        {/* Category Totals */}
-        <div className="space-y-3">
-          <h3 className="text-sm font-semibold">Category Totals (Current Range)</h3>
-          <Separator />
+        {/* Totals Section */}
+        <div className="space-y-2">
+          <h4 className="text-sm font-medium">Expenses in Current Range</h4>
           {Object.keys(totals.categoryTotals).length === 0 ? (
             <p className="text-sm text-muted-foreground">No expenses recorded yet</p>
           ) : (
-            <div className="space-y-2">
-              {Object.entries(totals.categoryTotals)
-                .sort(([, a], [, b]) => b - a)
-                .map(([cat, total]) => (
-                  <div key={cat} className="flex justify-between items-center text-sm">
-                    <span className="text-muted-foreground">{cat}</span>
-                    <span className="font-semibold">{formatCurrency(total)}</span>
-                  </div>
-                ))}
-              <Separator />
-              <div className="flex justify-between items-center text-base font-bold">
-                <span>Grand Total</span>
+            <div className="space-y-1">
+              {Object.entries(totals.categoryTotals).map(([cat, total]) => (
+                <div key={cat} className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">{cat}</span>
+                  <span className="font-medium">{formatCurrency(total)}</span>
+                </div>
+              ))}
+              <Separator className="my-2" />
+              <div className="flex justify-between text-sm font-semibold">
+                <span>Total</span>
                 <span>{formatCurrency(totals.grandTotal)}</span>
               </div>
             </div>

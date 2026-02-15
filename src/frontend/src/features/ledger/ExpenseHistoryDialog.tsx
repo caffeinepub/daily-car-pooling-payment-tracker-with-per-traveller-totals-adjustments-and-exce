@@ -1,20 +1,14 @@
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Receipt } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import ExpenseHistoryView from './ExpenseHistoryView';
 
-export default function ExpenseHistoryDialog() {
-  const [open, setOpen] = useState(false);
+interface ExpenseHistoryDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
 
+export default function ExpenseHistoryDialog({ open, onOpenChange }: ExpenseHistoryDialogProps) {
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline">
-          <Receipt className="mr-2 h-4 w-4" />
-          Expense History
-        </Button>
-      </DialogTrigger>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Expense History</DialogTitle>

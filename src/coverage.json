@@ -1,126 +1,78 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-15T01:10:10.100Z",
+  "generatedAt": "2026-02-15T03:08:12.514Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 7,
+    "total": 4,
     "implemented": 4,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Extend the backend data model to store and retrieve the authenticated caller’s full app data (at minimum: the caller’s user profile plus the entire ledger/local state currently stored under the localStorage key \"carpool-ledger-state\"), scoped privately per Internet Identity principal.",
-        "status": "unknown",
-        "plannedFiles": [],
-        "matchedFiles": []
-      },
-      {
-        "id": "REQ-2",
-        "summary": "Add backend APIs to support multi-device syncing: (1) fetch the caller’s current saved app data, (2) save/commit updated app data for the caller, and (3) include metadata (e.g., lastUpdated timestamp and/or version counter) to enable safe polling and conflict handling.",
-        "status": "unknown",
-        "plannedFiles": [],
-        "matchedFiles": []
-      },
-      {
-        "id": "REQ-3",
-        "summary": "Persist the synced per-user app data across canister upgrades, and add a conditional migration that preserves existing backend user profile data into the new persisted structure (so current users do not lose their saved name).",
-        "status": "unknown",
-        "plannedFiles": [],
-        "matchedFiles": []
-      },
-      {
-        "id": "REQ-4",
-        "summary": "Implement frontend multi-device sync that (a) loads the caller’s backend-saved app data on login, (b) merges it non-destructively with existing local ledger state using deterministic merge rules, and (c) continuously polls the backend every 2–5 seconds to incorporate updates made on other devices.",
+        "summary": "Update the app’s default date range selection so that on initial load it is always set to the current week from Monday through Friday (inclusive), matching the date-range UI shown in the provided screenshot. This default must apply everywhere in the app where a date range is displayed/used.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/hooks/useAppDataSync.ts",
-          "frontend/src/hooks/useQueries.ts",
-          "frontend/src/utils/backupRestore.ts",
-          "frontend/src/hooks/useLedgerLocalState.ts",
-          "frontend/src/features/ledger/LedgerStateContext.tsx",
-          "frontend/src/features/ledger/LedgerPage.tsx",
-          "frontend/src/components/AppHeader.tsx"
+          "frontend/src/utils/dateRange.ts",
+          "frontend/src/hooks/useLedgerLocalState.ts"
         ],
         "matchedFiles": [
-          "frontend/src/hooks/useAppDataSync.ts",
-          "frontend/src/hooks/useQueries.ts",
-          "frontend/src/utils/backupRestore.ts",
-          "frontend/src/hooks/useLedgerLocalState.ts",
-          "frontend/src/features/ledger/LedgerStateContext.tsx",
-          "frontend/src/features/ledger/LedgerPage.tsx",
-          "frontend/src/components/AppHeader.tsx"
-        ]
-      },
-      {
-        "id": "REQ-5",
-        "summary": "Implement frontend outbound syncing so that local user input changes are saved back to the backend (with reasonable debouncing/batching) and do not overwrite newer remote data without applying the same deterministic merge rules.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/hooks/useAppDataSync.ts",
-          "frontend/src/hooks/useLedgerLocalState.ts",
-          "frontend/src/features/ledger/ClearDataPanel.tsx",
-          "frontend/src/hooks/useInternetIdentity.ts"
-        ],
-        "matchedFiles": [
-          "frontend/src/hooks/useAppDataSync.ts",
+          "frontend/src/utils/dateRange.ts",
           "frontend/src/hooks/useLedgerLocalState.ts"
         ]
       },
       {
-        "id": "REQ-6",
-        "summary": "Add a small UI sync status indicator for authenticated users that clearly communicates sync state in English (e.g., “Synced”, “Syncing…”, “Offline / Sync failed”), without exposing private data.",
+        "id": "REQ-2",
+        "summary": "Add an \"Auto Toll Add\" toggle control inside the Car Expense menu/panel. When enabled, it turns on the automatic toll creation behavior described in REQ-4; when disabled, no automatic toll entries are created.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/components/SyncStatusIndicator.tsx",
-          "frontend/src/hooks/useAppDataSync.ts",
-          "frontend/src/components/AppHeader.tsx"
+          "frontend/src/hooks/useAutoTollSettings.ts",
+          "frontend/src/features/ledger/CarExpensesPanel.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/components/SyncStatusIndicator.tsx",
-          "frontend/src/hooks/useAppDataSync.ts",
-          "frontend/src/components/AppHeader.tsx"
+          "frontend/src/hooks/useAutoTollSettings.ts",
+          "frontend/src/features/ledger/CarExpensesPanel.tsx"
         ]
       },
       {
-        "id": "REQ-7",
-        "summary": "Apply a coherent, distinctive visual theme across the app (colors, typography, spacing) appropriate for a personal ledger/trip tracker, avoiding a blue/purple-dominant palette unless already present; keep the design consistent across authentication, profile setup, and ledger pages.",
+        "id": "REQ-3",
+        "summary": "Add a toll amount input beside the \"Auto Toll Add\" toggle in the Car Expense menu/panel. The amount input must be editable only when Auto Toll is OFF; when Auto Toll is ON, the input becomes read-only and the auto-added toll expense amount uses this value.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/index.css",
-          "frontend/src/components/AuthGate.tsx",
-          "frontend/src/components/ProfileSetupModal.tsx",
-          "frontend/src/components/AppHeader.tsx",
-          "frontend/tailwind.config.js"
+          "frontend/src/hooks/useAutoTollSettings.ts",
+          "frontend/src/features/ledger/CarExpensesPanel.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/components/AppHeader.tsx"
+          "frontend/src/hooks/useAutoTollSettings.ts",
+          "frontend/src/features/ledger/CarExpensesPanel.tsx"
+        ]
+      },
+      {
+        "id": "REQ-4",
+        "summary": "When \"Auto Toll Add\" is ON, automatically add a Toll car expense entry for each weekday (Monday–Friday) using the configured toll amount. The system must avoid creating duplicate auto-added toll entries for the same date.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/utils/dateRange.ts",
+          "frontend/src/features/ledger/CarExpensesPanel.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/utils/dateRange.ts",
+          "frontend/src/features/ledger/CarExpensesPanel.tsx"
         ]
       }
     ]
   },
   "changedFiles": [
-    "backend/main.mo",
-    "backend/migration.mo",
     "build-request.json",
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/backend.d.ts",
-    "frontend/src/backend.ts",
-    "frontend/src/components/AppHeader.tsx",
-    "frontend/src/components/SyncStatusIndicator.tsx",
-    "frontend/src/declarations/backend.did.d.ts",
-    "frontend/src/declarations/backend.did.js",
-    "frontend/src/features/ledger/BackupRestorePanel.tsx",
-    "frontend/src/features/ledger/LedgerPage.tsx",
-    "frontend/src/features/ledger/LedgerStateContext.tsx",
-    "frontend/src/hooks/useAppDataSync.ts",
+    "frontend/src/features/ledger/CarExpensesPanel.tsx",
+    "frontend/src/hooks/useAutoTollSettings.ts",
     "frontend/src/hooks/useLedgerLocalState.ts",
-    "frontend/src/hooks/useQueries.ts",
-    "frontend/src/utils/backupRestore.ts",
+    "frontend/src/utils/dateRange.ts",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

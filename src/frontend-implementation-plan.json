@@ -1,145 +1,89 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Per-Internet-Identity multi-device polling sync for ledger inputs (frontend)",
+  "title": "Current work-week default date range + Auto Toll Add in Car Expense",
   "requirements": [
     {
+      "id": "REQ-1",
+      "summary": "Change the shared ledger dateRange default to always initialize as the current week Monday–Friday across the app (replacing current-month default).",
+      "acceptanceCriteria": [
+        "On a fresh load, the Date Range control shows the current week’s Monday as start date and Friday as end date.",
+        "The default is not the current month anymore.",
+        "All screens/components that rely on the shared ledger dateRange reflect the Monday–Friday current-week default consistently."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/utils/dateRange.ts",
+          "operation": "modify",
+          "description": "Add a utility to compute the current week (Mon–Fri) DateRange and any small helpers needed to reuse this default consistently throughout the frontend."
+        },
+        {
+          "path": "frontend/src/hooks/useLedgerLocalState.ts",
+          "operation": "modify",
+          "description": "Update the ledger state initialization logic so the default dateRange on app load is always the current week Monday–Friday (inclusive), and ensure the same default is applied wherever the dateRange is initialized/reset (e.g., first run and clear/reset flows)."
+        }
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "summary": "Add an \"Auto Toll Add\" toggle in the Car Expense panel and persist its state locally across reloads.",
+      "acceptanceCriteria": [
+        "The Car Expense panel includes a clearly labeled \"Auto Toll Add\" toggle.",
+        "The toggle state is persisted locally so it remains the same after a page reload."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/hooks/useAutoTollSettings.ts",
+          "operation": "create",
+          "description": "Create a small hook to load/save the Auto Toll enabled setting to localStorage (including safe parsing and a stable storage key)."
+        },
+        {
+          "path": "frontend/src/features/ledger/CarExpensesPanel.tsx",
+          "operation": "modify",
+          "description": "Add a clearly labeled \"Auto Toll Add\" toggle control within the Car Expense UI and wire it to the persisted setting from useAutoTollSettings (compose existing UI components; do not edit files under frontend/src/components/ui). Verify the component's usage instructions before implementing."
+        }
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "summary": "Add a persisted toll amount input beside the Auto Toll Add toggle; editable only when Auto Toll is OFF and read-only when ON.",
+      "acceptanceCriteria": [
+        "When Auto Toll is OFF, the toll amount input can be edited.",
+        "When Auto Toll is ON, the toll amount input is read-only/disabled but still displays the configured amount.",
+        "The amount value is persisted locally and survives page reloads."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/hooks/useAutoTollSettings.ts",
+          "operation": "modify",
+          "description": "Extend the Auto Toll settings hook to also persist a tollAmount value to localStorage, including defaults and validation/coercion for numeric input."
+        },
+        {
+          "path": "frontend/src/features/ledger/CarExpensesPanel.tsx",
+          "operation": "modify",
+          "description": "Place a toll amount input beside the \"Auto Toll Add\" toggle; disable/read-only the input when Auto Toll is ON and allow editing only when OFF, while always showing the persisted configured amount. Verify the component's usage instructions before implementing."
+        }
+      ]
+    },
+    {
       "id": "REQ-4",
-      "summary": "Load backend-saved app data on login, merge deterministically with local ledger state, and poll every 2–5 seconds to incorporate remote updates while authenticated.",
+      "summary": "When Auto Toll Add is enabled, auto-create one Toll car expense per weekday (Mon–Fri) using the configured amount, without duplicates for the same date.",
       "acceptanceCriteria": [
-        "When a user logs in on Device A, makes changes (e.g., toggles trip checkboxes, adds payments/expenses, edits travellers), and then logs in on Device B, Device B reflects those changes after at most ~5 seconds (via polling).",
-        "Polling interval is within 2–5 seconds (fixed value in that range or randomized jitter within that range) and does not run when the user is logged out.",
-        "Incoming backend state is merged with local state deterministically (idempotent merge; no duplicate payments/expenses/travellers are created).",
-        "The existing backup/restore merge semantics remain consistent with the sync merge semantics (non-destructive, deterministic)."
+        "Enabling Auto Toll results in Toll expense entries being created for applicable weekdays without requiring manual form submission.",
+        "Each auto-created toll expense uses the configured toll amount from the amount input.",
+        "No duplicate auto-added toll entry is created for the same date if the user revisits/reloads the app or toggles Auto Toll on multiple times.",
+        "Auto Toll does not create entries for Saturday or Sunday."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/hooks/useAppDataSync.ts",
-          "operation": "create",
-          "description": "Create a sync orchestrator hook that uses the authenticated actor to (1) fetch the caller’s remote AppData on login, (2) parse remote ledgerState JSON into LocalLedgerState, (3) merge remote->local using the same deterministic rules as backupRestore.mergeLocalStates (non-destructive; OR semantics for trip booleans; id-based dedupe for travellers/payments/expenses; settings consistent with documented behavior), and (4) start/stop a 2–5s polling loop that only runs while authenticated. Implement idempotent application of remote changes by tracking last-seen remote metadata (e.g., version/lastUpdated) and skipping merges when unchanged. Verify the component's usage instructions before implementing."
+          "path": "frontend/src/utils/dateRange.ts",
+          "operation": "modify",
+          "description": "Add helper(s) to enumerate weekdays (Mon–Fri) within a given DateRange (using existing date key formatting) to support deterministic auto-creation checks."
         },
         {
-          "path": "frontend/src/hooks/useQueries.ts",
+          "path": "frontend/src/features/ledger/CarExpensesPanel.tsx",
           "operation": "modify",
-          "description": "Extend React Query hooks to include a query/mutation wrapper for backend fetchAppData() and saveAppData() (backend capability calls only; no new routes). These will be used by useAppDataSync for initial load and polling. Ensure queries are disabled when actor is not ready. Verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/utils/backupRestore.ts",
-          "operation": "modify",
-          "description": "Extract or add a small helper that reuses the existing deterministic merge semantics for sync scenarios (e.g., a named merge function for 'local + remote ledgerState' that delegates to mergeLocalStates). Keep behavior aligned with the current Backup & Restore 'Merge Behavior' text (non-destructive; id-based dedupe; trip OR). Verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/hooks/useLedgerLocalState.ts",
-          "operation": "modify",
-          "description": "Add a minimal API to apply a merged LocalLedgerState into the in-memory state (e.g., applyMergedState/replacePersistedState) so the sync layer can deterministically update travellers, dailyData, payments, expenses, date range, rate, and weekend toggles in one place without creating duplicates. Reuse existing deepCloneDailyData protections when setting dailyData/draftDailyData. Verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/features/ledger/LedgerStateContext.tsx",
-          "operation": "modify",
-          "description": "Expose the new 'apply merged state' capability (and optionally a lightweight stateRevision counter) from useLedgerLocalState via context so useAppDataSync can safely read current persisted state and apply merged updates. Verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/features/ledger/LedgerPage.tsx",
-          "operation": "modify",
-          "description": "Wire the sync hook into the authenticated ledger experience by invoking useAppDataSync inside the LedgerStateProvider tree (so it can read/apply ledger state) and ensuring it is mounted only when the user is past AuthGate/profile gating. Verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/components/AppHeader.tsx",
-          "operation": "modify",
-          "description": "Integrate authenticated-only sync UI placement (status indicator added in REQ-6) and ensure logout flow clears cached app data per the selected 'authorization' component’s frontend guidance (clear React Query cache already present; also trigger clearing local cached ledger state via a shared utility or coordinated effect). Verify the component's usage instructions before implementing."
-        }
-      ]
-    },
-    {
-      "id": "REQ-5",
-      "summary": "Automatically save local user input changes back to the backend with debouncing, merging against newer remote data to avoid overwriting and handling failures without blocking UI.",
-      "acceptanceCriteria": [
-        "When the user changes any ledger inputs locally, the backend is updated automatically without requiring manual export/import.",
-        "If Device A and Device B both make changes, the next poll/save cycle results in a merged state consistent with deterministic rules (no data loss for additive items like payments/expenses; trip booleans merge without flipping from true to false due to sync).",
-        "Sync does not block core UI interactions; failed sync attempts surface an understandable error state and retry on subsequent polling cycles."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/hooks/useAppDataSync.ts",
-          "operation": "modify",
-          "description": "Add outbound syncing to the sync orchestrator: detect local ledger changes (via context stateRevision or a stable serialization hash), debounce/batch saves, and before committing ensure no newer remote metadata exists by fetching latest and applying the same deterministic merge rules (remote + local) prior to saving. Persist/update last-known remote metadata after successful save and ensure failures set sync status to a retryable error without blocking user interactions. Verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/hooks/useLedgerLocalState.ts",
-          "operation": "modify",
-          "description": "Provide a stable change signal for debounced outbound sync (e.g., incrementing revision counter on persisted state changes, excluding transient UI-only state) so the sync hook can efficiently detect user input changes. Verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/features/ledger/ClearDataPanel.tsx",
-          "operation": "modify",
-          "description": "After destructive local clears, ensure the sync layer is notified so it can commit the cleared state (or the appropriate merged state) back to the backend via the same debounced outbound sync mechanism, avoiding a stale remote re-hydration on the next poll. Keep all user-facing strings in English. Verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/hooks/useInternetIdentity.ts",
-          "operation": "modify",
-          "description": "On logout (identity cleared), ensure any in-memory timers/intervals related to sync are torn down by the sync hook and that cached application data guidance from the selected 'authorization' component is followed (clear cached profile and ledger state; do not keep showing prior user data when logged out). Verify the component's usage instructions before implementing."
-        }
-      ]
-    },
-    {
-      "id": "REQ-6",
-      "summary": "Add a small authenticated-only sync status indicator that communicates current sync state in English.",
-      "acceptanceCriteria": [
-        "When authenticated and polling, the UI shows a status reflecting current sync activity/result.",
-        "On backend/network failure, the UI indicates failure and resumes syncing automatically when connectivity returns.",
-        "All user-facing strings are in English."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/components/SyncStatusIndicator.tsx",
-          "operation": "create",
-          "description": "Create a small presentational component that renders the current sync state text in English (e.g., “Synced”, “Syncing…”, “Offline / Sync failed”) without exposing private data; keep it compact for header placement and accessible (screen-reader friendly). Verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/hooks/useAppDataSync.ts",
-          "operation": "modify",
-          "description": "Expose a minimal sync status state machine (idle/syncing/synced/failed) and last successful sync time (optional) for UI display. Ensure state updates on poll start/success/failure and outbound save attempts. Verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/components/AppHeader.tsx",
-          "operation": "modify",
-          "description": "Wire SyncStatusIndicator into the authenticated header layout so users can always see current sync status while using the ledger. Keep indicator hidden when logged out. Verify the component's usage instructions before implementing."
-        }
-      ]
-    },
-    {
-      "id": "REQ-7",
-      "summary": "Apply a coherent, distinctive visual theme across authentication, profile setup, and ledger screens (avoid blue/purple-dominant palette) while preserving English copy and readability.",
-      "acceptanceCriteria": [
-        "The app uses a consistent theme (light/dark compatible if already supported) with a distinct style (e.g., paper/ledger-inspired neutrals with an accent color not dominated by blue/purple).",
-        "No user-facing text is changed to a non-English language.",
-        "Theme changes do not break readability or component contrast in common screens (login, profile setup modal, ledger tabs, backup/restore, clear data)."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/index.css",
-          "operation": "modify",
-          "description": "Refine the global theme tokens (colors/typography/spacing) to reinforce a ledger/paper-inspired neutral palette with a non-blue/purple accent, ensuring adequate contrast in both light and dark modes. Keep existing Tailwind token strategy intact. Verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/components/AuthGate.tsx",
-          "operation": "modify",
-          "description": "Align the unauthenticated login screen styling with the global theme (background, card elevation, typography) to match the ledger pages and avoid a blue/purple-dominant look. Keep all user-facing text in English. Verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/components/ProfileSetupModal.tsx",
-          "operation": "modify",
-          "description": "Adjust modal spacing/typography and surface styling so profile setup visually matches the rest of the app theme and remains readable in light/dark modes. Keep all user-facing strings in English. Verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/components/AppHeader.tsx",
-          "operation": "modify",
-          "description": "Ensure header branding, icon treatment, and spacing are consistent with the refined theme and do not reduce contrast/legibility. Verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/tailwind.config.js",
-          "operation": "modify",
-          "description": "If needed for the theme refinements, adjust Tailwind theme extensions (e.g., shadows/radii/typography defaults) to support a cohesive ledger look while preserving existing token-based color mapping. Verify the component's usage instructions before implementing."
+          "description": "Implement Auto Toll behavior: when enabled, compute applicable weekdays (Mon–Fri) (e.g., within the currently selected dateRange), create missing Toll car expense entries using the configured amount, and prevent duplicates by checking existing carExpenses for the same date before adding. Ensure this runs on enable and on app reload while the app is open. Verify the component's usage instructions before implementing."
         }
       ]
     }

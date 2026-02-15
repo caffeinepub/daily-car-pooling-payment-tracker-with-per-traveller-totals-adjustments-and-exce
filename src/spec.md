@@ -1,15 +1,12 @@
 # Specification
 
 ## Summary
-**Goal:** Enable private, per-Internet-Identity multi-device syncing of all user-entered ledger data via backend persistence and 2–5s polling, with a clear sync status indicator and a consistent visual theme.
+**Goal:** Make the app default to a Monday–Friday current-week date range everywhere, and add an Auto Toll Add feature in the Car Expense panel with a persisted toggle and toll amount that can auto-create weekday toll entries without duplicates.
 
 **Planned changes:**
-- Extend backend storage to persist the authenticated caller’s complete app data (user profile + full ledger/local state currently saved under `localStorage` key `carpool-ledger-state`), scoped per Internet Identity principal.
-- Add backend fetch/save APIs for per-user app data, including metadata (e.g., lastUpdated/version) to support polling and basic conflict handling.
-- Persist the new per-user data across canister upgrades, with a conditional migration to preserve existing saved user profile data for current users.
-- Implement frontend sync: load backend-saved data on login, deterministically merge with existing local state, and poll backend every 2–5 seconds while authenticated to pull updates from other devices.
-- Implement outbound frontend sync: debounce/batch local changes, merge safely with newer remote data, and surface sync failures without blocking UI.
-- Add an authenticated-only UI sync status indicator (English) showing states like “Synced”, “Syncing…”, and “Offline / Sync failed”.
-- Apply a coherent, distinctive visual theme across authentication, profile setup, and ledger pages, avoiding a blue/purple-dominant palette.
+- Change the app-wide default date range (on fresh load) to the current week from Monday through Friday (inclusive), replacing the current-month default, and ensure all date-range consumers use this same default.
+- Add an "Auto Toll Add" toggle to the Car Expense panel and persist its state locally across reloads.
+- Add a toll amount input beside the toggle; persist the amount locally; allow editing only when Auto Toll is OFF and make it read-only/disabled when Auto Toll is ON while still displaying the configured value.
+- When Auto Toll is ON, automatically create a Toll car expense entry for each weekday (Mon–Fri) using the configured amount, ensuring no duplicate auto-added Toll entry is created for the same date (including across reloads or repeated toggles).
 
-**User-visible outcome:** After logging in with Internet Identity on multiple devices, a user’s profile and all ledger inputs automatically sync privately across devices within ~5 seconds, with a visible sync status and a refreshed, consistent app theme.
+**User-visible outcome:** On first load, the app shows the current week (Mon–Fri) in the date range everywhere. In Car Expense, users can enable/disable Auto Toll Add, set a toll amount, and (when enabled) see Toll expenses auto-added for weekdays without duplicates.

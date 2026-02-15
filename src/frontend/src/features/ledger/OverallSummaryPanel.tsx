@@ -1,14 +1,12 @@
-import { useLedgerState } from './LedgerStateContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { formatCurrency } from '../../utils/money';
-import { parseISO, format } from 'date-fns';
-import { TrendingUp, IndianRupee, Car, DollarSign } from 'lucide-react';
-import { calculateIncomeFromDailyData } from '../../utils/tripCalculations';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import ResponsiveTableShell from '../../components/ResponsiveTableShell';
+import { useLedgerState } from './LedgerStateContext';
+import { formatINR } from '../../utils/money';
+import { IndianRupee, Car } from 'lucide-react';
+import { parseISO } from 'date-fns';
+import { calculateIncomeFromDailyData, calculateMonthlyIncomeFromDailyData } from '../../utils/tripCalculations';
 
 export default function OverallSummaryPanel() {
-  const { dateRange, dailyData, ratePerTrip, carExpenses, includeSaturday, includeSunday } = useLedgerState();
+  const { dailyData, dateRange, ratePerTrip, carExpenses, includeSaturday, includeSunday, coTravellerIncomes } = useLedgerState();
 
   // Calculate total income using dailyData-driven calculation
   const totalIncome = calculateIncomeFromDailyData(
@@ -16,167 +14,152 @@ export default function OverallSummaryPanel() {
     dateRange,
     ratePerTrip,
     includeSaturday,
-    includeSunday
+    includeSunday,
+    coTravellerIncomes
   );
 
-  // Calculate total expenses in range
-  const expensesInRange = carExpenses.filter((e) => {
-    try {
-      const expenseDate = parseISO(e.date);
-      return expenseDate >= dateRange.start && expenseDate <= dateRange.end;
-    } catch {
-      return false;
-    }
-  });
+  // Calculate total car expenses within date range
+  const totalExpense = carExpenses
+    .filter((e) => {
+      try {
+        const expenseDate = parseISO(e.date);
+        return expenseDate >= dateRange.start && expenseDate <= dateRange.end;
+      } catch {
+        return false;
+      }
+    })
+    .reduce((sum, e) => sum + e.amount, 0);
 
-  const totalExpense = expensesInRange.reduce((sum, e) => sum + e.amount, 0);
   const profitLoss = totalIncome - totalExpense;
 
-  // Month-wise breakdown
-  const monthlyData: Record<string, { income: number; expense: number }> = {};
+  // Calculate monthly breakdown
+  const monthlyIncome = calculateMonthlyIncomeFromDailyData(
+    dailyData,
+    dateRange,
+    ratePerTrip,
+    includeSaturday,
+    includeSunday,
+    coTravellerIncomes
+  );
 
-  // Calculate monthly income from dailyData
-  const allDates = Object.keys(dailyData);
-  allDates.forEach((dateKey) => {
-    try {
-      const [year, month] = dateKey.split('-');
-      const date = new Date(parseInt(year), parseInt(month) - 1, 1);
-      
-      // Check if date is in range
-      if (date < new Date(dateRange.start.getFullYear(), dateRange.start.getMonth(), 1) ||
-          date > new Date(dateRange.end.getFullYear(), dateRange.end.getMonth() + 1, 0)) {
-        return;
-      }
-
-      const monthKey = format(date, 'MMM yyyy');
-      if (!monthlyData[monthKey]) {
-        monthlyData[monthKey] = { income: 0, expense: 0 };
-      }
-
-      // Count trips for this date
-      const dayData = dailyData[dateKey];
-      let dayTrips = 0;
-      Object.values(dayData).forEach((tripData) => {
-        dayTrips += (tripData.morning ? 1 : 0) + (tripData.evening ? 1 : 0);
-      });
-
-      monthlyData[monthKey].income += dayTrips * ratePerTrip;
-    } catch {
-      // Skip invalid dates
-    }
-  });
-
-  // Add expenses to monthly data
-  expensesInRange.forEach((e) => {
+  const monthlyExpenses = new Map<string, number>();
+  carExpenses.forEach((e) => {
     try {
       const expenseDate = parseISO(e.date);
-      const monthKey = format(expenseDate, 'MMM yyyy');
-      if (!monthlyData[monthKey]) {
-        monthlyData[monthKey] = { income: 0, expense: 0 };
+      if (expenseDate >= dateRange.start && expenseDate <= dateRange.end) {
+        const monthKey = `${expenseDate.getFullYear()}-${String(expenseDate.getMonth() + 1).padStart(2, '0')}`;
+        monthlyExpenses.set(monthKey, (monthlyExpenses.get(monthKey) || 0) + e.amount);
       }
-      monthlyData[monthKey].expense += e.amount;
     } catch {
       // Skip invalid dates
     }
   });
 
-  const monthlyEntries = Object.entries(monthlyData).map(([month, data]) => ({
-    month,
-    income: data.income,
-    expense: data.expense,
-    profit: data.income - data.expense,
-  }));
+  // Combine all months
+  const allMonths = new Set([...monthlyIncome.keys(), ...monthlyExpenses.keys()]);
+  const sortedMonths = Array.from(allMonths).sort();
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <TrendingUp className="h-5 w-5" />
-          Overall Summary
-        </CardTitle>
-        <CardDescription>Financial overview for the selected date range</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {/* Summary Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="p-4 border rounded-lg bg-green-50 dark:bg-green-950/20">
-            <div className="flex items-center gap-2 text-green-700 dark:text-green-400 mb-2">
-              <IndianRupee className="h-4 w-4" />
-              <p className="text-sm font-medium">Income</p>
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Overall Summary</CardTitle>
+          <CardDescription>
+            Financial overview for the selected date range
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Summary Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="p-4 border rounded-lg bg-accent/50">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+                <IndianRupee className="h-4 w-4" />
+                <span>Total Income</span>
+              </div>
+              <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+                {formatINR(totalIncome)}
+              </div>
             </div>
-            <p className="text-2xl font-bold text-green-700 dark:text-green-400">
-              {formatCurrency(totalIncome)}
-            </p>
+
+            <div className="p-4 border rounded-lg bg-accent/50">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+                <Car className="h-4 w-4" />
+                <span>Total Expense</span>
+              </div>
+              <div className="text-2xl font-bold text-red-600 dark:text-red-400">
+                {formatINR(totalExpense)}
+              </div>
+            </div>
+
+            <div className="p-4 border rounded-lg bg-accent/50">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+                <IndianRupee className="h-4 w-4" />
+                <span>Profit/Loss</span>
+              </div>
+              <div
+                className={`text-2xl font-bold ${
+                  profitLoss > 0
+                    ? 'text-green-600 dark:text-green-400'
+                    : profitLoss < 0
+                    ? 'text-red-600 dark:text-red-400'
+                    : 'text-foreground'
+                }`}
+              >
+                {formatINR(profitLoss)}
+              </div>
+            </div>
           </div>
 
-          <div className="p-4 border rounded-lg bg-red-50 dark:bg-red-950/20">
-            <div className="flex items-center gap-2 text-red-700 dark:text-red-400 mb-2">
-              <Car className="h-4 w-4" />
-              <p className="text-sm font-medium">Expense</p>
-            </div>
-            <p className="text-2xl font-bold text-red-700 dark:text-red-400">
-              {formatCurrency(totalExpense)}
-            </p>
-          </div>
+          {/* Monthly Breakdown */}
+          {sortedMonths.length > 0 && (
+            <div>
+              <h3 className="text-lg font-semibold mb-3">Month-wise Breakdown</h3>
+              <div className="border rounded-lg overflow-hidden">
+                <table className="w-full">
+                  <thead className="bg-muted">
+                    <tr>
+                      <th className="px-4 py-2 text-left text-sm font-medium">Month</th>
+                      <th className="px-4 py-2 text-right text-sm font-medium">Income</th>
+                      <th className="px-4 py-2 text-right text-sm font-medium">Expense</th>
+                      <th className="px-4 py-2 text-right text-sm font-medium">Profit/Loss</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sortedMonths.map((monthKey) => {
+                      const income = monthlyIncome.get(monthKey) || 0;
+                      const expense = monthlyExpenses.get(monthKey) || 0;
+                      const profit = income - expense;
 
-          <div className="p-4 border rounded-lg bg-accent">
-            <div className="flex items-center gap-2 text-foreground mb-2">
-              <DollarSign className="h-4 w-4" />
-              <p className="text-sm font-medium">Profit/Loss</p>
+                      return (
+                        <tr key={monthKey} className="border-t">
+                          <td className="px-4 py-2 text-sm">{monthKey}</td>
+                          <td className="px-4 py-2 text-sm text-right text-green-600 dark:text-green-400">
+                            {formatINR(income)}
+                          </td>
+                          <td className="px-4 py-2 text-sm text-right text-red-600 dark:text-red-400">
+                            {formatINR(expense)}
+                          </td>
+                          <td
+                            className={`px-4 py-2 text-sm text-right font-medium ${
+                              profit > 0
+                                ? 'text-green-600 dark:text-green-400'
+                                : profit < 0
+                                ? 'text-red-600 dark:text-red-400'
+                                : 'text-foreground'
+                            }`}
+                          >
+                            {formatINR(profit)}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             </div>
-            <p
-              className={`text-2xl font-bold ${
-                profitLoss > 0
-                  ? 'text-green-600 dark:text-green-400'
-                  : profitLoss < 0
-                  ? 'text-red-600 dark:text-red-400'
-                  : 'text-muted-foreground'
-              }`}
-            >
-              {formatCurrency(profitLoss)}
-            </p>
-          </div>
-        </div>
-
-        {/* Month-wise Breakdown */}
-        {monthlyEntries.length > 0 && (
-          <div>
-            <h3 className="text-lg font-semibold mb-3">Month-wise Breakdown</h3>
-            <ResponsiveTableShell>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Month</TableHead>
-                    <TableHead className="text-right">Income</TableHead>
-                    <TableHead className="text-right">Expense</TableHead>
-                    <TableHead className="text-right">Profit/Loss</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {monthlyEntries.map((entry) => (
-                    <TableRow key={entry.month}>
-                      <TableCell className="font-medium">{entry.month}</TableCell>
-                      <TableCell className="text-right">{formatCurrency(entry.income)}</TableCell>
-                      <TableCell className="text-right">{formatCurrency(entry.expense)}</TableCell>
-                      <TableCell
-                        className={`text-right font-semibold ${
-                          entry.profit > 0
-                            ? 'text-green-600 dark:text-green-400'
-                            : entry.profit < 0
-                            ? 'text-red-600 dark:text-red-400'
-                            : 'text-muted-foreground'
-                        }`}
-                      >
-                        {formatCurrency(entry.profit)}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </ResponsiveTableShell>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 }

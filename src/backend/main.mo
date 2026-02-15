@@ -8,11 +8,12 @@ import Array "mo:core/Array";
 import Principal "mo:core/Principal";
 import Iter "mo:core/Iter";
 import Order "mo:core/Order";
-import Migration "migration";
+
+
 import MixinAuthorization "authorization/MixinAuthorization";
 import AccessControl "authorization/access-control";
 
-(with migration = Migration.run)
+
 actor {
   let accessControlState = AccessControl.initState();
   include MixinAuthorization(accessControlState);
@@ -65,6 +66,14 @@ actor {
     };
   };
 
+  module CoTravellerIncome {
+    public type CoTravellerIncome = {
+      amount : Nat;
+      date : Date.Date;
+      note : ?Text;
+    };
+  };
+
   public type AppData = {
     userProfile : ?UserProfile;
     ledgerState : ?Text;
@@ -76,6 +85,7 @@ actor {
   let entries = Map.empty<Text, TravelEntry.TravelEntry>();
   let travellers = Map.empty<Principal, Traveller.Traveller>();
   let userAppData = Map.empty<Principal, AppData>();
+  let coTravellerIncomes = Map.empty<Principal, List.List<CoTravellerIncome.CoTravellerIncome>>();
 
   func compareByAmount(a : (Principal, Nat), b : (Principal, Nat)) : Order.Order {
     Nat.compare(a.1, b.1);
@@ -196,6 +206,40 @@ actor {
       };
 
       pendingBalances.add(participant, currentBalance + amountPerParticipant);
+    };
+  };
+
+  public shared ({ caller }) func addCoTravellerIncome(amount : Nat, date : Date.Date, note : ?Text) : async () {
+    if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
+      Runtime.trap("Unauthorized: Only users can add co-traveller income");
+    };
+
+    let newIncome : CoTravellerIncome.CoTravellerIncome = {
+      amount;
+      date;
+      note;
+    };
+
+    switch (coTravellerIncomes.get(caller)) {
+      case (null) {
+        let incomeList = List.empty<CoTravellerIncome.CoTravellerIncome>();
+        incomeList.add(newIncome);
+        coTravellerIncomes.add(caller, incomeList);
+      };
+      case (?existingIncomes) {
+        existingIncomes.add(newIncome);
+      };
+    };
+  };
+
+  public query ({ caller }) func getCoTravellerIncomes(principal : Principal) : async [CoTravellerIncome.CoTravellerIncome] {
+    if (principal != caller and not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Only admins can view other users' incomes");
+    };
+
+    switch (coTravellerIncomes.get(principal)) {
+      case (null) { [] };
+      case (?incomes) { incomes.toArray() };
     };
   };
 };

@@ -1,35 +1,64 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-13T12:17:19.941Z",
-  "summary": "Diff adds a new \"Backup & Restore\" ledger tab/panel, JSON export/import utilities with merge logic, React Query hooks for backend backup endpoints, and backend Motoko exportBackup/importBackup with non-destructive profile restore. Most requested functionality appears implemented, but some REQ-4 UI/documentation and draft-vs-saved consistency aspects can’t be fully verified from the truncated diff.",
+  "generatedAt": "2026-02-15T01:10:10.096Z",
+  "summary": "Diff adds per-principal backend AppData storage with fetch/save APIs and a migration module, plus frontend polling-based sync hook and a sync status indicator integrated into the header. However, some requirements are only partially evidenced due to truncation, and some acceptance criteria (notably explicit candid representation of full ledger state and confirmed upgrade persistence wiring) cannot be verified from the provided diff summary.",
   "missing_requirements": [
     {
-      "id": "REQ-4",
-      "requirement": "Settings fields (dateRange, ratePerTrip, includeSaturday, includeSunday): if restore applies these fields, their behavior must be documented in the UI (note describing whether settings are taken from backup or kept local).",
-      "reason": "BackupRestorePanel.tsx is truncated before the explanatory UI content; no visible evidence that settings-restore behavior is documented.",
+      "id": "REQ-1",
+      "requirement": "Backend exposes candid types that can represent the full ledger/local state fields (travellers, daily trip checkboxes, rate per trip, payments, pending, expenses, date range, weekend flags) plus user profile.",
+      "reason": "Backend AppData stores ledger state only as `?Text` (JSON string). The diff summary does not show candid types modeling the ledger/local state structure as fields/types; thus the AC about candid types representing the full state is not met based on the evidence provided.",
       "evidence": [
-        "frontend/src/features/ledger/BackupRestorePanel.tsx (truncated)"
+        "backend/main.mo (AppData.ledgerState : ?Text)"
       ]
     },
     {
-      "id": "REQ-4",
-      "requirement": "After merge, both saved dailyData and draftDailyData remain consistent (draft reflects merged saved data unless the user currently has unsaved draft changes, in which case restore must require confirmation before applying).",
-      "reason": "Confirmation-before-restore is evidenced in the panel, but the state-layer behavior ensuring draftDailyData is updated to reflect merged saved data after restore (when no unsaved draft changes) is not visible in the truncated useLedgerLocalState.ts / mergeRestoreFromBackup implementation.",
+      "id": "REQ-3",
+      "requirement": "Persist the synced per-user app data across canister upgrades (stable storage) and perform conditional migration to preserve existing profile data.",
+      "reason": "A migration module is added and main.mo references `(with migration = Migration.run)`, but the diff summary does not show stable variables, preupgrade/postupgrade hooks, or stable state declarations ensuring `userAppData` persists across upgrades. Migration existence alone doesn’t prove upgrade persistence in Motoko.",
       "evidence": [
-        "frontend/src/features/ledger/BackupRestorePanel.tsx",
-        "frontend/src/hooks/useLedgerLocalState.ts (truncated)"
+        "backend/migration.mo",
+        "backend/main.mo (with migration = Migration.run)",
+        "backend/main.mo (userAppData = Map.empty<Principal, AppData>())"
+      ]
+    },
+    {
+      "id": "REQ-5",
+      "requirement": "Frontend outbound syncing saves local changes back to backend with debouncing/batching and avoids overwriting newer remote data by applying deterministic merge rules; failures surface an understandable error state and retry on subsequent cycles.",
+      "reason": "The sync hook shows debounce constants and begins implementing merge-before-save, but the outbound save logic is truncated. From the summary alone, it’s not verifiable that local change detection triggers saves, that remote-newer detection/merge-before-save is fully implemented, or that retry behavior occurs after failures.",
+      "evidence": [
+        "frontend/src/hooks/useAppDataSync.ts (truncated: saveToBackend implementation)"
+      ]
+    },
+    {
+      "id": "REQ-7",
+      "requirement": "Apply a coherent, distinctive visual theme across the app (avoid blue/purple-dominant palette), consistently across auth/profile/ledger pages.",
+      "reason": "The diff summary indicates theme-related file summaries (e.g., `frontend/index.css`, `frontend/src/index.css`, `frontend/tailwind.config.js`) but those files are not actually listed under MODIFIED FILES with content, so theme changes cannot be verified from the provided diff summary evidence.",
+      "evidence": [
+        "frontend-file-summaries.txt (mentions theme files, but not shown as modified diffs)"
       ]
     }
   ],
-  "hallucinated_features": [],
-  "confidence": 0.64,
+  "hallucinated_features": [
+    {
+      "description": "Clearing local ledger state on logout by removing localStorage key `carpool-ledger-state`.",
+      "reason": "BuildRequest did not request clearing local storage on logout as part of sync functionality; this is additional behavior beyond specified requirements.",
+      "evidence": [
+        "frontend/src/components/AppHeader.tsx (handleLogout removes localStorage key)"
+      ]
+    }
+  ],
+  "confidence": 0.62,
   "changed_files": [
     "backend/main.mo",
+    "backend/migration.mo",
     "frontend-file-summaries.txt",
+    "frontend/src/components/AppHeader.tsx",
+    "frontend/src/components/SyncStatusIndicator.tsx",
     "frontend/src/features/ledger/BackupRestorePanel.tsx",
     "frontend/src/features/ledger/LedgerPage.tsx",
     "frontend/src/features/ledger/LedgerStateContext.tsx",
+    "frontend/src/hooks/useAppDataSync.ts",
     "frontend/src/hooks/useLedgerLocalState.ts",
     "frontend/src/hooks/useQueries.ts",
     "frontend/src/utils/backupRestore.ts",

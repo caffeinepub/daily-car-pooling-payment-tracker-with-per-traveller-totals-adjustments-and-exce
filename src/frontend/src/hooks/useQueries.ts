@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useActor } from './useActor';
-import type { UserProfile, BackupData } from '../backend';
+import type { UserProfile } from '../backend';
 
 export function useGetCallerUserProfile() {
   const { actor, isFetching: actorFetching } = useActor();
@@ -30,32 +30,6 @@ export function useSaveCallerUserProfile() {
     mutationFn: async (profile: UserProfile) => {
       if (!actor) throw new Error('Actor not available');
       return actor.saveCallerUserProfile(profile);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['currentUserProfile'] });
-    },
-  });
-}
-
-export function useExportBackup() {
-  const { actor } = useActor();
-
-  return useMutation({
-    mutationFn: async (): Promise<BackupData> => {
-      if (!actor) throw new Error('Actor not available');
-      return actor.exportBackup();
-    },
-  });
-}
-
-export function useImportBackup() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (backup: BackupData) => {
-      if (!actor) throw new Error('Actor not available');
-      return actor.importBackup(backup);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['currentUserProfile'] });

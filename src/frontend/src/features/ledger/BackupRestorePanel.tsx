@@ -16,7 +16,6 @@ import {
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import { Download, Upload, Database, AlertCircle } from 'lucide-react';
-import { useExportBackup, useImportBackup } from '../../hooks/useQueries';
 import { exportBackupToFile, importBackupFromFile, type BackupPayload } from '../../utils/backupRestore';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
@@ -28,8 +27,6 @@ export default function BackupRestorePanel() {
   const [isRestoring, setIsRestoring] = useState(false);
 
   const { getPersistedState, mergeRestoreFromBackup, hasDraftChanges } = useLedgerState();
-  const { mutateAsync: exportBackend } = useExportBackup();
-  const { mutateAsync: importBackend } = useImportBackup();
 
   const handleExport = async () => {
     setIsExporting(true);
@@ -37,11 +34,8 @@ export default function BackupRestorePanel() {
       // Get local ledger state
       const localState = getPersistedState();
       
-      // Get backend profile data
-      const backendData = await exportBackend();
-      
-      // Combine and export
-      exportBackupToFile(localState, backendData);
+      // Export to file (sync system will handle backend storage automatically)
+      exportBackupToFile(localState);
       toast.success('Backup exported successfully');
     } catch (error: any) {
       console.error('Export error:', error);
@@ -80,20 +74,10 @@ export default function BackupRestorePanel() {
     setIsRestoring(true);
     try {
       // Merge local ledger state (non-destructive)
+      // The sync system will automatically push changes to backend
       mergeRestoreFromBackup(backup.localState);
       
-      // Import backend profile (non-destructive)
-      if (backup.backendData.userProfile) {
-        try {
-          await importBackend(backup.backendData);
-        } catch (error: any) {
-          // Don't block local restore on backend failure
-          console.error('Backend profile restore error:', error);
-          toast.error('Local data restored, but profile sync failed: ' + (error.message || 'Unknown error'));
-        }
-      }
-      
-      toast.success('Backup restored successfully');
+      toast.success('Backup restored successfully. Changes will sync automatically.');
     } catch (error: any) {
       console.error('Restore error:', error);
       toast.error(error.message || 'Failed to restore backup');
@@ -133,7 +117,7 @@ export default function BackupRestorePanel() {
             <div>
               <h3 className="text-sm font-semibold mb-1">Backup</h3>
               <p className="text-sm text-muted-foreground">
-                Download all your ledger data including travellers, trips, payments, expenses, settings, and your profile.
+                Download all your ledger data including travellers, trips, payments, expenses, and settings to a local file.
               </p>
             </div>
             <Button
@@ -163,7 +147,7 @@ export default function BackupRestorePanel() {
                   <p><strong>Travellers, Payments, Expenses:</strong> Items with matching IDs keep local version; new items are added.</p>
                   <p><strong>Trip Data:</strong> For each date+traveller, AM/PM is true if either local or backup is true.</p>
                   <p><strong>Settings:</strong> Date range, rate, and weekend toggles are taken from the backup.</p>
-                  <p><strong>Profile:</strong> Only restored if you don't already have a profile saved.</p>
+                  <p><strong>Auto-Sync:</strong> Restored data will automatically sync to the backend across your devices.</p>
                 </AlertDescription>
               </Alert>
 

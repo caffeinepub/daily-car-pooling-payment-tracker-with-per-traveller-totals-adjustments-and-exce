@@ -2,74 +2,15 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-add-a-new-ledger-page-tab-named-backup-restore-positioned-immediately-before-the-existing-clear-data-tab-in-the-tab-bar-and-render-a-new-panel-for-this-tab",
-      "featureTitle": "Add a new Ledger page tab named \"Backup & Restore\" positioned immediately before the existing \"Clear Data\" tab in the tab bar, and render a new panel for this tab.",
+      "featureId": "feature-implement-frontend-multi-device-sync-that-a-loads-the-caller-s-backend-saved-app-data-on-login-b-merges-it-non-destructively-with-existing-local-ledger-state-using-deterministic-merge-rules-and-c-continuously-polls-the-backend-every-2-5-seconds-to-incorporate-updates-made-on-other-devices",
+      "featureTitle": "Implement frontend multi-device sync that (a) loads the caller’s backend-saved app data on login, (b) merges it non-destructively with existing local ledger state using deterministic merge rules, and (c) continuously polls the backend every 2–5 seconds to incorporate updates made on other devices.",
       "files": [
-        "frontend/src/features/ledger/BackupRestorePanel.tsx",
-        "frontend/src/features/ledger/LedgerPage.tsx"
-      ],
-      "components": [
-        "authorization@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "github-export-icp-cli@1.0.0"
-      ],
-      "testIds": [
-        "REQ-1"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-implement-backup-export-that-downloads-a-json-file-containing-all-stored-app-data-including-at-minimum-the-locally-stored-ledger-state-under-the-existing-localstorage-key-carpool-ledger-state-and-the-authenticated-caller-s-user-profile-stored-in-the-backend-if-present",
-      "featureTitle": "Implement \"Backup\" export that downloads a JSON file containing all stored app data, including (at minimum) the locally stored ledger state under the existing localStorage key \"carpool-ledger-state\" and the authenticated caller's user profile stored in the backend (if present).",
-      "files": [
-        "frontend/src/features/ledger/BackupRestorePanel.tsx",
-        "frontend/src/hooks/useLedgerLocalState.ts",
-        "frontend/src/utils/backupRestore.ts"
-      ],
-      "components": [
-        "authorization@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "github-export-icp-cli@1.0.0"
-      ],
-      "testIds": [
-        "REQ-2"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-implement-restore-import-that-accepts-a-user-selected-json-file-and-restores-data-by-merging-it-with-existing-stored-data-do-not-clear-existing-data-during-restore",
-      "featureTitle": "Implement \"Restore\" import that accepts a user-selected JSON file and restores data by merging it with existing stored data (do not clear existing data during restore).",
-      "files": [
-        "frontend/src/features/ledger/BackupRestorePanel.tsx",
+        "frontend/src/components/AppHeader.tsx",
+        "frontend/src/features/ledger/LedgerPage.tsx",
         "frontend/src/features/ledger/LedgerStateContext.tsx",
+        "frontend/src/hooks/useAppDataSync.ts",
         "frontend/src/hooks/useLedgerLocalState.ts",
-        "frontend/src/utils/backupRestore.ts"
-      ],
-      "components": [
-        "authorization@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "github-export-icp-cli@1.0.0"
-      ],
-      "testIds": [
-        "REQ-3"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-define-and-apply-deterministic-merge-rules-for-restoring-ledger-local-state-so-that-repeated-restores-are-idempotent-and-do-not-create-duplicate-records",
-      "featureTitle": "Define and apply deterministic merge rules for restoring ledger local state so that repeated restores are idempotent and do not create duplicate records.",
-      "files": [
-        "frontend/src/features/ledger/BackupRestorePanel.tsx",
-        "frontend/src/hooks/useLedgerLocalState.ts",
+        "frontend/src/hooks/useQueries.ts",
         "frontend/src/utils/backupRestore.ts"
       ],
       "components": [
@@ -82,6 +23,66 @@
       ],
       "testIds": [
         "REQ-4"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-implement-frontend-outbound-syncing-so-that-local-user-input-changes-are-saved-back-to-the-backend-with-reasonable-debouncing-batching-and-do-not-overwrite-newer-remote-data-without-applying-the-same-deterministic-merge-rules",
+      "featureTitle": "Implement frontend outbound syncing so that local user input changes are saved back to the backend (with reasonable debouncing/batching) and do not overwrite newer remote data without applying the same deterministic merge rules.",
+      "files": [
+        "frontend/src/hooks/useAppDataSync.ts",
+        "frontend/src/hooks/useLedgerLocalState.ts"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-5"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-add-a-small-ui-sync-status-indicator-for-authenticated-users-that-clearly-communicates-sync-state-in-english-e-g-synced-syncing-offline-sync-failed-without-exposing-private-data",
+      "featureTitle": "Add a small UI sync status indicator for authenticated users that clearly communicates sync state in English (e.g., “Synced”, “Syncing…”, “Offline / Sync failed”), without exposing private data.",
+      "files": [
+        "frontend/src/components/AppHeader.tsx",
+        "frontend/src/components/SyncStatusIndicator.tsx",
+        "frontend/src/hooks/useAppDataSync.ts"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-6"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-apply-a-coherent-distinctive-visual-theme-across-the-app-colors-typography-spacing-appropriate-for-a-personal-ledger-trip-tracker-avoiding-a-blue-purple-dominant-palette-unless-already-present-keep-the-design-consistent-across-authentication-profile-setup-and-ledger-pages",
+      "featureTitle": "Apply a coherent, distinctive visual theme across the app (colors, typography, spacing) appropriate for a personal ledger/trip tracker, avoiding a blue/purple-dominant palette unless already present; keep the design consistent across authentication, profile setup, and ledger pages.",
+      "files": [
+        "frontend/src/components/AppHeader.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-7"
       ],
       "confidence": "high"
     }

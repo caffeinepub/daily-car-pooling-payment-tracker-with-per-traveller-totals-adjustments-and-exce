@@ -1,5 +1,3 @@
-import type { BackupData } from '../backend';
-
 export interface LocalLedgerState {
   travellers: Array<{ id: string; name: string }>;
   dailyData: Record<string, Record<string, { morning: boolean; evening: boolean }>>;
@@ -16,18 +14,16 @@ export interface BackupPayload {
   version: string;
   timestamp: string;
   localState: LocalLedgerState;
-  backendData: BackupData;
 }
 
 /**
  * Export backup to a downloadable JSON file
  */
-export function exportBackupToFile(localState: LocalLedgerState, backendData: BackupData): void {
+export function exportBackupToFile(localState: LocalLedgerState): void {
   const backup: BackupPayload = {
     version: '1.0',
     timestamp: new Date().toISOString(),
     localState,
-    backendData,
   };
 
   const json = JSON.stringify(backup, null, 2);
@@ -57,7 +53,7 @@ export async function importBackupFromFile(file: File): Promise<BackupPayload> {
         const parsed = JSON.parse(text);
 
         // Validate backup structure
-        if (!parsed.localState || !parsed.backendData) {
+        if (!parsed.localState) {
           throw new Error('Invalid backup file: missing required sections');
         }
 

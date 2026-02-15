@@ -139,9 +139,11 @@ export function useLedgerLocalState() {
   const [carExpenses, setCarExpenses] = useState<CarExpense[]>([]);
   const [includeSaturday, setIncludeSaturday] = useState(false);
   const [includeSunday, setIncludeSunday] = useState(false);
+  const [stateRevision, setStateRevision] = useState(0);
   
   // Track if we should skip the next save (used for clearAllLedgerData)
   const skipNextSave = useRef(false);
+  const skipRevisionIncrement = useRef(false);
 
   // Load state on mount
   useEffect(() => {
@@ -163,7 +165,7 @@ export function useLedgerLocalState() {
     setIncludeSunday(loaded.includeSunday);
   }, []);
 
-  // Save state whenever it changes
+  // Save state whenever it changes and increment revision
   useEffect(() => {
     if (skipNextSave.current) {
       skipNextSave.current = false;
@@ -185,6 +187,12 @@ export function useLedgerLocalState() {
       includeSunday,
     };
     saveState(state);
+
+    // Increment revision for sync detection (skip on initial load and external merges)
+    if (!skipRevisionIncrement.current) {
+      setStateRevision((prev) => prev + 1);
+    }
+    skipRevisionIncrement.current = false;
   }, [travellers, dailyData, dateRange, ratePerTrip, cashPayments, otherPending, carExpenses, includeSaturday, includeSunday]);
 
   const addTraveller = (name: string) => {
@@ -325,6 +333,7 @@ export function useLedgerLocalState() {
     // Remove from localStorage and skip the next auto-save
     localStorage.removeItem(STORAGE_KEY);
     skipNextSave.current = true;
+    // Don't skip revision increment - we want to sync the clear
   };
 
   const clearDailyData = () => {
@@ -385,6 +394,25 @@ export function useLedgerLocalState() {
     setIncludeSunday(merged.includeSunday);
   };
 
+  // Apply merged state from sync (used by sync hook)
+  const applyMergedState = (state: LocalLedgerState) => {
+    skipRevisionIncrement.current = true; // Don't trigger sync on external merge
+    setTravellers(state.travellers);
+    const mergedDailyData = state.dailyData;
+    setDailyData(mergedDailyData);
+    setDraftDailyData(deepCloneDailyData(mergedDailyData));
+    setDateRange({
+      start: new Date(state.dateRange.start),
+      end: new Date(state.dateRange.end),
+    });
+    setRatePerTrip(state.ratePerTrip);
+    setCashPayments(state.cashPayments);
+    setOtherPending(state.otherPending);
+    setCarExpenses(state.carExpenses);
+    setIncludeSaturday(state.includeSaturday);
+    setIncludeSunday(state.includeSunday);
+  };
+
   return {
     travellers,
     addTraveller,
@@ -422,5 +450,7 @@ export function useLedgerLocalState() {
     clearCarExpenses,
     getPersistedState,
     mergeRestoreFromBackup,
+    applyMergedState,
+    stateRevision,
   };
 }

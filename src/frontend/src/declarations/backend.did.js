@@ -13,13 +13,19 @@ export const UserRole = IDL.Variant({
   'user' : IDL.Null,
   'guest' : IDL.Null,
 });
+export const Time = IDL.Int;
 export const UserProfile = IDL.Record({ 'name' : IDL.Text });
-export const BackupData = IDL.Record({ 'userProfile' : IDL.Opt(UserProfile) });
+export const AppData = IDL.Record({
+  'lastUpdated' : Time,
+  'version' : IDL.Nat,
+  'ledgerState' : IDL.Opt(IDL.Text),
+  'userProfile' : IDL.Opt(UserProfile),
+});
 
 export const idlService = IDL.Service({
   '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
   'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
-  'exportBackup' : IDL.Func([], [BackupData], ['query']),
+  'fetchAppData' : IDL.Func([], [IDL.Opt(AppData)], ['query']),
   'getAllBalances' : IDL.Func(
       [],
       [IDL.Vec(IDL.Tuple(IDL.Principal, IDL.Nat))],
@@ -33,8 +39,8 @@ export const idlService = IDL.Service({
       [IDL.Opt(UserProfile)],
       ['query'],
     ),
-  'importBackup' : IDL.Func([BackupData], [], []),
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
+  'saveAppData' : IDL.Func([AppData], [], []),
   'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
   'startCharge' : IDL.Func([IDL.Text, IDL.Nat, IDL.Vec(IDL.Principal)], [], []),
 });
@@ -47,13 +53,19 @@ export const idlFactory = ({ IDL }) => {
     'user' : IDL.Null,
     'guest' : IDL.Null,
   });
+  const Time = IDL.Int;
   const UserProfile = IDL.Record({ 'name' : IDL.Text });
-  const BackupData = IDL.Record({ 'userProfile' : IDL.Opt(UserProfile) });
+  const AppData = IDL.Record({
+    'lastUpdated' : Time,
+    'version' : IDL.Nat,
+    'ledgerState' : IDL.Opt(IDL.Text),
+    'userProfile' : IDL.Opt(UserProfile),
+  });
   
   return IDL.Service({
     '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
     'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
-    'exportBackup' : IDL.Func([], [BackupData], ['query']),
+    'fetchAppData' : IDL.Func([], [IDL.Opt(AppData)], ['query']),
     'getAllBalances' : IDL.Func(
         [],
         [IDL.Vec(IDL.Tuple(IDL.Principal, IDL.Nat))],
@@ -67,8 +79,8 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Opt(UserProfile)],
         ['query'],
       ),
-    'importBackup' : IDL.Func([BackupData], [], []),
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
+    'saveAppData' : IDL.Func([AppData], [], []),
     'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
     'startCharge' : IDL.Func(
         [IDL.Text, IDL.Nat, IDL.Vec(IDL.Principal)],

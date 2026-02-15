@@ -10,7 +10,13 @@ import type { ActorMethod } from '@icp-sdk/core/agent';
 import type { IDL } from '@icp-sdk/core/candid';
 import type { Principal } from '@icp-sdk/core/principal';
 
-export interface BackupData { 'userProfile' : [] | [UserProfile] }
+export interface AppData {
+  'lastUpdated' : Time,
+  'version' : bigint,
+  'ledgerState' : [] | [string],
+  'userProfile' : [] | [UserProfile],
+}
+export type Time = bigint;
 export interface UserProfile { 'name' : string }
 export type UserRole = { 'admin' : null } |
   { 'user' : null } |
@@ -18,14 +24,14 @@ export type UserRole = { 'admin' : null } |
 export interface _SERVICE {
   '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
-  'exportBackup' : ActorMethod<[], BackupData>,
+  'fetchAppData' : ActorMethod<[], [] | [AppData]>,
   'getAllBalances' : ActorMethod<[], Array<[Principal, bigint]>>,
   'getBalance' : ActorMethod<[Principal], bigint>,
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
-  'importBackup' : ActorMethod<[BackupData], undefined>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
+  'saveAppData' : ActorMethod<[AppData], undefined>,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
   'startCharge' : ActorMethod<[string, bigint, Array<Principal>], undefined>,
 }

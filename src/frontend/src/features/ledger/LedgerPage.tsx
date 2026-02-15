@@ -13,6 +13,7 @@ import RatePerTripControl from './RatePerTripControl';
 import PaymentHistoryDialog from './PaymentHistoryDialog';
 import ExpenseHistoryDialog from './ExpenseHistoryDialog';
 import { LedgerStateProvider, useLedgerState } from './LedgerStateContext';
+import { useAppDataSync } from '../../hooks/useAppDataSync';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   AlertDialog,
@@ -30,7 +31,14 @@ function LedgerPageContent() {
   const [activeTab, setActiveTab] = useState('travellers');
   const [pendingTab, setPendingTab] = useState<string | null>(null);
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
-  const { hasDraftChanges, discardDraftDailyData } = useLedgerState();
+  const { hasDraftChanges, discardDraftDailyData, getPersistedState, applyMergedState, stateRevision } = useLedgerState();
+
+  // Initialize sync
+  const { syncStatus, lastSyncTime } = useAppDataSync({
+    getLocalState: getPersistedState,
+    applyMergedState,
+    stateRevision,
+  });
 
   const handleTabChange = (newTab: string) => {
     // Check for unsaved changes when leaving the Daily tab
@@ -62,7 +70,7 @@ function LedgerPageContent() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <AppHeader />
+      <AppHeader syncStatus={syncStatus} lastSyncTime={lastSyncTime} />
 
       <main className="flex-1 container py-6 px-4 space-y-6">
         {/* Date Range, Rate, Payment History, Expense History & Export */}

@@ -1,44 +1,43 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "Add a Backup & Restore feature for all stored app data.",
+  "summary": "App to store and sync all user-entered data (e.g., name, trip checkbox, payment info, and similar inputs) privately per Internet Identity across multiple devices, using frequent polling (every 2–5 seconds) to simulate near-instant updates.",
   "architectural_notes": [
-    "Backup should export all stored data in the app as a JSON file.",
-    "Restore should import JSON and merge with existing data.",
-    "Add a new \"Backup & Restore\" tab before the existing \"Clear Data\" option."
+    "Sync is simulated via automatic client polling every ~2–5 seconds (no true real-time sync).",
+    "All synced data is private and scoped per Internet Identity user across devices."
   ],
   "known_issues": [],
   "isFixRequest": false,
   "existing_features": [
     {
-      "id": "feature-add-a-new-ledger-page-tab-named-backup-restore-positioned-immediately-before-the-existing-clear-data-tab-in-the-tab-bar-and-render-a-new-panel-for-this-tab",
-      "title": "Add a new Ledger page tab named \"Backup & Restore\" positioned immediately before the existing \"Clear Data\" tab in the tab bar, and render a new panel for this tab.",
-      "reqIds": [
-        "REQ-1"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-implement-backup-export-that-downloads-a-json-file-containing-all-stored-app-data-including-at-minimum-the-locally-stored-ledger-state-under-the-existing-localstorage-key-carpool-ledger-state-and-the-authenticated-caller-s-user-profile-stored-in-the-backend-if-present",
-      "title": "Implement \"Backup\" export that downloads a JSON file containing all stored app data, including (at minimum) the locally stored ledger state under the existing localStorage key \"carpool-ledger-state\" and the authenticated caller's user profile stored in the backend (if present).",
-      "reqIds": [
-        "REQ-2"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-implement-restore-import-that-accepts-a-user-selected-json-file-and-restores-data-by-merging-it-with-existing-stored-data-do-not-clear-existing-data-during-restore",
-      "title": "Implement \"Restore\" import that accepts a user-selected JSON file and restores data by merging it with existing stored data (do not clear existing data during restore).",
-      "reqIds": [
-        "REQ-3"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-define-and-apply-deterministic-merge-rules-for-restoring-ledger-local-state-so-that-repeated-restores-are-idempotent-and-do-not-create-duplicate-records",
-      "title": "Define and apply deterministic merge rules for restoring ledger local state so that repeated restores are idempotent and do not create duplicate records.",
+      "id": "feature-implement-frontend-multi-device-sync-that-a-loads-the-caller-s-backend-saved-app-data-on-login-b-merges-it-non-destructively-with-existing-local-ledger-state-using-deterministic-merge-rules-and-c-continuously-polls-the-backend-every-2-5-seconds-to-incorporate-updates-made-on-other-devices",
+      "title": "Implement frontend multi-device sync that (a) loads the caller’s backend-saved app data on login, (b) merges it non-destructively with existing local ledger state using deterministic merge rules, and (c) continuously polls the backend every 2–5 seconds to incorporate updates made on other devices.",
       "reqIds": [
         "REQ-4"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-implement-frontend-outbound-syncing-so-that-local-user-input-changes-are-saved-back-to-the-backend-with-reasonable-debouncing-batching-and-do-not-overwrite-newer-remote-data-without-applying-the-same-deterministic-merge-rules",
+      "title": "Implement frontend outbound syncing so that local user input changes are saved back to the backend (with reasonable debouncing/batching) and do not overwrite newer remote data without applying the same deterministic merge rules.",
+      "reqIds": [
+        "REQ-5"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-a-small-ui-sync-status-indicator-for-authenticated-users-that-clearly-communicates-sync-state-in-english-e-g-synced-syncing-offline-sync-failed-without-exposing-private-data",
+      "title": "Add a small UI sync status indicator for authenticated users that clearly communicates sync state in English (e.g., “Synced”, “Syncing…”, “Offline / Sync failed”), without exposing private data.",
+      "reqIds": [
+        "REQ-6"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-apply-a-coherent-distinctive-visual-theme-across-the-app-colors-typography-spacing-appropriate-for-a-personal-ledger-trip-tracker-avoiding-a-blue-purple-dominant-palette-unless-already-present-keep-the-design-consistent-across-authentication-profile-setup-and-ledger-pages",
+      "title": "Apply a coherent, distinctive visual theme across the app (colors, typography, spacing) appropriate for a personal ledger/trip tracker, avoiding a blue/purple-dominant palette unless already present; keep the design consistent across authentication, profile setup, and ledger pages.",
+      "reqIds": [
+        "REQ-7"
       ],
       "version": 1
     }
@@ -46,20 +45,36 @@
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "Add a \"Backup & Restore\" tab (placed before \"Clear Data\") that can export all stored app data to a JSON file and restore by importing JSON with merge behavior.",
+      "summary": "Private per-Internet-Identity multi-device data sync for all user inputs (e.g., name, trip checkbox, payment info) using 2–5 second polling to simulate instant updates",
       "reqIds": [],
       "status": "pending"
     },
     {
-      "id": "AR-6",
-      "summary": "During restore, merge the caller user profile from the backup with the existing backend-stored profile using non-destructive behavior: do not clear an existing profile; only save the backup profile if the caller currently has no profile.",
+      "id": "AR-2",
+      "summary": "Extend the backend data model to store and retrieve the authenticated caller’s full app data (at minimum: the caller’s user profile plus the entire ledger/local state currently stored under the localStorage key \"carpool-ledger-state\"), scoped privately per Internet Identity principal.",
       "reqIds": [
-        "REQ-5"
+        "REQ-1"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-3",
+      "summary": "Add backend APIs to support multi-device syncing: (1) fetch the caller’s current saved app data, (2) save/commit updated app data for the caller, and (3) include metadata (e.g., lastUpdated timestamp and/or version counter) to enable safe polling and conflict handling.",
+      "reqIds": [
+        "REQ-2"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-4",
+      "summary": "Persist the synced per-user app data across canister upgrades, and add a conditional migration that preserves existing backend user profile data into the new persisted structure (so current users do not lose their saved name).",
+      "reqIds": [
+        "REQ-3"
       ],
       "status": "pending"
     }
   ],
-  "projectName": "Add Backup & Restore tab to export/import all stored app data (JSON, merge restore)",
+  "projectName": "Private per-Internet-Identity multi-device sync for all user inputs with 2–5s polling",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

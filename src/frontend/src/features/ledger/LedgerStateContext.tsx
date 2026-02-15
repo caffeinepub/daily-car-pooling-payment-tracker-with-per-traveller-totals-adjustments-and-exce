@@ -47,6 +47,8 @@ interface LedgerStateContextValue {
   clearCarExpenses: () => void;
   getPersistedState: () => LocalLedgerState;
   mergeRestoreFromBackup: (backupState: LocalLedgerState) => void;
+  applyMergedState: (state: LocalLedgerState) => void;
+  stateRevision: number;
 }
 
 const LedgerStateContext = createContext<LedgerStateContextValue | null>(null);

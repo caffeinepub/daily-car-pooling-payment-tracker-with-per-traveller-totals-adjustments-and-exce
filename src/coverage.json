@@ -1,97 +1,123 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-13T12:17:19.944Z",
+  "generatedAt": "2026-02-15T01:10:10.100Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 5,
+    "total": 7,
     "implemented": 4,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Add a new Ledger page tab named \"Backup & Restore\" positioned immediately before the existing \"Clear Data\" tab in the tab bar, and render a new panel for this tab.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/features/ledger/LedgerPage.tsx",
-          "frontend/src/features/ledger/BackupRestorePanel.tsx"
-        ],
-        "matchedFiles": [
-          "frontend/src/features/ledger/LedgerPage.tsx",
-          "frontend/src/features/ledger/BackupRestorePanel.tsx"
-        ]
+        "summary": "Extend the backend data model to store and retrieve the authenticated caller’s full app data (at minimum: the caller’s user profile plus the entire ledger/local state currently stored under the localStorage key \"carpool-ledger-state\"), scoped privately per Internet Identity principal.",
+        "status": "unknown",
+        "plannedFiles": [],
+        "matchedFiles": []
       },
       {
         "id": "REQ-2",
-        "summary": "Implement \"Backup\" export that downloads a JSON file containing all stored app data, including (at minimum) the locally stored ledger state under the existing localStorage key \"carpool-ledger-state\" and the authenticated caller's user profile stored in the backend (if present).",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/features/ledger/BackupRestorePanel.tsx",
-          "frontend/src/utils/backupRestore.ts",
-          "frontend/src/hooks/useLedgerLocalState.ts"
-        ],
-        "matchedFiles": [
-          "frontend/src/features/ledger/BackupRestorePanel.tsx",
-          "frontend/src/utils/backupRestore.ts",
-          "frontend/src/hooks/useLedgerLocalState.ts"
-        ]
+        "summary": "Add backend APIs to support multi-device syncing: (1) fetch the caller’s current saved app data, (2) save/commit updated app data for the caller, and (3) include metadata (e.g., lastUpdated timestamp and/or version counter) to enable safe polling and conflict handling.",
+        "status": "unknown",
+        "plannedFiles": [],
+        "matchedFiles": []
       },
       {
         "id": "REQ-3",
-        "summary": "Implement \"Restore\" import that accepts a user-selected JSON file and restores data by merging it with existing stored data (do not clear existing data during restore).",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/features/ledger/BackupRestorePanel.tsx",
-          "frontend/src/utils/backupRestore.ts",
-          "frontend/src/hooks/useLedgerLocalState.ts",
-          "frontend/src/features/ledger/LedgerStateContext.tsx"
-        ],
-        "matchedFiles": [
-          "frontend/src/features/ledger/BackupRestorePanel.tsx",
-          "frontend/src/utils/backupRestore.ts",
-          "frontend/src/hooks/useLedgerLocalState.ts",
-          "frontend/src/features/ledger/LedgerStateContext.tsx"
-        ]
+        "summary": "Persist the synced per-user app data across canister upgrades, and add a conditional migration that preserves existing backend user profile data into the new persisted structure (so current users do not lose their saved name).",
+        "status": "unknown",
+        "plannedFiles": [],
+        "matchedFiles": []
       },
       {
         "id": "REQ-4",
-        "summary": "Define and apply deterministic merge rules for restoring ledger local state so that repeated restores are idempotent and do not create duplicate records.",
+        "summary": "Implement frontend multi-device sync that (a) loads the caller’s backend-saved app data on login, (b) merges it non-destructively with existing local ledger state using deterministic merge rules, and (c) continuously polls the backend every 2–5 seconds to incorporate updates made on other devices.",
         "status": "implemented",
         "plannedFiles": [
+          "frontend/src/hooks/useAppDataSync.ts",
+          "frontend/src/hooks/useQueries.ts",
           "frontend/src/utils/backupRestore.ts",
           "frontend/src/hooks/useLedgerLocalState.ts",
-          "frontend/src/features/ledger/BackupRestorePanel.tsx"
+          "frontend/src/features/ledger/LedgerStateContext.tsx",
+          "frontend/src/features/ledger/LedgerPage.tsx",
+          "frontend/src/components/AppHeader.tsx"
         ],
         "matchedFiles": [
+          "frontend/src/hooks/useAppDataSync.ts",
+          "frontend/src/hooks/useQueries.ts",
           "frontend/src/utils/backupRestore.ts",
           "frontend/src/hooks/useLedgerLocalState.ts",
-          "frontend/src/features/ledger/BackupRestorePanel.tsx"
+          "frontend/src/features/ledger/LedgerStateContext.tsx",
+          "frontend/src/features/ledger/LedgerPage.tsx",
+          "frontend/src/components/AppHeader.tsx"
         ]
       },
       {
         "id": "REQ-5",
-        "summary": "During restore, merge the caller user profile from the backup with the existing backend-stored profile using non-destructive behavior: do not clear an existing profile; only save the backup profile if the caller currently has no profile.",
-        "status": "unknown",
-        "plannedFiles": [],
-        "matchedFiles": []
+        "summary": "Implement frontend outbound syncing so that local user input changes are saved back to the backend (with reasonable debouncing/batching) and do not overwrite newer remote data without applying the same deterministic merge rules.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/hooks/useAppDataSync.ts",
+          "frontend/src/hooks/useLedgerLocalState.ts",
+          "frontend/src/features/ledger/ClearDataPanel.tsx",
+          "frontend/src/hooks/useInternetIdentity.ts"
+        ],
+        "matchedFiles": [
+          "frontend/src/hooks/useAppDataSync.ts",
+          "frontend/src/hooks/useLedgerLocalState.ts"
+        ]
+      },
+      {
+        "id": "REQ-6",
+        "summary": "Add a small UI sync status indicator for authenticated users that clearly communicates sync state in English (e.g., “Synced”, “Syncing…”, “Offline / Sync failed”), without exposing private data.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/components/SyncStatusIndicator.tsx",
+          "frontend/src/hooks/useAppDataSync.ts",
+          "frontend/src/components/AppHeader.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/components/SyncStatusIndicator.tsx",
+          "frontend/src/hooks/useAppDataSync.ts",
+          "frontend/src/components/AppHeader.tsx"
+        ]
+      },
+      {
+        "id": "REQ-7",
+        "summary": "Apply a coherent, distinctive visual theme across the app (colors, typography, spacing) appropriate for a personal ledger/trip tracker, avoiding a blue/purple-dominant palette unless already present; keep the design consistent across authentication, profile setup, and ledger pages.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/index.css",
+          "frontend/src/components/AuthGate.tsx",
+          "frontend/src/components/ProfileSetupModal.tsx",
+          "frontend/src/components/AppHeader.tsx",
+          "frontend/tailwind.config.js"
+        ],
+        "matchedFiles": [
+          "frontend/src/components/AppHeader.tsx"
+        ]
       }
     ]
   },
   "changedFiles": [
     "backend/main.mo",
+    "backend/migration.mo",
     "build-request.json",
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
     "frontend/src/backend.d.ts",
     "frontend/src/backend.ts",
+    "frontend/src/components/AppHeader.tsx",
+    "frontend/src/components/SyncStatusIndicator.tsx",
     "frontend/src/declarations/backend.did.d.ts",
     "frontend/src/declarations/backend.did.js",
     "frontend/src/features/ledger/BackupRestorePanel.tsx",
     "frontend/src/features/ledger/LedgerPage.tsx",
     "frontend/src/features/ledger/LedgerStateContext.tsx",
+    "frontend/src/hooks/useAppDataSync.ts",
     "frontend/src/hooks/useLedgerLocalState.ts",
     "frontend/src/hooks/useQueries.ts",
     "frontend/src/utils/backupRestore.ts",

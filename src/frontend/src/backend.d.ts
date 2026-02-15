@@ -7,9 +7,13 @@ export interface None {
     __kind__: "None";
 }
 export type Option<T> = Some<T> | None;
-export interface BackupData {
+export interface AppData {
+    lastUpdated: Time;
+    version: bigint;
+    ledgerState?: string;
     userProfile?: UserProfile;
 }
+export type Time = bigint;
 export interface UserProfile {
     name: string;
 }
@@ -20,14 +24,14 @@ export enum UserRole {
 }
 export interface backendInterface {
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
-    exportBackup(): Promise<BackupData>;
+    fetchAppData(): Promise<AppData | null>;
     getAllBalances(): Promise<Array<[Principal, bigint]>>;
     getBalance(user: Principal): Promise<bigint>;
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
-    importBackup(backup: BackupData): Promise<void>;
     isCallerAdmin(): Promise<boolean>;
+    saveAppData(newAppData: AppData): Promise<void>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
     startCharge(description: string, amount: bigint, participants: Array<Principal>): Promise<void>;
 }

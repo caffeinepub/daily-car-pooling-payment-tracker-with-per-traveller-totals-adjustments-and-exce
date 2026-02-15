@@ -1,117 +1,163 @@
 {
   "kind": "build_request",
-  "title": "Add Backup & Restore tab to export/import all stored app data (JSON, merge restore)",
+  "title": "Private per-Internet-Identity multi-device sync for all user inputs with 2–5s polling",
   "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Add a new Ledger page tab named \"Backup & Restore\" positioned immediately before the existing \"Clear Data\" tab in the tab bar, and render a new panel for this tab.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-1"
-        ],
-        "quotes": [
-          "Just provide a machanism to Backup and restore all the data present\ncreate a tab before clear data",
-          "Backup & Restore"
-        ]
-      },
-      "acceptanceCriteria": [
-        "Ledger page shows a new tab label \"Backup & Restore\" in the TabsList before the \"Clear Data\" tab.",
-        "Selecting \"Backup & Restore\" displays a dedicated panel; existing tabs (Travellers/Daily/Summary/Car Expense/Overall/Clear Data) continue to work as before."
-      ]
-    },
-    {
-      "id": "REQ-2",
-      "text": "Implement \"Backup\" export that downloads a JSON file containing all stored app data, including (at minimum) the locally stored ledger state under the existing localStorage key \"carpool-ledger-state\" and the authenticated caller's user profile stored in the backend (if present).",
-      "target": "both",
-      "source": {
-        "messageIds": [
-          "msg-1"
-        ],
-        "quotes": [
-          "JSON file",
-          "all stored data in the app"
-        ]
-      },
-      "acceptanceCriteria": [
-        "Backup panel includes a clear action (e.g., button) to download a .json file.",
-        "The exported JSON includes the full ledger local state (travellers, dailyData, dateRange, ratePerTrip, cashPayments, otherPending, carExpenses, includeSaturday, includeSunday) sourced from the same data used by the app (localStorage key \"carpool-ledger-state\").",
-        "The exported JSON includes the current caller user profile data returned by backend getCallerUserProfile (or null/omitted when no profile exists).",
-        "Export works while authenticated; failures show an English error message/toast without crashing the app."
-      ]
-    },
-    {
-      "id": "REQ-3",
-      "text": "Implement \"Restore\" import that accepts a user-selected JSON file and restores data by merging it with existing stored data (do not clear existing data during restore).",
-      "target": "both",
-      "source": {
-        "messageIds": [
-          "msg-1"
-        ],
-        "quotes": [
-          "merge with existing data"
-        ]
-      },
-      "acceptanceCriteria": [
-        "Backup panel includes a file input (accepting .json) and a restore action.",
-        "On selecting an invalid JSON file or invalid schema, the UI shows an English error message/toast and does not modify existing data.",
-        "On successful restore, existing data remains present and backup data is merged in (no destructive overwrite/clear of collections).",
-        "After restore, the UI updates immediately to reflect the merged state across all relevant screens/tabs without requiring a refresh."
-      ]
-    },
-    {
-      "id": "REQ-4",
-      "text": "Define and apply deterministic merge rules for restoring ledger local state so that repeated restores are idempotent and do not create duplicate records.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-1"
-        ],
-        "quotes": [
-          "merge with existing data",
-          "all stored data in the app"
-        ]
-      },
-      "acceptanceCriteria": [
-        "Travellers: merge by traveller.id; if an id already exists locally, keep the local record; otherwise add the backup record.",
-        "Cash payments / other pending / car expenses: merge by item.id using the same rule (keep local on id conflict; add missing).",
-        "dailyData: merge by dateKey then travellerId; for conflicts, set each boolean (morning/evening) to true if either local or backup is true (logical OR).",
-        "Settings fields (dateRange, ratePerTrip, includeSaturday, includeSunday): restore must not delete other data; if the restore applies these fields, their behavior must be documented in the UI (e.g., a short note in the panel describing whether settings will be taken from the backup or kept local).",
-        "After merge, both saved dailyData and draftDailyData remain consistent (draft reflects the merged saved data unless the user currently has unsaved draft changes, in which case restore must require confirmation before applying)."
-      ]
-    },
-    {
-      "id": "REQ-5",
-      "text": "During restore, merge the caller user profile from the backup with the existing backend-stored profile using non-destructive behavior: do not clear an existing profile; only save the backup profile if the caller currently has no profile.",
+      "text": "Extend the backend data model to store and retrieve the authenticated caller’s full app data (at minimum: the caller’s user profile plus the entire ledger/local state currently stored under the localStorage key \"carpool-ledger-state\"), scoped privately per Internet Identity principal.",
       "target": "backend",
       "source": {
         "messageIds": [
           "msg-1"
         ],
         "quotes": [
-          "all stored data in the app",
-          "merge with existing data"
+          "all data user input summary everything",
+          "Name, trip checkbox, payment etc"
         ]
       },
       "acceptanceCriteria": [
-        "If getCallerUserProfile returns null and the backup includes a profile object, the app saves it via saveCallerUserProfile.",
-        "If getCallerUserProfile already returns a profile, restore does not overwrite it.",
-        "Any backend error during profile restore is surfaced as an English error message/toast and does not prevent local ledger data restore from completing."
+        "Backend exposes candid types that can represent the full ledger/local state (travellers, daily trip checkboxes, rate per trip, cash payments, other pending amounts, car expenses, date range, weekend inclusion flags) plus user profile.",
+        "Backend stores this data per caller principal and does not allow one user to read or write another user’s app data unless explicitly authorized by existing admin rules.",
+        "Storing and reading the caller’s app data works for a fresh user and for an existing user with previously saved data."
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "text": "Add backend APIs to support multi-device syncing: (1) fetch the caller’s current saved app data, (2) save/commit updated app data for the caller, and (3) include metadata (e.g., lastUpdated timestamp and/or version counter) to enable safe polling and conflict handling.",
+      "target": "backend",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "private per‑user data syncing across devices using 2–5 second polling"
+        ]
+      },
+      "acceptanceCriteria": [
+        "There is a query method to fetch the caller’s saved app data (or null/empty state if none exists).",
+        "There is a shared method to save the caller’s app data that updates backend metadata (lastUpdated/version).",
+        "Unauthorized callers receive an error/trap consistent with existing access-control patterns.",
+        "Backend metadata changes when any user input data is saved."
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "text": "Persist the synced per-user app data across canister upgrades, and add a conditional migration that preserves existing backend user profile data into the new persisted structure (so current users do not lose their saved name).",
+      "target": "backend",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "build it"
+        ]
+      },
+      "acceptanceCriteria": [
+        "After an upgrade, previously saved user profile data is still available to the same principal.",
+        "After an upgrade, previously saved synced app data (if present) is still available to the same principal.",
+        "Migration is only introduced if needed to preserve existing state per the project migration policy."
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "text": "Implement frontend multi-device sync that (a) loads the caller’s backend-saved app data on login, (b) merges it non-destructively with existing local ledger state using deterministic merge rules, and (c) continuously polls the backend every 2–5 seconds to incorporate updates made on other devices.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "2-5 seconds is fine",
+          "private per‑user data syncing across devices using 2–5 second polling"
+        ]
+      },
+      "acceptanceCriteria": [
+        "When a user logs in on Device A, makes changes (e.g., toggles trip checkboxes, adds payments/expenses, edits travellers), and then logs in on Device B, Device B reflects those changes after at most ~5 seconds (via polling).",
+        "Polling interval is within 2–5 seconds (fixed value in that range or randomized jitter within that range) and does not run when the user is logged out.",
+        "Incoming backend state is merged with local state deterministically (idempotent merge; no duplicate payments/expenses/travellers are created).",
+        "The existing backup/restore merge semantics remain consistent with the sync merge semantics (non-destructive, deterministic)."
+      ]
+    },
+    {
+      "id": "REQ-5",
+      "text": "Implement frontend outbound syncing so that local user input changes are saved back to the backend (with reasonable debouncing/batching) and do not overwrite newer remote data without applying the same deterministic merge rules.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "sync all the data",
+          "everything that taken as input"
+        ]
+      },
+      "acceptanceCriteria": [
+        "When the user changes any ledger inputs locally, the backend is updated automatically without requiring manual export/import.",
+        "If Device A and Device B both make changes, the next poll/save cycle results in a merged state consistent with deterministic rules (no data loss for additive items like payments/expenses; trip booleans merge without flipping from true to false due to sync).",
+        "Sync does not block core UI interactions; failed sync attempts surface an understandable error state and retry on subsequent polling cycles."
+      ]
+    },
+    {
+      "id": "REQ-6",
+      "text": "Add a small UI sync status indicator for authenticated users that clearly communicates sync state in English (e.g., “Synced”, “Syncing…”, “Offline / Sync failed”), without exposing private data.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "private per‑user data syncing across devices"
+        ]
+      },
+      "acceptanceCriteria": [
+        "When authenticated and polling, the UI shows a status reflecting current sync activity/result.",
+        "On backend/network failure, the UI indicates failure and resumes syncing automatically when connectivity returns.",
+        "All user-facing strings are in English."
+      ]
+    },
+    {
+      "id": "REQ-7",
+      "text": "Apply a coherent, distinctive visual theme across the app (colors, typography, spacing) appropriate for a personal ledger/trip tracker, avoiding a blue/purple-dominant palette unless already present; keep the design consistent across authentication, profile setup, and ledger pages.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "build it"
+        ]
+      },
+      "acceptanceCriteria": [
+        "The app uses a consistent theme (light/dark compatible if already supported) with a distinct style (e.g., paper/ledger-inspired neutrals with an accent color not dominated by blue/purple).",
+        "No user-facing text is changed to a non-English language.",
+        "Theme changes do not break readability or component contrast in common screens (login, profile setup modal, ledger tabs, backup/restore, clear data)."
       ]
     }
   ],
   "constraints": [
-    "Do not edit files under frontend/src/components/ui (Shadcn UI sources). Compose existing UI components instead.",
-    "Do not modify immutable frontend paths listed in SYSTEM_CONTEXT (e.g., frontend/src/hooks/useInternetIdentity.ts(x), frontend/src/hooks/useActor.ts, frontend/src/main.tsx)."
+    "Backend must remain a single Motoko actor in backend/main.mo; add backend/migration.mo only if required to preserve existing state.",
+    "Do not edit files under frontend/src/components/ui or any frontend paths listed as immutable in SYSTEM_CONTEXT.",
+    "Use Internet Identity as the authentication mechanism; do not add third-party auth.",
+    "No real-time sockets/WebSockets; syncing must be implemented via polling (2–5 seconds)."
   ],
   "nonGoals": [
-    "Adding third-party cloud backup providers (e.g., Google Drive/Dropbox).",
-    "Implementing real-time sync or multi-device auto-sync.",
-    "Implementing a full backend backup of unrelated canister state not used by the current UI flows."
+    "Adding support for syncing arbitrary file uploads or binary attachments.",
+    "Implementing push-based real-time sync (WebSockets) or background sync when the browser is closed.",
+    "Adding external databases or third-party cloud services."
   ],
   "imageRequirements": {
     "required": [],
     "edits": []
+  },
+  "userProfileUpdate": {
+    "goalsToAdd": [],
+    "goalsToRemove": [],
+    "preferencesToAdd": [],
+    "preferencesToRemove": [],
+    "miscToAdd": [],
+    "miscToRemove": [],
+    "fieldsToSet": {},
+    "fieldsToDelete": []
   }
 }

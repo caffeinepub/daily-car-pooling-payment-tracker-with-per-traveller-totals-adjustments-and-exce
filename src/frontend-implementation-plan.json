@@ -1,112 +1,145 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Backup & Restore tab (JSON export/import with deterministic merge)",
+  "title": "Per-Internet-Identity multi-device polling sync for ledger inputs (frontend)",
   "requirements": [
     {
-      "id": "REQ-1",
-      "summary": "Add a new \"Backup & Restore\" tab to the Ledger page before the existing \"Clear Data\" tab and render a dedicated panel.",
+      "id": "REQ-4",
+      "summary": "Load backend-saved app data on login, merge deterministically with local ledger state, and poll every 2–5 seconds to incorporate remote updates while authenticated.",
       "acceptanceCriteria": [
-        "Ledger page shows a new tab label \"Backup & Restore\" in the TabsList before the \"Clear Data\" tab.",
-        "Selecting \"Backup & Restore\" displays a dedicated panel; existing tabs (Travellers/Daily/Summary/Car Expense/Overall/Clear Data) continue to work as before."
+        "When a user logs in on Device A, makes changes (e.g., toggles trip checkboxes, adds payments/expenses, edits travellers), and then logs in on Device B, Device B reflects those changes after at most ~5 seconds (via polling).",
+        "Polling interval is within 2–5 seconds (fixed value in that range or randomized jitter within that range) and does not run when the user is logged out.",
+        "Incoming backend state is merged with local state deterministically (idempotent merge; no duplicate payments/expenses/travellers are created).",
+        "The existing backup/restore merge semantics remain consistent with the sync merge semantics (non-destructive, deterministic)."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/features/ledger/LedgerPage.tsx",
-          "operation": "modify",
-          "description": "Insert a new TabsTrigger/TabsContent for \"Backup & Restore\" immediately before the existing Clear Data tab; adjust tab grid layout (currently grid-cols-6) to account for the added tab and wire the new panel component so it is reachable in-app."
-        },
-        {
-          "path": "frontend/src/features/ledger/BackupRestorePanel.tsx",
+          "path": "frontend/src/hooks/useAppDataSync.ts",
           "operation": "create",
-          "description": "Create the new Ledger tab panel UI for Backup & Restore, including section headings, explanatory notes (including settings restore behavior), and space for backup download + restore upload/confirm flows. Compose existing shadcn/ui components (do not edit frontend/src/components/ui)."
-        }
-      ]
-    },
-    {
-      "id": "REQ-2",
-      "summary": "Implement Backup export to download a JSON file containing the full local ledger state plus the caller user profile from the backend when available.",
-      "acceptanceCriteria": [
-        "Backup panel includes a clear action (e.g., button) to download a .json file.",
-        "The exported JSON includes the full ledger local state (travellers, dailyData, dateRange, ratePerTrip, cashPayments, otherPending, carExpenses, includeSaturday, includeSunday) sourced from the same data used by the app (localStorage key \"carpool-ledger-state\").",
-        "The exported JSON includes the current caller user profile data returned by backend getCallerUserProfile (or null/omitted when no profile exists).",
-        "Export works while authenticated; failures show an English error message/toast without crashing the app."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/features/ledger/BackupRestorePanel.tsx",
-          "operation": "modify",
-          "description": "Implement the \"Backup\" action: read the persisted ledger JSON from localStorage key \"carpool-ledger-state\" (fallback to in-memory context state if needed), fetch backend backup/profile via the actor (e.g., exportBackup and/or getCallerUserProfile), and trigger a client-side .json download. Show English toast/errors on failures and handle authorization failures gracefully. Use the authorization component’s frontend guidance for authenticated actor calls and error handling; verify the component's usage instructions before implementing."
+          "description": "Create a sync orchestrator hook that uses the authenticated actor to (1) fetch the caller’s remote AppData on login, (2) parse remote ledgerState JSON into LocalLedgerState, (3) merge remote->local using the same deterministic rules as backupRestore.mergeLocalStates (non-destructive; OR semantics for trip booleans; id-based dedupe for travellers/payments/expenses; settings consistent with documented behavior), and (4) start/stop a 2–5s polling loop that only runs while authenticated. Implement idempotent application of remote changes by tracking last-seen remote metadata (e.g., version/lastUpdated) and skipping merges when unchanged. Verify the component's usage instructions before implementing."
         },
         {
-          "path": "frontend/src/utils/backupRestore.ts",
-          "operation": "create",
-          "description": "Add shared helpers for backup export: building a deterministic export payload, generating a filename, and downloading JSON via Blob + anchor click (similar approach to existing CSV download utilities)."
-        },
-        {
-          "path": "frontend/src/hooks/useLedgerLocalState.ts",
+          "path": "frontend/src/hooks/useQueries.ts",
           "operation": "modify",
-          "description": "Add a small, safe accessor helper that returns the currently persisted StoredState representation (aligned with the localStorage \"carpool-ledger-state\" shape) so Backup export can reliably include the same persisted fields used by the app."
-        }
-      ]
-    },
-    {
-      "id": "REQ-3",
-      "summary": "Implement Restore import from a user-selected JSON file that merges backup data into existing stored data without clearing existing data and updates the UI immediately.",
-      "acceptanceCriteria": [
-        "Backup panel includes a file input (accepting .json) and a restore action.",
-        "On selecting an invalid JSON file or invalid schema, the UI shows an English error message/toast and does not modify existing data.",
-        "On successful restore, existing data remains present and backup data is merged in (no destructive overwrite/clear of collections).",
-        "After restore, the UI updates immediately to reflect the merged state across all relevant screens/tabs without requiring a refresh."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/features/ledger/BackupRestorePanel.tsx",
-          "operation": "modify",
-          "description": "Add restore UI: file input accepting .json, a restore button, validation feedback, and (when required) a confirmation dialog for applying restore while there are unsaved Daily draft changes. On restore: parse JSON, validate schema, merge into local ledger state via a context action, and invoke backend importBackup for profile merge (do not block local restore on backend failures; surface backend issues as English toasts). Use the authorization component’s frontend guidance for authenticated actor calls and error handling; verify the component's usage instructions before implementing."
+          "description": "Extend React Query hooks to include a query/mutation wrapper for backend fetchAppData() and saveAppData() (backend capability calls only; no new routes). These will be used by useAppDataSync for initial load and polling. Ensure queries are disabled when actor is not ready. Verify the component's usage instructions before implementing."
         },
         {
           "path": "frontend/src/utils/backupRestore.ts",
           "operation": "modify",
-          "description": "Implement JSON parsing + schema validation helpers for the expected backup shape; ensure invalid files do not mutate state. Include merge orchestration helpers that return either a merged result or a validation error message."
+          "description": "Extract or add a small helper that reuses the existing deterministic merge semantics for sync scenarios (e.g., a named merge function for 'local + remote ledgerState' that delegates to mergeLocalStates). Keep behavior aligned with the current Backup & Restore 'Merge Behavior' text (non-destructive; id-based dedupe; trip OR). Verify the component's usage instructions before implementing."
         },
         {
           "path": "frontend/src/hooks/useLedgerLocalState.ts",
           "operation": "modify",
-          "description": "Add an imperative restore/merge method (e.g., mergeRestoreFromBackup) that applies a computed merged StoredState to React state so the UI updates immediately across all tabs; ensure localStorage persistence continues to work via the existing save effect."
+          "description": "Add a minimal API to apply a merged LocalLedgerState into the in-memory state (e.g., applyMergedState/replacePersistedState) so the sync layer can deterministically update travellers, dailyData, payments, expenses, date range, rate, and weekend toggles in one place without creating duplicates. Reuse existing deepCloneDailyData protections when setting dailyData/draftDailyData. Verify the component's usage instructions before implementing."
         },
         {
           "path": "frontend/src/features/ledger/LedgerStateContext.tsx",
           "operation": "modify",
-          "description": "Expose the new restore/merge method (and any needed helpers like hasDraftChanges/discardDraftDailyData already present) through the LedgerStateContext so BackupRestorePanel can apply restores and force immediate UI updates."
+          "description": "Expose the new 'apply merged state' capability (and optionally a lightweight stateRevision counter) from useLedgerLocalState via context so useAppDataSync can safely read current persisted state and apply merged updates. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/features/ledger/LedgerPage.tsx",
+          "operation": "modify",
+          "description": "Wire the sync hook into the authenticated ledger experience by invoking useAppDataSync inside the LedgerStateProvider tree (so it can read/apply ledger state) and ensuring it is mounted only when the user is past AuthGate/profile gating. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/components/AppHeader.tsx",
+          "operation": "modify",
+          "description": "Integrate authenticated-only sync UI placement (status indicator added in REQ-6) and ensure logout flow clears cached app data per the selected 'authorization' component’s frontend guidance (clear React Query cache already present; also trigger clearing local cached ledger state via a shared utility or coordinated effect). Verify the component's usage instructions before implementing."
         }
       ]
     },
     {
-      "id": "REQ-4",
-      "summary": "Define deterministic, idempotent merge rules for restoring local ledger state and handle settings + draftDailyData consistency with confirmation when needed.",
+      "id": "REQ-5",
+      "summary": "Automatically save local user input changes back to the backend with debouncing, merging against newer remote data to avoid overwriting and handling failures without blocking UI.",
       "acceptanceCriteria": [
-        "Travellers: merge by traveller.id; if an id already exists locally, keep the local record; otherwise add the backup record.",
-        "Cash payments / other pending / car expenses: merge by item.id using the same rule (keep local on id conflict; add missing).",
-        "dailyData: merge by dateKey then travellerId; for conflicts, set each boolean (morning/evening) to true if either local or backup is true (logical OR).",
-        "Settings fields (dateRange, ratePerTrip, includeSaturday, includeSunday): restore must not delete other data; if the restore applies these fields, their behavior must be documented in the UI (e.g., a short note in the panel describing whether settings will be taken from the backup or kept local).",
-        "After merge, both saved dailyData and draftDailyData remain consistent (draft reflects the merged saved data unless the user currently has unsaved draft changes, in which case restore must require confirmation before applying)."
+        "When the user changes any ledger inputs locally, the backend is updated automatically without requiring manual export/import.",
+        "If Device A and Device B both make changes, the next poll/save cycle results in a merged state consistent with deterministic rules (no data loss for additive items like payments/expenses; trip booleans merge without flipping from true to false due to sync).",
+        "Sync does not block core UI interactions; failed sync attempts surface an understandable error state and retry on subsequent polling cycles."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/utils/backupRestore.ts",
+          "path": "frontend/src/hooks/useAppDataSync.ts",
           "operation": "modify",
-          "description": "Implement pure, deterministic merge functions for each data slice: travellers/items merged by id (keep local on conflicts), dailyData merged by dateKey+travellerId with boolean OR, and a clear policy for settings restoration (e.g., default keep-local with an explicit option to apply-from-backup). Ensure the merge result is idempotent for repeated restores."
+          "description": "Add outbound syncing to the sync orchestrator: detect local ledger changes (via context stateRevision or a stable serialization hash), debounce/batch saves, and before committing ensure no newer remote metadata exists by fetching latest and applying the same deterministic merge rules (remote + local) prior to saving. Persist/update last-known remote metadata after successful save and ensure failures set sync status to a retryable error without blocking user interactions. Verify the component's usage instructions before implementing."
         },
         {
           "path": "frontend/src/hooks/useLedgerLocalState.ts",
           "operation": "modify",
-          "description": "Ensure restore application keeps dailyData and draftDailyData consistent: if there are no unsaved draft changes, set draftDailyData to the merged saved dailyData (deep-cloned); if there are unsaved draft changes, require an explicit confirmation flow from the caller before applying restore that would overwrite the draft."
+          "description": "Provide a stable change signal for debounced outbound sync (e.g., incrementing revision counter on persisted state changes, excluding transient UI-only state) so the sync hook can efficiently detect user input changes. Verify the component's usage instructions before implementing."
         },
         {
-          "path": "frontend/src/features/ledger/BackupRestorePanel.tsx",
+          "path": "frontend/src/features/ledger/ClearDataPanel.tsx",
           "operation": "modify",
-          "description": "Document (in-panel) the settings merge behavior (dateRange, ratePerTrip, includeSaturday, includeSunday), and implement the required confirmation UX when the user has unsaved Daily draft changes before applying restore."
+          "description": "After destructive local clears, ensure the sync layer is notified so it can commit the cleared state (or the appropriate merged state) back to the backend via the same debounced outbound sync mechanism, avoiding a stale remote re-hydration on the next poll. Keep all user-facing strings in English. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/hooks/useInternetIdentity.ts",
+          "operation": "modify",
+          "description": "On logout (identity cleared), ensure any in-memory timers/intervals related to sync are torn down by the sync hook and that cached application data guidance from the selected 'authorization' component is followed (clear cached profile and ledger state; do not keep showing prior user data when logged out). Verify the component's usage instructions before implementing."
+        }
+      ]
+    },
+    {
+      "id": "REQ-6",
+      "summary": "Add a small authenticated-only sync status indicator that communicates current sync state in English.",
+      "acceptanceCriteria": [
+        "When authenticated and polling, the UI shows a status reflecting current sync activity/result.",
+        "On backend/network failure, the UI indicates failure and resumes syncing automatically when connectivity returns.",
+        "All user-facing strings are in English."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/SyncStatusIndicator.tsx",
+          "operation": "create",
+          "description": "Create a small presentational component that renders the current sync state text in English (e.g., “Synced”, “Syncing…”, “Offline / Sync failed”) without exposing private data; keep it compact for header placement and accessible (screen-reader friendly). Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/hooks/useAppDataSync.ts",
+          "operation": "modify",
+          "description": "Expose a minimal sync status state machine (idle/syncing/synced/failed) and last successful sync time (optional) for UI display. Ensure state updates on poll start/success/failure and outbound save attempts. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/components/AppHeader.tsx",
+          "operation": "modify",
+          "description": "Wire SyncStatusIndicator into the authenticated header layout so users can always see current sync status while using the ledger. Keep indicator hidden when logged out. Verify the component's usage instructions before implementing."
+        }
+      ]
+    },
+    {
+      "id": "REQ-7",
+      "summary": "Apply a coherent, distinctive visual theme across authentication, profile setup, and ledger screens (avoid blue/purple-dominant palette) while preserving English copy and readability.",
+      "acceptanceCriteria": [
+        "The app uses a consistent theme (light/dark compatible if already supported) with a distinct style (e.g., paper/ledger-inspired neutrals with an accent color not dominated by blue/purple).",
+        "No user-facing text is changed to a non-English language.",
+        "Theme changes do not break readability or component contrast in common screens (login, profile setup modal, ledger tabs, backup/restore, clear data)."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/index.css",
+          "operation": "modify",
+          "description": "Refine the global theme tokens (colors/typography/spacing) to reinforce a ledger/paper-inspired neutral palette with a non-blue/purple accent, ensuring adequate contrast in both light and dark modes. Keep existing Tailwind token strategy intact. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/components/AuthGate.tsx",
+          "operation": "modify",
+          "description": "Align the unauthenticated login screen styling with the global theme (background, card elevation, typography) to match the ledger pages and avoid a blue/purple-dominant look. Keep all user-facing text in English. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/components/ProfileSetupModal.tsx",
+          "operation": "modify",
+          "description": "Adjust modal spacing/typography and surface styling so profile setup visually matches the rest of the app theme and remains readable in light/dark modes. Keep all user-facing strings in English. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/components/AppHeader.tsx",
+          "operation": "modify",
+          "description": "Ensure header branding, icon treatment, and spacing are consistent with the refined theme and do not reduce contrast/legibility. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/tailwind.config.js",
+          "operation": "modify",
+          "description": "If needed for the theme refinements, adjust Tailwind theme extensions (e.g., shadows/radii/typography defaults) to support a cohesive ledger look while preserving existing token-based color mapping. Verify the component's usage instructions before implementing."
         }
       ]
     }

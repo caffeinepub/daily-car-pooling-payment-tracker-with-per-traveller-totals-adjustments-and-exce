@@ -17,6 +17,7 @@ import MobileLedgerSidebarNav from './MobileLedgerSidebarNav';
 import TripHistoryPanel from './TripHistoryPanel';
 import PaymentSummaryPanel from './PaymentSummaryPanel';
 import TripsPaymentYearSelector from './TripsPaymentYearSelector';
+import OverallMonthYearSelector from './OverallMonthYearSelector';
 import { LedgerStateProvider, useLedgerState } from './LedgerStateContext';
 import { useAppDataSync } from '../../hooks/useAppDataSync';
 import { getFullYearRange } from '../../utils/dateRange';
@@ -190,13 +191,14 @@ function LedgerPageContent() {
   };
 
   const isTripsPaymentTab = TRIPS_PAYMENT_TABS.includes(activeTab);
+  const isOverallTab = activeTab === 'overall';
 
   return (
     <div className="min-h-screen flex flex-col">
       <AppHeader syncStatus={syncStatus} lastSyncTime={lastSyncTime} syncError={syncError} onLogout={handleLogout} />
 
       <main className="flex-1 container py-6 px-4 space-y-6">
-        {/* Date Range, Rate, Year Selector, and Other Co-Traveller */}
+        {/* Date Range, Rate, Year Selector, Month/Year Selector, and Other Co-Traveller */}
         <div className="flex flex-col gap-4">
           <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
             <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
@@ -204,6 +206,7 @@ function LedgerPageContent() {
               {isTripsPaymentTab && (
                 <TripsPaymentYearSelector selectedYear={selectedYear} onYearChange={handleYearChange} />
               )}
+              {isOverallTab && <OverallMonthYearSelector />}
             </div>
             {activeTab === 'grid' && (
               <Button

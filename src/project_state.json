@@ -1,32 +1,32 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "New project",
+  "summary": "Add date range filtering for the overall payment tracking page: default to current month, with Month/Year dropdowns that instantly set the range and stay synced with custom date selections.",
   "architectural_notes": [
-    "Trips & Payment tabs: date range should default to full calendar year for selected year (current year by default), but remain user-editable."
+    "Date range filter logic: selecting a month sets start/end to that month’s first/last day; selecting a year sets start/end to Jan 1–Dec 31; manual date edits should update Month/Year selectors to match."
   ],
   "known_issues": [],
   "isFixRequest": false,
   "existing_features": [
     {
-      "id": "feature-change-the-date-range-behavior-so-that-the-trips-payment-experience-defaults-to-a-full-year-range-jan-1-to-dec-31-for-the-current-year-while-still-allowing-users-to-manually-change-the-start-end-dates",
-      "title": "Change the date-range behavior so that the \"Trips & Payment\" experience defaults to a full-year range (Jan 1 to Dec 31) for the current year, while still allowing users to manually change the start/end dates.",
+      "id": "feature-change-the-default-date-range-for-non-trips-payment-tabs-including-the-overall-tab-to-the-current-calendar-month-1st-through-last-day-instead-of-the-current-week-monday-friday",
+      "title": "Change the default date range for non–Trips & Payment tabs (including the Overall tab) to the current calendar month (1st through last day), instead of the current week Monday–Friday.",
       "reqIds": [
         "REQ-1"
       ],
       "version": 1
     },
     {
-      "id": "feature-apply-the-full-year-default-and-year-selection-behavior-only-to-the-trips-payment-related-tabs-trip-history-and-trips-payment-and-do-not-change-the-default-date-range-behavior-for-other-tabs-e-g-daily-summary-expense-overall",
-      "title": "Apply the full-year default and year-selection behavior only to the Trips & Payment-related tabs (\"Trip History\" and \"Trips & Payment\"), and do not change the default date range behavior for other tabs (e.g., Daily, Summary, Expense, Overall).",
+      "id": "feature-add-month-and-year-dropdown-selectors-for-the-overall-tab-that-instantly-update-the-shared-date-range-selecting-a-month-sets-the-date-range-to-the-first-and-last-day-of-that-month-in-the-currently-selected-year-and-selecting-a-year-sets-the-range-to-jan-1-dec-31-of-that-year-when-no-specific-month-is-selected-if-a-month-is-selected-changing-the-year-keeps-the-month-selection-and-updates-the-range-to-that-month-within-the-new-year",
+      "title": "Add Month and Year dropdown selectors for the Overall tab that instantly update the shared date range: selecting a month sets the date range to the first and last day of that month (in the currently selected year), and selecting a year sets the range to Jan 1–Dec 31 of that year when no specific month is selected; if a month is selected, changing the year keeps the month selection and updates the range to that month within the new year.",
       "reqIds": [
         "REQ-2"
       ],
       "version": 1
     },
     {
-      "id": "feature-add-a-year-selector-for-the-trips-payment-related-tabs-that-defaults-to-the-current-year-when-the-user-selects-a-different-year-automatically-set-the-date-range-to-the-full-year-range-for-that-selected-year-jan-1-dec-31",
-      "title": "Add a year selector for the Trips & Payment-related tabs that defaults to the current year; when the user selects a different year, automatically set the date range to the full-year range for that selected year (Jan 1–Dec 31).",
+      "id": "feature-keep-the-month-year-dropdowns-synchronized-with-manual-custom-date-selection-when-a-user-changes-the-date-range-using-the-daterangepicker-the-dropdowns-update-to-reflect-the-new-range-when-it-maps-cleanly-to-a-single-month-or-a-single-full-year-otherwise-they-show-a-clear-custom-state",
+      "title": "Keep the Month/Year dropdowns synchronized with manual custom date selection: when a user changes the date range using the DateRangePicker, the dropdowns update to reflect the new range when it maps cleanly to a single month or a single full year; otherwise they show a clear \"Custom\" state.",
       "reqIds": [
         "REQ-3"
       ],
@@ -36,7 +36,19 @@
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "Default Trips & Payment tabs date range filter to full year (Jan 1–Dec 31) of current year; allow users to change year and still apply full-year range, and allow manual date range changes",
+      "summary": "Overall page date range defaults to current month for payment tracking",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-2",
+      "summary": "Add Month and Year dropdowns that instantly update the date range (month -> first/last day; year -> Jan 1–Dec 31)",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-3",
+      "summary": "Keep Month/Year dropdowns synchronized with manual custom date range selection",
       "reqIds": [],
       "status": "pending"
     }

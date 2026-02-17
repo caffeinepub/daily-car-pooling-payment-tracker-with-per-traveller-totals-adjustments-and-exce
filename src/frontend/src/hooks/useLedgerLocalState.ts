@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import type { LocalLedgerState } from '../utils/backupRestore';
 import { mergeLocalStates } from '../utils/backupRestore';
-import { getCurrentWeekMondayToFriday, formatDateKey } from '../utils/dateRange';
+import { getCurrentMonth, formatDateKey } from '../utils/dateRange';
 import { useAutoTollSettings } from './useAutoTollSettings';
 
 export interface Traveller {
@@ -82,7 +82,7 @@ function generateId(): string {
 }
 
 function getDefaultDateRange(): DateRange {
-  return getCurrentWeekMondayToFriday();
+  return getCurrentMonth();
 }
 
 // Deep clone helper to prevent shared references

@@ -1,79 +1,70 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Full-year default date range and year selector for Trips & Payment tabs",
+  "title": "Carpool Ledger — Default to current month + synced Month/Year selectors on Overall tab",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Default Trips & Payment-related tabs to the full current year date range while keeping existing date pickers editable.",
+      "summary": "Default non–Trips & Payment tabs to the current calendar month on fresh load and after clear-all reset, while keeping Trips & Payment full-year default behavior.",
       "acceptanceCriteria": [
-        "When the user opens the Trips & Payment tab(s), the date range is automatically set to Jan 1 through Dec 31 of the current year (unless the user previously set a different date range for those tabs in this session).",
-        "The existing date pickers remain usable so the user can manually set any start and end dates after the default is applied.",
-        "User-facing text remains in English."
+        "On a fresh load with no prior saved local state, the date range defaults to the current month (start = first day of month, end = last day of month).",
+        "Using \"Clear Data\" / clear-all behavior resets the date range to the current month (not the current week).",
+        "Existing behavior for Trips & Payment tabs (Trip History and Payment tabs) continues to default to a full-year range when first entering those tabs, unless explicitly changed by the user."
       ],
       "file_operations": [
         {
           "path": "frontend/src/utils/dateRange.ts",
           "operation": "modify",
-          "description": "Add a utility to compute a full-year date range (Jan 1–Dec 31) for a given year to support Trips & Payment defaults without altering existing current-week utilities."
+          "description": "Add utilities to compute the current calendar month range (first day through last day) and a general full-month range helper for a given month/year."
         },
         {
-          "path": "frontend/src/features/ledger/DateRangePicker.tsx",
+          "path": "frontend/src/hooks/useLedgerLocalState.ts",
           "operation": "modify",
-          "description": "Update DateRangePicker to support controlled usage via optional props (current range + onChange) while preserving its existing context-backed behavior, so Trips & Payment tabs can apply a different default without breaking other tabs."
-        },
-        {
-          "path": "frontend/src/features/ledger/LedgerPage.tsx",
-          "operation": "modify",
-          "description": "Implement session-scoped date-range handling in the ledger page so that entering Trip History or Trips & Payment sets the date range to the current year's full-year range only if the user has not already adjusted the Trips/Payment date range in this session, and keep the existing date pickers functional for manual edits."
+          "description": "Change the local-state default date range (including the no-localStorage fallback and clear-all reset) to use the current calendar month utilities instead of the current week Monday–Friday."
         }
       ]
     },
     {
       "id": "REQ-2",
-      "summary": "Scope full-year default behavior to Trip History and Trips & Payment only, preserving other tabs' existing date-range behavior and separate session memory.",
+      "summary": "Add Month and Year dropdown selectors on the Overall tab that instantly update the shared date range and keep the DateRangePicker display in sync.",
       "acceptanceCriteria": [
-        "Entering the \"Trip History\" tab or the \"Trips & Payment\" tab triggers the full-year default behavior defined in REQ-1.",
-        "Other tabs continue to use the existing default date range behavior (currently the current week Monday–Friday) when the app is first used.",
-        "Switching between Trips & Payment tabs and other tabs does not permanently overwrite the other tabs’ preferred/last-used date range for the current session (i.e., the app remembers the last date range used in non-Trips/Payment tabs separately from the one used in Trips/Payment tabs)."
+        "When viewing the Overall tab, Month and Year dropdowns are visible near the date range controls.",
+        "Selecting a Month immediately updates the date range to that month’s full span.",
+        "Selecting a Year immediately updates the date range (full year if no month selected; otherwise the selected month within that year).",
+        "Selecting Month/Year updates the existing DateRangePicker start/end displays accordingly."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/features/ledger/LedgerPage.tsx",
-          "operation": "modify",
-          "description": "Introduce separate in-session date-range state buckets for (a) Trips/Payment tabs (Trip History + Trips & Payment) and (b) all other tabs; when switching tabs, restore the appropriate bucket into the shared ledger dateRange so non-Trips tabs keep their last-used range (e.g., current week by default) independently from Trips/Payment."
+          "path": "frontend/src/features/ledger/OverallMonthYearSelector.tsx",
+          "operation": "create",
+          "description": "Create an Overall-tab-only Month/Year selector component that uses shadcn-ui Select primitives to drive the shared dateRange in LedgerStateContext. Verify the component's usage instructions before implementing."
         },
         {
-          "path": "frontend/src/features/ledger/DateRangePicker.tsx",
+          "path": "frontend/src/features/ledger/LedgerPage.tsx",
           "operation": "modify",
-          "description": "Ensure DateRangePicker change events can be routed through LedgerPage so manual edits update the correct session bucket (Trips/Payment vs other tabs) without changing date behavior elsewhere."
+          "description": "Wire the new OverallMonthYearSelector into the existing date controls row so it appears only when the Overall tab is active and updates the same shared date range as DateRangePicker. Verify the component's usage instructions before implementing."
         }
       ]
     },
     {
       "id": "REQ-3",
-      "summary": "Add a year selector on Trip History and Trips & Payment that defaults to the current year and sets the range to the selected year's full year.",
+      "summary": "Synchronize Overall Month/Year dropdowns with manual DateRangePicker edits, showing matching month/year when exact, otherwise a clear Custom state.",
       "acceptanceCriteria": [
-        "On Trips & Payment-related tabs, the UI provides a year selection control (e.g., dropdown/select) that defaults to the current year.",
-        "Changing the selected year immediately updates the date range to Jan 1–Dec 31 of the selected year.",
-        "After selecting a year, the user can still manually adjust the start/end dates via the existing date picker controls.",
-        "The year selector is not shown (or otherwise does not affect date range) on non-Trips/Payment tabs."
+        "Changing start/end dates via the DateRangePicker updates the Year dropdown to the year of the selected range when determinable.",
+        "If the selected range exactly matches a full calendar month (first to last day within the same month/year), the Month dropdown updates to that month.",
+        "If the selected range exactly matches a full calendar year (Jan 1–Dec 31), the Month dropdown switches to a non-month state (e.g., \"All\" or empty) and the Year dropdown reflects that year.",
+        "If the selected range spans multiple months or does not align to full-month/full-year boundaries, the Month dropdown shows \"Custom\" (and Year shows \"Custom\" only if the range spans multiple years)."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/features/ledger/TripsPaymentYearSelector.tsx",
-          "operation": "create",
-          "description": "Create a small, reusable year-selection UI component (e.g., select/dropdown) that defaults to the current year and exposes an onChange(year) callback for the Trips & Payment tabs."
-        },
-        {
-          "path": "frontend/src/features/ledger/LedgerPage.tsx",
-          "operation": "modify",
-          "description": "Wire TripsPaymentYearSelector into the LedgerPage toolbar area and render it only when the active tab is Trip History or Trips & Payment; on selection change, set the Trips/Payment session bucket date range to the selected year's full-year range and update the shared ledger dateRange accordingly."
-        },
-        {
           "path": "frontend/src/utils/dateRange.ts",
           "operation": "modify",
-          "description": "Use the full-year range utility (added/updated here) as the single source of truth when applying a selected year so the date range is always Jan 1–Dec 31 for that year."
+          "description": "Add helper(s) to classify a date range as an exact full-month, exact full-year, or custom (including multi-year detection) to support consistent dropdown synchronization behavior."
+        },
+        {
+          "path": "frontend/src/features/ledger/OverallMonthYearSelector.tsx",
+          "operation": "modify",
+          "description": "Implement derived selector state from the shared dateRange so manual DateRangePicker changes update Month/Year selectors (month match, year match, or Custom/All states) without creating update loops. Verify the component's usage instructions before implementing."
         }
       ]
     }

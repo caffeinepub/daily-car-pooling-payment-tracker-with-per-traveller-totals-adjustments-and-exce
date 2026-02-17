@@ -1,76 +1,89 @@
 {
   "kind": "build_request",
-  "title": "Default full-year date range on Trips & Payment tabs with selectable year",
+  "title": "Default overall date range to current month and add synced Month/Year selectors",
   "projectName": "Carpool Ledger",
   "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Change the date-range behavior so that the \"Trips & Payment\" experience defaults to a full-year range (Jan 1 to Dec 31) for the current year, while still allowing users to manually change the start/end dates.",
+      "text": "Change the default date range for non–Trips & Payment tabs (including the Overall tab) to the current calendar month (1st through last day), instead of the current week Monday–Friday.",
       "target": "frontend",
       "source": {
         "messageIds": [
           "msg-1"
         ],
         "quotes": [
-          "For Trips & Payment page Date Range should be of entire year Jan 1st to 31st dec for better payment tracking",
-          "1. just default to that while still allowing users to change it"
+          "1. default month"
         ]
       },
       "acceptanceCriteria": [
-        "When the user opens the Trips & Payment tab(s), the date range is automatically set to Jan 1 through Dec 31 of the current year (unless the user previously set a different date range for those tabs in this session).",
-        "The existing date pickers remain usable so the user can manually set any start and end dates after the default is applied.",
-        "User-facing text remains in English."
+        "On a fresh load with no prior saved local state, the date range defaults to the current month (start = first day of month, end = last day of month).",
+        "Using \"Clear Data\" / clear-all behavior resets the date range to the current month (not the current week).",
+        "Existing behavior for Trips & Payment tabs (Trip History and Payment tabs) continues to default to a full-year range when first entering those tabs, unless explicitly changed by the user."
       ]
     },
     {
       "id": "REQ-2",
-      "text": "Apply the full-year default and year-selection behavior only to the Trips & Payment-related tabs (\"Trip History\" and \"Trips & Payment\"), and do not change the default date range behavior for other tabs (e.g., Daily, Summary, Expense, Overall).",
+      "text": "Add Month and Year dropdown selectors for the Overall tab that instantly update the shared date range: selecting a month sets the date range to the first and last day of that month (in the currently selected year), and selecting a year sets the range to Jan 1–Dec 31 of that year when no specific month is selected; if a month is selected, changing the year keeps the month selection and updates the range to that month within the new year.",
       "target": "frontend",
       "source": {
         "messageIds": [
           "msg-1"
         ],
         "quotes": [
-          "this apply to only Trips & payment tab"
+          "Also provide Month wise and Year wise drop down which change date un range",
+          "2. Yes"
         ]
       },
       "acceptanceCriteria": [
-        "Entering the \"Trip History\" tab or the \"Trips & Payment\" tab triggers the full-year default behavior defined in REQ-1.",
-        "Other tabs continue to use the existing default date range behavior (currently the current week Monday–Friday) when the app is first used.",
-        "Switching between Trips & Payment tabs and other tabs does not permanently overwrite the other tabs’ preferred/last-used date range for the current session (i.e., the app remembers the last date range used in non-Trips/Payment tabs separately from the one used in Trips/Payment tabs)."
+        "When viewing the Overall tab, Month and Year dropdowns are visible near the date range controls.",
+        "Selecting a Month immediately updates the date range to that month’s full span.",
+        "Selecting a Year immediately updates the date range (full year if no month selected; otherwise the selected month within that year).",
+        "Selecting Month/Year updates the existing DateRangePicker start/end displays accordingly."
       ]
     },
     {
       "id": "REQ-3",
-      "text": "Add a year selector for the Trips & Payment-related tabs that defaults to the current year; when the user selects a different year, automatically set the date range to the full-year range for that selected year (Jan 1–Dec 31).",
+      "text": "Keep the Month/Year dropdowns synchronized with manual custom date selection: when a user changes the date range using the DateRangePicker, the dropdowns update to reflect the new range when it maps cleanly to a single month or a single full year; otherwise they show a clear \"Custom\" state.",
       "target": "frontend",
       "source": {
         "messageIds": [
           "msg-1"
         ],
         "quotes": [
-          "Default is current but users be able to select a different year with the same full‑year range"
+          "3. Update to match"
         ]
       },
       "acceptanceCriteria": [
-        "On Trips & Payment-related tabs, the UI provides a year selection control (e.g., dropdown/select) that defaults to the current year.",
-        "Changing the selected year immediately updates the date range to Jan 1–Dec 31 of the selected year.",
-        "After selecting a year, the user can still manually adjust the start/end dates via the existing date picker controls.",
-        "The year selector is not shown (or otherwise does not affect date range) on non-Trips/Payment tabs."
+        "Changing start/end dates via the DateRangePicker updates the Year dropdown to the year of the selected range when determinable.",
+        "If the selected range exactly matches a full calendar month (first to last day within the same month/year), the Month dropdown updates to that month.",
+        "If the selected range exactly matches a full calendar year (Jan 1–Dec 31), the Month dropdown switches to a non-month state (e.g., \"All\" or empty) and the Year dropdown reflects that year.",
+        "If the selected range spans multiple months or does not align to full-month/full-year boundaries, the Month dropdown shows \"Custom\" (and Year shows \"Custom\" only if the range spans multiple years)."
       ]
     }
   ],
   "constraints": [
-    "Do not edit files under frontend/src/components/ui (Shadcn UI components must be composed, not modified).",
-    "Do not edit immutable frontend hook files listed in SYSTEM_CONTEXT (e.g., frontend/src/hooks/useInternetIdentity.ts(x), frontend/src/hooks/useActor.ts, frontend/src/main.tsx)."
+    "Do not edit files under frontend/src/components/ui (compose existing UI primitives instead).",
+    "Do not edit immutable hook files listed in SYSTEM_CONTEXT.frontend.immutablePaths.",
+    "Backend architecture must remain single-actor; no new backend services."
   ],
   "nonGoals": [
-    "Do not change backend data models or Motoko canister logic for this request.",
-    "Do not change date range calculations used by exports/reports beyond what naturally follows from the selected date range on the relevant tabs."
+    "Do not add preset ranges beyond Month and Year selectors (e.g., Last 3 Months, Last 6 Months).",
+    "Do not change any backend data schema or persistence format as part of this request.",
+    "Do not add third-party authentication; continue using Internet Identity only."
   ],
   "imageRequirements": {
     "required": [],
     "edits": []
+  },
+  "userProfileUpdate": {
+    "goalsToAdd": [],
+    "goalsToRemove": [],
+    "preferencesToAdd": [],
+    "preferencesToRemove": [],
+    "miscToAdd": [],
+    "miscToRemove": [],
+    "fieldsToSet": {},
+    "fieldsToDelete": []
   }
 }

@@ -1,4 +1,4 @@
-import { format, eachDayOfInterval, startOfWeek, endOfWeek, addDays, getDay } from 'date-fns';
+import { format, eachDayOfInterval, startOfWeek, endOfWeek, addDays, getDay, startOfYear, endOfYear } from 'date-fns';
 
 export function getDaysInRange(start: Date, end: Date): Date[] {
   return eachDayOfInterval({ start, end });
@@ -23,6 +23,15 @@ export function getCurrentWeekMondayToFriday(): { start: Date; end: Date } {
   const friday = addDays(monday, 4);
   
   return { start: monday, end: friday };
+}
+
+/**
+ * Get the full year date range (Jan 1 – Dec 31) for a given year
+ */
+export function getFullYearRange(year: number): { start: Date; end: Date } {
+  const start = startOfYear(new Date(year, 0, 1));
+  const end = endOfYear(new Date(year, 0, 1));
+  return { start, end };
 }
 
 /**

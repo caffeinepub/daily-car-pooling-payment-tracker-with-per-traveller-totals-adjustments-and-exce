@@ -1,132 +1,79 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Revamp Export Report: default all travellers, improved traveller summary table, and standard financial statements (frontend-only)",
+  "title": "Full-year default date range and year selector for Trips & Payment tabs",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Update Export Report UI so traveller filter defaults to “All travellers”, with a guarded “Selected travellers only” mode applied consistently across all traveller-dependent export sections.",
+      "summary": "Default Trips & Payment-related tabs to the full current year date range while keeping existing date pickers editable.",
       "acceptanceCriteria": [
-        "When the Export Report UI is opened, the traveller filter default is “All travellers”.",
-        "If the user switches to “Selected travellers only”, exporting is blocked with a clear error message unless at least 1 traveller is selected.",
-        "Exports (CSV/PDF/print) respect the traveller filter mode consistently across all traveller-dependent sections."
+        "When the user opens the Trips & Payment tab(s), the date range is automatically set to Jan 1 through Dec 31 of the current year (unless the user previously set a different date range for those tabs in this session).",
+        "The existing date pickers remain usable so the user can manually set any start and end dates after the default is applied.",
+        "User-facing text remains in English."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/features/ledger/ExportReportDialog.tsx",
+          "path": "frontend/src/utils/dateRange.ts",
           "operation": "modify",
-          "description": "Update the Export Report dialog state and validation so “All travellers” is the default mode, and when “Selected travellers only” is chosen it blocks export with a clear English error unless at least one traveller is selected. Ensure the traveller filter mode is passed through to all export flows consistently. Use existing shadcn-ui Dialog/Select/Checkbox components (compose only; do not edit components under frontend/src/components/ui). Verify the component's usage instructions before implementing."
+          "description": "Add a utility to compute a full-year date range (Jan 1–Dec 31) for a given year to support Trips & Payment defaults without altering existing current-week utilities."
         },
         {
-          "path": "frontend/src/utils/exportReport.ts",
+          "path": "frontend/src/features/ledger/DateRangePicker.tsx",
           "operation": "modify",
-          "description": "Ensure the CSV export logic applies traveller filtering consistently to all traveller-dependent sections (daily grid, traveller summary, payment history), and that the filter mode behavior matches the UI contract (all vs selected). Keep export logic read-only (must not trigger any saves/sync side effects)."
+          "description": "Update DateRangePicker to support controlled usage via optional props (current range + onChange) while preserving its existing context-backed behavior, so Trips & Payment tabs can apply a different default without breaking other tabs."
+        },
+        {
+          "path": "frontend/src/features/ledger/LedgerPage.tsx",
+          "operation": "modify",
+          "description": "Implement session-scoped date-range handling in the ledger page so that entering Trip History or Trips & Payment sets the date range to the current year's full-year range only if the user has not already adjusted the Trips/Payment date range in this session, and keep the existing date pickers functional for manual edits."
         }
       ]
     },
     {
       "id": "REQ-2",
-      "summary": "Revise the exported traveller summary table for PDF/print and CSV to match the exact requested columns and human-readable “State”, listing all travellers by default.",
+      "summary": "Scope full-year default behavior to Trip History and Trips & Payment only, preserving other tabs' existing date-range behavior and separate session memory.",
       "acceptanceCriteria": [
-        "PDF/print output contains a traveller summary table with column headers exactly: “Traveller Name”, “Trip Count”, “Total Amount”, “Total Payment”, “Balance”, “State”.",
-        "CSV export contains the same column set and matches the calculated values used in the PDF/print export.",
-        "“State” is a human-readable status derived from the balance (e.g., Due/Overpaid/Settled) and is present for every traveller row.",
-        "The traveller summary table lists all travellers when traveller filter mode is “All travellers”."
+        "Entering the \"Trip History\" tab or the \"Trips & Payment\" tab triggers the full-year default behavior defined in REQ-1.",
+        "Other tabs continue to use the existing default date range behavior (currently the current week Monday–Friday) when the app is first used.",
+        "Switching between Trips & Payment tabs and other tabs does not permanently overwrite the other tabs’ preferred/last-used date range for the current session (i.e., the app remembers the last date range used in non-Trips/Payment tabs separately from the one used in Trips/Payment tabs)."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/utils/exportPdf.ts",
+          "path": "frontend/src/features/ledger/LedgerPage.tsx",
           "operation": "modify",
-          "description": "Update the PDF/print traveller summary table to use the exact requested column headers: “Traveller Name”, “Trip Count”, “Total Amount”, “Total Payment”, “Balance”, “State”. Ensure values are computed consistently with CSV, include State for every row, and default behavior lists all travellers when filter mode is “all”."
+          "description": "Introduce separate in-session date-range state buckets for (a) Trips/Payment tabs (Trip History + Trips & Payment) and (b) all other tabs; when switching tabs, restore the appropriate bucket into the shared ledger dateRange so non-Trips tabs keep their last-used range (e.g., current week by default) independently from Trips/Payment."
         },
         {
-          "path": "frontend/src/utils/exportReport.ts",
+          "path": "frontend/src/features/ledger/DateRangePicker.tsx",
           "operation": "modify",
-          "description": "Update the CSV traveller summary section header row to exactly: “Traveller Name”, “Trip Count”, “Total Amount”, “Total Payment”, “Balance”, “State”, and ensure the same calculations (including State derivation) are used as in PDF/print."
-        },
-        {
-          "path": "frontend/src/utils/ledgerBalances.ts",
-          "operation": "modify",
-          "description": "If needed for consistency/readability, add a small helper export (or adjust existing returned fields) to support the requested naming/mapping for “Trip Count/Total Amount/Total Payment/Balance/State” without changing ledger state. Keep calculations aligned between CSV and PDF/print."
+          "description": "Ensure DateRangePicker change events can be routed through LedgerPage so manual edits update the correct session bucket (Trips/Payment vs other tabs) without changing date behavior elsewhere."
         }
       ]
     },
     {
       "id": "REQ-3",
-      "summary": "Add selectable report types (Monthly Report, Profit & Loss Statement, Income Statement, Expense Statement) to Export Report and generate them from existing ledger data for PDF/print.",
+      "summary": "Add a year selector on Trip History and Trips & Payment that defaults to the current year and sets the range to the selected year's full year.",
       "acceptanceCriteria": [
-        "The Export Report UI offers selectable options for: Monthly Report, Profit & Loss Statement, Income Statement, Expense Statement.",
-        "Each new report type can be exported as PDF/print from the Export Report page.",
-        "Each statement uses consistent “standard” labeling and presentation (sections, totals, and net results where applicable) and is derived only from existing stored ledger fields (no new required user inputs).",
-        "Monthly Report presents a month-by-month breakdown for the currently selected date range."
+        "On Trips & Payment-related tabs, the UI provides a year selection control (e.g., dropdown/select) that defaults to the current year.",
+        "Changing the selected year immediately updates the date range to Jan 1–Dec 31 of the selected year.",
+        "After selecting a year, the user can still manually adjust the start/end dates via the existing date picker controls.",
+        "The year selector is not shown (or otherwise does not affect date range) on non-Trips/Payment tabs."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/features/ledger/ExportReportDialog.tsx",
-          "operation": "modify",
-          "description": "Add a “Report Type” selector to the Export Report UI with options: Monthly Report, Profit & Loss Statement, Income Statement, Expense Statement (alongside the existing default report type). Ensure these new report types are available for PDF/print export from this dialog, using existing shadcn-ui Select components (compose only; do not edit components under frontend/src/components/ui). Verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/utils/accountingStatements.ts",
+          "path": "frontend/src/features/ledger/TripsPaymentYearSelector.tsx",
           "operation": "create",
-          "description": "Create utilities to derive standard accounting-style statement data structures (Monthly breakdown, Profit & Loss, Income, Expense) using existing ledger data only (trip income + co-traveller income; expenses from car expenses) for the active date range. Keep the module computation-only (no persistence, no sync interactions)."
+          "description": "Create a small, reusable year-selection UI component (e.g., select/dropdown) that defaults to the current year and exposes an onChange(year) callback for the Trips & Payment tabs."
         },
         {
-          "path": "frontend/src/utils/exportPdf.ts",
+          "path": "frontend/src/features/ledger/LedgerPage.tsx",
           "operation": "modify",
-          "description": "Extend PDF/print generation to support rendering the new report types using the derived structures from frontend/src/utils/accountingStatements.ts. Ensure the traveller filter mode is respected where traveller-scoped totals apply, and co-traveller income and car expenses are included as specified."
+          "description": "Wire TripsPaymentYearSelector into the LedgerPage toolbar area and render it only when the active tab is Trip History or Trips & Payment; on selection change, set the Trips/Payment session bucket date range to the selected year's full-year range and update the shared ledger dateRange accordingly."
         },
         {
-          "path": "frontend/src/utils/exportReport.ts",
+          "path": "frontend/src/utils/dateRange.ts",
           "operation": "modify",
-          "description": "Extend ExportFilters to include the selected report type and route PDF/print export calls appropriately, while keeping existing CSV export behavior intact. If new report types are PDF/print-only, ensure the UI/export flow communicates this clearly in English and prevents unsupported format actions without side effects."
-        }
-      ]
-    },
-    {
-      "id": "REQ-4",
-      "summary": "Implement clean A4 PDF/print layouts for new report types with consistent typography and robust page-break behavior for long tables.",
-      "acceptanceCriteria": [
-        "Printing/exporting any of the new report types opens a print dialog (or equivalent PDF/print flow) and produces a readable A4 layout without overlapping text.",
-        "Long tables do not break rows across pages; headings repeat or remain visually clear at page boundaries where applicable.",
-        "All user-facing text in the generated report is in English."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/utils/exportPdf.ts",
-          "operation": "modify",
-          "description": "Improve the print CSS/layout for statement outputs: enforce A4-friendly spacing/typography, prevent row splitting across pages for long tables, and ensure table headers remain clear at page boundaries (e.g., print-specific table header grouping). Ensure all user-facing labels for the new statements are in English."
-        },
-        {
-          "path": "frontend/src/utils/accountingStatements.ts",
-          "operation": "modify",
-          "description": "Ensure the derived statement structures include the needed section labels and total rows (e.g., totals and net results) to support standard presentation in PDF/print, without requiring any new user inputs."
-        }
-      ]
-    },
-    {
-      "id": "REQ-5",
-      "summary": "Keep reporting changes read-only and ensure they do not affect DataSync behavior or trigger any additional saves/sync status changes.",
-      "acceptanceCriteria": [
-        "No changes are made to the DataSync hook behavior (poll interval, debounce timing, merge-before-save logic) beyond any strictly necessary type wiring for new export options.",
-        "Exporting/printing reports does not trigger additional saves, modify ledger state, or change sync status behavior.",
-        "Existing sync continues to function across refresh/login/logout as before, and exporting reports does not introduce sync errors."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/features/ledger/ExportReportDialog.tsx",
-          "operation": "modify",
-          "description": "Ensure export actions remain purely read-only: do not update ledger state, do not write to local storage, and do not interact with sync triggers. Any new report-type UI state must be local to the dialog and not persisted."
-        },
-        {
-          "path": "frontend/src/utils/exportReport.ts",
-          "operation": "modify",
-          "description": "Verify export flows are computation/serialization/print only and do not call any save/sync logic. Keep any new filter/report-type wiring confined to export utilities and dialog-local state."
-        },
-        {
-          "path": "frontend/src/utils/exportPdf.ts",
-          "operation": "modify",
-          "description": "Ensure PDF/print generation remains side-effect free (beyond opening the print window) and does not alter app state or trigger DataSync-related writes."
+          "description": "Use the full-year range utility (added/updated here) as the single source of truth when applying a selected year so the date range is always Jan 1–Dec 31 for that year."
         }
       ]
     }

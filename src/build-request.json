@@ -1,128 +1,76 @@
 {
   "kind": "build_request",
-  "title": "Revamp Export Report page with improved traveller PDF table and standard financial statements (no DataSync impact)",
+  "title": "Default full-year date range on Trips & Payment tabs with selectable year",
+  "projectName": "Carpool Ledger",
   "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Update the Export Report UI (Export Report dialog/page) so the default export includes all travellers, while still supporting an explicit “Selected travellers only” mode.",
+      "text": "Change the date-range behavior so that the \"Trips & Payment\" experience defaults to a full-year range (Jan 1 to Dec 31) for the current year, while still allowing users to manually change the start/end dates.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-user"
+          "msg-1"
         ],
         "quotes": [
-          "should it list all travellers by default",
-          "Export report page"
+          "For Trips & Payment page Date Range should be of entire year Jan 1st to 31st dec for better payment tracking",
+          "1. just default to that while still allowing users to change it"
         ]
       },
       "acceptanceCriteria": [
-        "When the Export Report UI is opened, the traveller filter default is “All travellers”.",
-        "If the user switches to “Selected travellers only”, exporting is blocked with a clear error message unless at least 1 traveller is selected.",
-        "Exports (CSV/PDF/print) respect the traveller filter mode consistently across all traveller-dependent sections."
+        "When the user opens the Trips & Payment tab(s), the date range is automatically set to Jan 1 through Dec 31 of the current year (unless the user previously set a different date range for those tabs in this session).",
+        "The existing date pickers remain usable so the user can manually set any start and end dates after the default is applied.",
+        "User-facing text remains in English."
       ]
     },
     {
       "id": "REQ-2",
-      "text": "Revise the exported traveller summary table (PDF/print and CSV) to match the requested columns and wording: Traveller Name, Trip Count, Total Amount, Total Payment, Balance, State. Ensure the table is produced for all travellers by default.",
+      "text": "Apply the full-year default and year-selection behavior only to the Trips & Payment-related tabs (\"Trip History\" and \"Trips & Payment\"), and do not change the default date range behavior for other tabs (e.g., Daily, Summary, Expense, Overall).",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-user"
+          "msg-1"
         ],
         "quotes": [
-          "Traveller name, Trip Count, Total Amount, Total payment,Balance, State i want this kind of table for all user or selected user"
+          "this apply to only Trips & payment tab"
         ]
       },
       "acceptanceCriteria": [
-        "PDF/print output contains a traveller summary table with column headers exactly: “Traveller Name”, “Trip Count”, “Total Amount”, “Total Payment”, “Balance”, “State”.",
-        "CSV export contains the same column set and matches the calculated values used in the PDF/print export.",
-        "“State” is a human-readable status derived from the balance (e.g., Due/Overpaid/Settled) and is present for every traveller row.",
-        "The traveller summary table lists all travellers when traveller filter mode is “All travellers”."
+        "Entering the \"Trip History\" tab or the \"Trips & Payment\" tab triggers the full-year default behavior defined in REQ-1.",
+        "Other tabs continue to use the existing default date range behavior (currently the current week Monday–Friday) when the app is first used.",
+        "Switching between Trips & Payment tabs and other tabs does not permanently overwrite the other tabs’ preferred/last-used date range for the current session (i.e., the app remembers the last date range used in non-Trips/Payment tabs separately from the one used in Trips/Payment tabs)."
       ]
     },
     {
       "id": "REQ-3",
-      "text": "Add new report types to the Export Report page: Monthly Report, Profit & Loss Statement, Income Statement, and Expense Statement, generated using standard accounting-style structures based on existing ledger data (income from trips + co-traveller income; expenses from car expenses).",
+      "text": "Add a year selector for the Trips & Payment-related tabs that defaults to the current year; when the user selects a different year, automatically set the date range to the full-year range for that selected year (Jan 1–Dec 31).",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-user"
+          "msg-1"
         ],
         "quotes": [
-          "Follow standards",
-          "Also add option to print Monthly report, Profit Loss statement, Income Statement, Expense Staement"
+          "Default is current but users be able to select a different year with the same full‑year range"
         ]
       },
       "acceptanceCriteria": [
-        "The Export Report UI offers selectable options for: Monthly Report, Profit & Loss Statement, Income Statement, Expense Statement.",
-        "Each new report type can be exported as PDF/print from the Export Report page.",
-        "Each statement uses consistent “standard” labeling and presentation (sections, totals, and net results where applicable) and is derived only from existing stored ledger fields (no new required user inputs).",
-        "Monthly Report presents a month-by-month breakdown for the currently selected date range."
-      ]
-    },
-    {
-      "id": "REQ-4",
-      "text": "Implement PDF/print generation for the new report types with a clean, printable layout (A4), consistent typography, and page-break behavior suitable for long tables.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-user"
-        ],
-        "quotes": [
-          "Export PDF report not upto the mark",
-          "add option to print Monthly report, Profit Loss statement, Income Statement, Expense Staement"
-        ]
-      },
-      "acceptanceCriteria": [
-        "Printing/exporting any of the new report types opens a print dialog (or equivalent PDF/print flow) and produces a readable A4 layout without overlapping text.",
-        "Long tables do not break rows across pages; headings repeat or remain visually clear at page boundaries where applicable.",
-        "All user-facing text in the generated report is in English."
-      ]
-    },
-    {
-      "id": "REQ-5",
-      "text": "Ensure all reporting changes do not impact the existing DataSync feature (sync polling/merge/save behavior and backend app-data persistence).",
-      "target": "both",
-      "source": {
-        "messageIds": [
-          "msg-user"
-        ],
-        "quotes": [
-          "please make sure data sync not impact",
-          "Do not impact DataSync feature"
-        ]
-      },
-      "acceptanceCriteria": [
-        "No changes are made to the DataSync hook behavior (poll interval, debounce timing, merge-before-save logic) beyond any strictly necessary type wiring for new export options.",
-        "Exporting/printing reports does not trigger additional saves, modify ledger state, or change sync status behavior.",
-        "Existing sync continues to function across refresh/login/logout as before, and exporting reports does not introduce sync errors."
+        "On Trips & Payment-related tabs, the UI provides a year selection control (e.g., dropdown/select) that defaults to the current year.",
+        "Changing the selected year immediately updates the date range to Jan 1–Dec 31 of the selected year.",
+        "After selecting a year, the user can still manually adjust the start/end dates via the existing date picker controls.",
+        "The year selector is not shown (or otherwise does not affect date range) on non-Trips/Payment tabs."
       ]
     }
   ],
   "constraints": [
-    "Do not modify or weaken the existing DataSync behavior; reporting must be read-only with respect to ledger state.",
-    "Frontend files under frontend/src/components/ui and other immutablePaths must not be edited directly; compose them instead.",
-    "Keep backend as single-actor Motoko architecture; avoid schema/state migrations unless strictly required (not expected for reporting-only changes).",
-    "Use English for any user-facing text."
+    "Do not edit files under frontend/src/components/ui (Shadcn UI components must be composed, not modified).",
+    "Do not edit immutable frontend hook files listed in SYSTEM_CONTEXT (e.g., frontend/src/hooks/useInternetIdentity.ts(x), frontend/src/hooks/useActor.ts, frontend/src/main.tsx)."
   ],
   "nonGoals": [
-    "Adding new backend storage fields or new accounting categories beyond what already exists in the ledger data.",
-    "Integrating external PDF generation services or third-party reporting tools.",
-    "Real-time collaboration or multi-user shared ledgers beyond the current per-user data model."
+    "Do not change backend data models or Motoko canister logic for this request.",
+    "Do not change date range calculations used by exports/reports beyond what naturally follows from the selected date range on the relevant tabs."
   ],
   "imageRequirements": {
     "required": [],
     "edits": []
-  },
-  "userProfileUpdate": {
-    "goalsToAdd": [],
-    "goalsToRemove": [],
-    "preferencesToAdd": [],
-    "preferencesToRemove": [],
-    "miscToAdd": [],
-    "miscToRemove": [],
-    "fieldsToSet": {},
-    "fieldsToDelete": []
   }
 }

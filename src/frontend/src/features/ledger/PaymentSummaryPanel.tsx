@@ -18,6 +18,7 @@ export default function PaymentSummaryPanel() {
     ratePerTrip,
     cashPayments,
     otherPending,
+    coTravellerIncomes,
     includeSaturday,
     includeSunday,
   } = useLedgerState();
@@ -81,8 +82,20 @@ export default function PaymentSummaryPanel() {
     };
   });
 
+  // Calculate Other Co-Travellers total in range
+  const otherCoTravellersTotal = coTravellerIncomes
+    .filter((income) => {
+      try {
+        const incomeDate = parseISO(income.date);
+        return incomeDate >= dateRange.start && incomeDate <= dateRange.end;
+      } catch {
+        return false;
+      }
+    })
+    .reduce((sum, income) => sum + income.amount, 0);
+
   // Calculate overall totals
-  const overallTotalPaymentsReceived = summaries.reduce((sum, s) => sum + s.paymentsInRange, 0);
+  const overallTotalPaymentsReceived = summaries.reduce((sum, s) => sum + s.paymentsInRange, 0) + otherCoTravellersTotal;
   const overallTotalDue = summaries.reduce((sum, s) => sum + Math.max(0, s.balance), 0);
 
   if (travellers.length === 0) {
@@ -181,18 +194,35 @@ export default function PaymentSummaryPanel() {
         {/* Overall Totals */}
         <div className="space-y-3">
           <h3 className="text-lg font-semibold">Overall Totals</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="p-4 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-800">
-              <p className="text-sm text-muted-foreground mb-1">Total Payments Received</p>
-              <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                {formatCurrency(overallTotalPaymentsReceived)}
-              </p>
+          <div className="space-y-4">
+            {/* Payment Breakdown */}
+            <div className="space-y-2">
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-muted-foreground">Cash Payments</span>
+                <span className="font-medium">{formatCurrency(summaries.reduce((sum, s) => sum + s.paymentsInRange, 0))}</span>
+              </div>
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-muted-foreground">Other Co-Travellers</span>
+                <span className="font-medium">{formatCurrency(otherCoTravellersTotal)}</span>
+              </div>
             </div>
-            <div className="p-4 bg-red-50 dark:bg-red-950/20 rounded-lg border border-red-200 dark:border-red-800">
-              <p className="text-sm text-muted-foreground mb-1">Total Payment Due</p>
-              <p className="text-2xl font-bold text-red-600 dark:text-red-400">
-                {formatCurrency(overallTotalDue)}
-              </p>
+
+            <Separator />
+
+            {/* Total Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="p-4 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-800">
+                <p className="text-sm text-muted-foreground mb-1">Total Payments Received</p>
+                <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                  {formatCurrency(overallTotalPaymentsReceived)}
+                </p>
+              </div>
+              <div className="p-4 bg-red-50 dark:bg-red-950/20 rounded-lg border border-red-200 dark:border-red-800">
+                <p className="text-sm text-muted-foreground mb-1">Total Payment Due</p>
+                <p className="text-2xl font-bold text-red-600 dark:text-red-400">
+                  {formatCurrency(overallTotalDue)}
+                </p>
+              </div>
             </div>
           </div>
         </div>

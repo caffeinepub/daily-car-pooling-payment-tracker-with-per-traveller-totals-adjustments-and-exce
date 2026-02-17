@@ -5,8 +5,18 @@ import { Calendar } from '@/components/ui/calendar';
 import { CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
 
-export default function DateRangePicker() {
-  const { dateRange, setDateRange } = useLedgerState();
+interface DateRangePickerProps {
+  // Optional controlled mode props
+  value?: { start: Date; end: Date };
+  onChange?: (range: { start: Date; end: Date }) => void;
+}
+
+export default function DateRangePicker({ value, onChange }: DateRangePickerProps) {
+  const { dateRange: contextDateRange, setDateRange: contextSetDateRange } = useLedgerState();
+
+  // Use controlled props if provided, otherwise fall back to context
+  const dateRange = value || contextDateRange;
+  const setDateRange = onChange || contextSetDateRange;
 
   return (
     <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center">

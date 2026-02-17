@@ -8,11 +8,11 @@ import Array "mo:core/Array";
 import Order "mo:core/Order";
 import Principal "mo:core/Principal";
 
-import Migration "migration";
+
 import MixinAuthorization "authorization/MixinAuthorization";
 import AccessControl "authorization/access-control";
 
-(with migration = Migration.run)
+
 actor {
   let accessControlState = AccessControl.initState();
   include MixinAuthorization(accessControlState);

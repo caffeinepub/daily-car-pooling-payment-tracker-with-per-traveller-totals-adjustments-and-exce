@@ -1,13 +1,12 @@
 # Specification
 
 ## Summary
-**Goal:** Revamp the Export Report page so exports default to all travellers, improve the exported traveller summary table, and add standard financial statement report types with high-quality A4 PDF/print layouts—without impacting DataSync.
+**Goal:** Default Trips & Payment-related tabs to a full-year date range with a selectable year, without affecting other tabs’ date range behavior.
 
 **Planned changes:**
-- Update the Export Report UI so the default traveller filter is “All travellers”, while still supporting a “Selected travellers only” mode with validation (block export if none selected).
-- Revise the exported traveller summary table (PDF/print and CSV) to use the exact columns: Traveller Name, Trip Count, Total Amount, Total Payment, Balance, State; ensure it lists all travellers by default and respects the traveller filter mode.
-- Add selectable report types on the Export Report page: Monthly Report, Profit & Loss Statement, Income Statement, Expense Statement, generated from existing ledger data (income from trips + co-traveller income; expenses from car expenses).
-- Implement/adjust PDF/print generation for the new report types with a clean A4 layout, consistent typography, and page-break behavior suitable for long tables (no overlapping text; clear headings; English text only).
-- Ensure reporting/export/print remains read-only and does not change or interfere with existing DataSync behavior.
+- Update the default date range on the "Trip History" and "Trips & Payment" tabs to Jan 1–Dec 31 of the current year (unless a different range was already set for those tabs in the current session).
+- Add a year selector on "Trip History" and "Trips & Payment" that defaults to the current year and, when changed, sets the date range to Jan 1–Dec 31 of the selected year.
+- Keep the existing start/end date pickers on those tabs so users can manually adjust dates after the default/year selection is applied.
+- Ensure non-Trips/Payment tabs (e.g., Daily, Summary, Expense, Overall) keep their current default date range behavior and maintain their own last-used range separately from Trips/Payment tabs within the session.
 
-**User-visible outcome:** Users can open Export Report with “All travellers” selected by default, export consistent traveller summaries (CSV/PDF/print) with the new columns, and print/export Monthly and standard financial statements in a clean A4 layout—without affecting sync behavior.
+**User-visible outcome:** When opening Trip History or Trips & Payment, users see the full current year by default and can pick another year to jump to that year’s full range, while still being able to fine-tune dates; other tabs continue behaving as before.

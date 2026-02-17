@@ -2,11 +2,12 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-update-the-export-report-ui-export-report-dialog-page-so-the-default-export-includes-all-travellers-while-still-supporting-an-explicit-selected-travellers-only-mode",
-      "featureTitle": "Update the Export Report UI (Export Report dialog/page) so the default export includes all travellers, while still supporting an explicit “Selected travellers only” mode.",
+      "featureId": "feature-change-the-date-range-behavior-so-that-the-trips-payment-experience-defaults-to-a-full-year-range-jan-1-to-dec-31-for-the-current-year-while-still-allowing-users-to-manually-change-the-start-end-dates",
+      "featureTitle": "Change the date-range behavior so that the \"Trips & Payment\" experience defaults to a full-year range (Jan 1 to Dec 31) for the current year, while still allowing users to manually change the start/end dates.",
       "files": [
-        "frontend/src/features/ledger/ExportReportDialog.tsx",
-        "frontend/src/utils/exportReport.ts"
+        "frontend/src/features/ledger/DateRangePicker.tsx",
+        "frontend/src/features/ledger/LedgerPage.tsx",
+        "frontend/src/utils/dateRange.ts"
       ],
       "components": [
         "authorization@4.0.0",
@@ -22,11 +23,11 @@
       "confidence": "high"
     },
     {
-      "featureId": "feature-revise-the-exported-traveller-summary-table-pdf-print-and-csv-to-match-the-requested-columns-and-wording-traveller-name-trip-count-total-amount-total-payment-balance-state-ensure-the-table-is-produced-for-all-travellers-by-default",
-      "featureTitle": "Revise the exported traveller summary table (PDF/print and CSV) to match the requested columns and wording: Traveller Name, Trip Count, Total Amount, Total Payment, Balance, State. Ensure the table is produced for all travellers by default.",
+      "featureId": "feature-apply-the-full-year-default-and-year-selection-behavior-only-to-the-trips-payment-related-tabs-trip-history-and-trips-payment-and-do-not-change-the-default-date-range-behavior-for-other-tabs-e-g-daily-summary-expense-overall",
+      "featureTitle": "Apply the full-year default and year-selection behavior only to the Trips & Payment-related tabs (\"Trip History\" and \"Trips & Payment\"), and do not change the default date range behavior for other tabs (e.g., Daily, Summary, Expense, Overall).",
       "files": [
-        "frontend/src/utils/exportPdf.ts",
-        "frontend/src/utils/exportReport.ts"
+        "frontend/src/features/ledger/DateRangePicker.tsx",
+        "frontend/src/features/ledger/LedgerPage.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -42,13 +43,12 @@
       "confidence": "high"
     },
     {
-      "featureId": "feature-add-new-report-types-to-the-export-report-page-monthly-report-profit-loss-statement-income-statement-and-expense-statement-generated-using-standard-accounting-style-structures-based-on-existing-ledger-data-income-from-trips-co-traveller-income-expenses-from-car-expenses",
-      "featureTitle": "Add new report types to the Export Report page: Monthly Report, Profit & Loss Statement, Income Statement, and Expense Statement, generated using standard accounting-style structures based on existing ledger data (income from trips + co-traveller income; expenses from car expenses).",
+      "featureId": "feature-add-a-year-selector-for-the-trips-payment-related-tabs-that-defaults-to-the-current-year-when-the-user-selects-a-different-year-automatically-set-the-date-range-to-the-full-year-range-for-that-selected-year-jan-1-dec-31",
+      "featureTitle": "Add a year selector for the Trips & Payment-related tabs that defaults to the current year; when the user selects a different year, automatically set the date range to the full-year range for that selected year (Jan 1–Dec 31).",
       "files": [
-        "frontend/src/features/ledger/ExportReportDialog.tsx",
-        "frontend/src/utils/accountingStatements.ts",
-        "frontend/src/utils/exportPdf.ts",
-        "frontend/src/utils/exportReport.ts"
+        "frontend/src/features/ledger/LedgerPage.tsx",
+        "frontend/src/features/ledger/TripsPaymentYearSelector.tsx",
+        "frontend/src/utils/dateRange.ts"
       ],
       "components": [
         "authorization@4.0.0",
@@ -60,47 +60,6 @@
       ],
       "testIds": [
         "REQ-3"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-implement-pdf-print-generation-for-the-new-report-types-with-a-clean-printable-layout-a4-consistent-typography-and-page-break-behavior-suitable-for-long-tables",
-      "featureTitle": "Implement PDF/print generation for the new report types with a clean, printable layout (A4), consistent typography, and page-break behavior suitable for long tables.",
-      "files": [
-        "frontend/src/utils/accountingStatements.ts",
-        "frontend/src/utils/exportPdf.ts"
-      ],
-      "components": [
-        "authorization@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "github-export-icp-cli@1.0.0"
-      ],
-      "testIds": [
-        "REQ-4"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-ensure-all-reporting-changes-do-not-impact-the-existing-datasync-feature-sync-polling-merge-save-behavior-and-backend-app-data-persistence",
-      "featureTitle": "Ensure all reporting changes do not impact the existing DataSync feature (sync polling/merge/save behavior and backend app-data persistence).",
-      "files": [
-        "frontend/src/features/ledger/ExportReportDialog.tsx",
-        "frontend/src/utils/exportPdf.ts",
-        "frontend/src/utils/exportReport.ts"
-      ],
-      "components": [
-        "authorization@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "github-export-icp-cli@1.0.0"
-      ],
-      "testIds": [
-        "REQ-5"
       ],
       "confidence": "high"
     }

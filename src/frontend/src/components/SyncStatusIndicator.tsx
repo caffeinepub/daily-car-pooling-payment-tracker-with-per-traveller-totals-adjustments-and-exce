@@ -1,4 +1,4 @@
-import { Cloud, CloudOff, RefreshCw, AlertCircle } from 'lucide-react';
+import { Cloud, CloudOff, RefreshCw } from 'lucide-react';
 import type { SyncStatus } from '../hooks/useAppDataSync';
 
 interface SyncStatusIndicatorProps {
@@ -12,19 +12,19 @@ export default function SyncStatusIndicator({ status, lastSyncTime, error }: Syn
     switch (status) {
       case 'syncing':
         return {
-          icon: <RefreshCw className="h-3.5 w-3.5 animate-spin" />,
+          icon: <RefreshCw className="h-4 w-4 animate-spin" />,
           text: 'Syncing...',
           className: 'text-muted-foreground',
         };
       case 'synced':
         return {
-          icon: <Cloud className="h-3.5 w-3.5" />,
+          icon: <Cloud className="h-4 w-4" />,
           text: 'Synced',
           className: 'text-muted-foreground',
         };
       case 'failed':
         return {
-          icon: <CloudOff className="h-3.5 w-3.5" />,
+          icon: <CloudOff className="h-4 w-4" />,
           text: 'Sync failed',
           className: 'text-destructive',
         };
@@ -48,17 +48,19 @@ export default function SyncStatusIndicator({ status, lastSyncTime, error }: Syn
 
   return (
     <div
-      className={`flex items-center gap-1.5 text-xs ${display.className}`}
+      className={`flex items-center gap-2 text-sm ${display.className}`}
       role="status"
       aria-live="polite"
       aria-label={`Sync status: ${display.text}${error ? ` - ${error}` : ''}`}
       title={error || undefined}
     >
       {display.icon}
-      <span className="hidden sm:inline">{display.text}</span>
-      {status === 'synced' && lastSyncTime && (
-        <span className="hidden md:inline text-muted-foreground/70">· {getTimeAgo()}</span>
-      )}
+      <div className="hidden sm:flex flex-col items-start leading-tight">
+        <span className="text-xs font-medium">{display.text}</span>
+        {status === 'synced' && lastSyncTime && (
+          <span className="text-[10px] text-muted-foreground/70">{getTimeAgo()}</span>
+        )}
+      </div>
     </div>
   );
 }

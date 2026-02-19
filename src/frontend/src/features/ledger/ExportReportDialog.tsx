@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLedgerState } from './LedgerStateContext';
 import {
   Dialog,
@@ -17,6 +17,9 @@ import { Input } from '@/components/ui/input';
 import { Download, Loader2, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { exportToCSV, exportToPDF } from '../../utils/exportReport';
+import DateRangePicker from './DateRangePicker';
+import MonthYearRangeSelector from './MonthYearRangeSelector';
+import { getCurrentMonthRange } from '../../utils/dateRange';
 
 interface ExportReportDialogProps {
   open: boolean;
@@ -30,6 +33,16 @@ export default function ExportReportDialog({ open, onOpenChange }: ExportReportD
   const [isExporting, setIsExporting] = useState(false);
   const [exportFormat, setExportFormat] = useState<'csv' | 'pdf'>('pdf');
   const [reportType, setReportType] = useState<ReportType>('standard');
+
+  // Export-specific date range (independent from page tabs)
+  const [exportDateRange, setExportDateRange] = useState<{ start: Date; end: Date }>(getCurrentMonthRange());
+
+  // Initialize export date range when dialog opens
+  useEffect(() => {
+    if (open && !exportDateRange) {
+      setExportDateRange(getCurrentMonthRange());
+    }
+  }, [open]);
 
   // Section filters (only for standard report)
   const [includeDailyGrid, setIncludeDailyGrid] = useState(true);
@@ -96,8 +109,14 @@ export default function ExportReportDialog({ open, onOpenChange }: ExportReportD
         paymentTravellerId,
       };
 
+      // Create a modified ledger state with export date range
+      const exportLedgerState = {
+        ...ledgerState,
+        dateRange: exportDateRange,
+      };
+
       if (exportFormat === 'pdf') {
-        await exportToPDF(ledgerState, filters);
+        await exportToPDF(exportLedgerState, filters);
         toast.success('Report exported successfully as PDF');
       } else {
         // CSV only supports standard report
@@ -106,7 +125,7 @@ export default function ExportReportDialog({ open, onOpenChange }: ExportReportD
           setIsExporting(false);
           return;
         }
-        await exportToCSV(ledgerState, filters);
+        await exportToCSV(exportLedgerState, filters);
         toast.success('Report exported successfully as CSV');
       }
 
@@ -127,11 +146,25 @@ export default function ExportReportDialog({ open, onOpenChange }: ExportReportD
         <DialogHeader>
           <DialogTitle>Export Report</DialogTitle>
           <DialogDescription>
-            Choose report type, format, and apply filters to customize your export
+            Choose report type, format, date range, and apply filters to customize your export
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6 py-4">
+          {/* Export Date Range */}
+          <div className="space-y-3">
+            <Label className="text-base font-semibold">Export Date Range</Label>
+            <div className="flex flex-col gap-3">
+              <DateRangePicker value={exportDateRange} onChange={setExportDateRange} />
+              <MonthYearRangeSelector value={exportDateRange} onChange={setExportDateRange} />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              This date range applies only to this export and does not affect page filters
+            </p>
+          </div>
+
+          <Separator />
+
           {/* Report Type */}
           <div className="space-y-3">
             <Label className="text-base font-semibold">Report Type</Label>

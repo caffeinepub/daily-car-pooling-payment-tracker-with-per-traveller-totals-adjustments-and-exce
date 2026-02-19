@@ -1,52 +1,38 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-17T05:05:29.655Z",
+  "generatedAt": "2026-02-18T12:45:21.991Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 3,
-    "implemented": 3,
+    "total": 2,
+    "implemented": 2,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Change the default date range for non–Trips & Payment tabs (including the Overall tab) to the current calendar month (1st through last day), instead of the current week Monday–Friday.",
+        "summary": "Ensure the Daily Participation grid initially renders only the currently selected week date range (Mon–Fri) on app load, and does not briefly or persistently render the full current month unless the user explicitly changes the date range to a month.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/utils/dateRange.ts",
+          "frontend/src/features/ledger/LedgerPage.tsx",
           "frontend/src/hooks/useLedgerLocalState.ts"
         ],
         "matchedFiles": [
-          "frontend/src/utils/dateRange.ts",
-          "frontend/src/hooks/useLedgerLocalState.ts"
+          "frontend/src/features/ledger/LedgerPage.tsx"
         ]
       },
       {
         "id": "REQ-2",
-        "summary": "Add Month and Year dropdown selectors for the Overall tab that instantly update the shared date range: selecting a month sets the date range to the first and last day of that month (in the currently selected year), and selecting a year sets the range to Jan 1–Dec 31 of that year when no specific month is selected; if a month is selected, changing the year keeps the month selection and updates the range to that month within the new year.",
+        "summary": "Ensure changing the date range immediately updates the Daily Participation grid to match the newly selected date range (including when switching between weeks).",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/features/ledger/OverallMonthYearSelector.tsx",
+          "frontend/src/features/ledger/DailyParticipationGrid.tsx",
           "frontend/src/features/ledger/LedgerPage.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/features/ledger/OverallMonthYearSelector.tsx",
+          "frontend/src/features/ledger/DailyParticipationGrid.tsx",
           "frontend/src/features/ledger/LedgerPage.tsx"
-        ]
-      },
-      {
-        "id": "REQ-3",
-        "summary": "Keep the Month/Year dropdowns synchronized with manual custom date selection: when a user changes the date range using the DateRangePicker, the dropdowns update to reflect the new range when it maps cleanly to a single month or a single full year; otherwise they show a clear \"Custom\" state.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/utils/dateRange.ts",
-          "frontend/src/features/ledger/OverallMonthYearSelector.tsx"
-        ],
-        "matchedFiles": [
-          "frontend/src/utils/dateRange.ts",
-          "frontend/src/features/ledger/OverallMonthYearSelector.tsx"
         ]
       }
     ]
@@ -56,10 +42,8 @@
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
+    "frontend/src/features/ledger/DailyParticipationGrid.tsx",
     "frontend/src/features/ledger/LedgerPage.tsx",
-    "frontend/src/features/ledger/OverallMonthYearSelector.tsx",
-    "frontend/src/hooks/useLedgerLocalState.ts",
-    "frontend/src/utils/dateRange.ts",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

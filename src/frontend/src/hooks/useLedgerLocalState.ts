@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import type { LocalLedgerState } from '../utils/backupRestore';
 import { mergeLocalStates } from '../utils/backupRestore';
-import { getCurrentMonth, formatDateKey } from '../utils/dateRange';
+import { getCurrentMonthRange, formatDateKey } from '../utils/dateRange';
 import { useAutoTollSettings } from './useAutoTollSettings';
 
 export interface Traveller {
@@ -82,7 +82,7 @@ function generateId(): string {
 }
 
 function getDefaultDateRange(): DateRange {
-  return getCurrentMonth();
+  return getCurrentMonthRange();
 }
 
 // Deep clone helper to prevent shared references
@@ -308,11 +308,23 @@ export function useLedgerLocalState() {
       if (!updated[dateKey]) {
         updated[dateKey] = {};
       }
-      travellers.forEach((traveller) => {
-        updated[dateKey][traveller.id] = { morning, evening };
+      travellers.forEach((t) => {
+        updated[dateKey][t.id] = { morning, evening };
       });
       return updated;
     });
+  };
+
+  const saveDraftDailyData = () => {
+    setDailyData(deepCloneDailyData(draftDailyData));
+  };
+
+  const discardDraftDailyData = () => {
+    setDraftDailyData(deepCloneDailyData(dailyData));
+  };
+
+  const hasDraftChanges = (): boolean => {
+    return JSON.stringify(dailyData) !== JSON.stringify(draftDailyData);
   };
 
   const updateTravellerTrip = (dateKey: string, travellerId: string, morning: boolean, evening: boolean) => {
@@ -324,71 +336,6 @@ export function useLedgerLocalState() {
       updated[dateKey][travellerId] = { morning, evening };
       return updated;
     });
-    setDraftDailyData((prev) => {
-      const updated = { ...prev };
-      if (!updated[dateKey]) {
-        updated[dateKey] = {};
-      }
-      updated[dateKey][travellerId] = { morning, evening };
-      return updated;
-    });
-  };
-
-  const saveDraftDailyData = () => {
-    // Detect which dates changed
-    const changedDates = new Set<string>();
-    
-    // Check all dates in draft
-    for (const dateKey in draftDailyData) {
-      const draftDateData = draftDailyData[dateKey];
-      const savedDateData = dailyData[dateKey] || {};
-      
-      // Compare each traveller's data
-      for (const travellerId in draftDateData) {
-        const draftTrip = draftDateData[travellerId];
-        const savedTrip = savedDateData[travellerId] || { morning: false, evening: false };
-        
-        if (draftTrip.morning !== savedTrip.morning || draftTrip.evening !== savedTrip.evening) {
-          changedDates.add(dateKey);
-          break;
-        }
-      }
-    }
-
-    // Save the draft data
-    setDailyData(deepCloneDailyData(draftDailyData));
-
-    // Auto-add toll for changed dates if enabled
-    if (autoTollEnabled && changedDates.size > 0) {
-      const existingTollDates = new Set(
-        carExpenses.filter((e) => e.category === 'Toll').map((e) => e.date)
-      );
-
-      const newExpenses: CarExpense[] = [];
-      changedDates.forEach((dateKey) => {
-        if (!existingTollDates.has(dateKey)) {
-          newExpenses.push({
-            id: generateId(),
-            category: 'Toll',
-            amount: autoTollAmount,
-            date: dateKey,
-            note: 'Auto-added',
-          });
-        }
-      });
-
-      if (newExpenses.length > 0) {
-        setCarExpenses((prev) => [...prev, ...newExpenses]);
-      }
-    }
-  };
-
-  const discardDraftDailyData = () => {
-    setDraftDailyData(deepCloneDailyData(dailyData));
-  };
-
-  const hasDraftChanges = (): boolean => {
-    return JSON.stringify(dailyData) !== JSON.stringify(draftDailyData);
   };
 
   const addCashPayment = (payment: Omit<CashPayment, 'id'>) => {
@@ -439,18 +386,22 @@ export function useLedgerLocalState() {
     setCarExpenses((prev) => prev.filter((e) => e.id !== id));
   };
 
-  const addCoTravellerIncome = (income: CoTravellerIncome) => {
-    setCoTravellerIncomes((prev) => [...prev, income]);
+  const addCoTravellerIncome = (income: Omit<CoTravellerIncome, 'id'>) => {
+    const newIncome: CoTravellerIncome = {
+      ...income,
+      id: generateId(),
+    };
+    setCoTravellerIncomes((prev) => [...prev, newIncome]);
   };
 
   const updateCoTravellerIncome = (id: string, updates: Partial<Omit<CoTravellerIncome, 'id'>>) => {
     setCoTravellerIncomes((prev) =>
-      prev.map((i) => (i.id === id ? { ...i, ...updates } : i))
+      prev.map((income) => (income.id === id ? { ...income, ...updates } : income))
     );
   };
 
   const removeCoTravellerIncome = (id: string) => {
-    setCoTravellerIncomes((prev) => prev.filter((i) => i.id !== id));
+    setCoTravellerIncomes((prev) => prev.filter((income) => income.id !== id));
   };
 
   const togglePerDayAutoToll = (dateKey: string) => {
@@ -475,7 +426,6 @@ export function useLedgerLocalState() {
     setIncludeSunday(false);
     setCoTravellerIncomes([]);
     setPerDayAutoTollSelection({});
-    setStateRevision(0);
     localStorage.removeItem(STORAGE_KEY);
   };
 
@@ -511,14 +461,16 @@ export function useLedgerLocalState() {
       includeSaturday,
       includeSunday,
       coTravellerIncomes,
+      perDayAutoTollSelection,
     };
   };
 
   const applyMergedState = (state: LocalLedgerState) => {
     skipRevisionIncrement.current = true;
     setTravellers(state.travellers);
-    setDailyData(state.dailyData);
-    setDraftDailyData(deepCloneDailyData(state.dailyData));
+    const newDailyData = state.dailyData;
+    setDailyData(newDailyData);
+    setDraftDailyData(deepCloneDailyData(newDailyData));
     setDateRange({
       start: new Date(state.dateRange.start),
       end: new Date(state.dateRange.end),
@@ -530,12 +482,13 @@ export function useLedgerLocalState() {
     setIncludeSaturday(state.includeSaturday);
     setIncludeSunday(state.includeSunday);
     setCoTravellerIncomes(state.coTravellerIncomes || []);
+    setPerDayAutoTollSelection(state.perDayAutoTollSelection || {});
   };
 
   const mergeRestoreFromBackup = (backupState: LocalLedgerState) => {
     const currentState = getPersistedState();
-    const mergedState = mergeLocalStates(currentState, backupState);
-    applyMergedState(mergedState);
+    const merged = mergeLocalStates(currentState, backupState);
+    applyMergedState(merged);
   };
 
   return {
@@ -557,10 +510,10 @@ export function useLedgerLocalState() {
     removeTraveller,
     toggleDraftTrip,
     setDraftTripsForAllTravellers,
-    updateTravellerTrip,
     saveDraftDailyData,
     discardDraftDailyData,
     hasDraftChanges,
+    updateTravellerTrip,
     setDateRange,
     setRatePerTrip,
     addCashPayment,
@@ -571,11 +524,11 @@ export function useLedgerLocalState() {
     addCarExpense,
     updateCarExpense,
     removeCarExpense,
+    setIncludeSaturday,
+    setIncludeSunday,
     addCoTravellerIncome,
     updateCoTravellerIncome,
     removeCoTravellerIncome,
-    setIncludeSaturday,
-    setIncludeSunday,
     togglePerDayAutoToll,
     clearAllLedgerData,
     clearDailyData,
@@ -585,5 +538,6 @@ export function useLedgerLocalState() {
     getPersistedState,
     applyMergedState,
     mergeRestoreFromBackup,
+    setPerDayAutoTollSelection,
   };
 }

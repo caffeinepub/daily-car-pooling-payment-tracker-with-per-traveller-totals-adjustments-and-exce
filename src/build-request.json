@@ -1,89 +1,55 @@
 {
   "kind": "build_request",
-  "title": "Default overall date range to current month and add synced Month/Year selectors",
+  "title": "Fix Daily Participation loading full month on initial load",
   "projectName": "Carpool Ledger",
-  "priority": "normal",
+  "priority": "high",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Change the default date range for non–Trips & Payment tabs (including the Overall tab) to the current calendar month (1st through last day), instead of the current week Monday–Friday.",
+      "text": "Ensure the Daily Participation grid initially renders only the currently selected week date range (Mon–Fri) on app load, and does not briefly or persistently render the full current month unless the user explicitly changes the date range to a month.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-1"
+          "msg-5"
         ],
         "quotes": [
-          "1. default month"
+          "while loading app date range is showing of current week as expected but Daily Participation load for full month insted current week until any date change"
         ]
       },
       "acceptanceCriteria": [
-        "On a fresh load with no prior saved local state, the date range defaults to the current month (start = first day of month, end = last day of month).",
-        "Using \"Clear Data\" / clear-all behavior resets the date range to the current month (not the current week).",
-        "Existing behavior for Trips & Payment tabs (Trip History and Payment tabs) continues to default to a full-year range when first entering those tabs, unless explicitly changed by the user."
+        "On a fresh page load, when the app’s visible date range is the current week, the Daily Participation grid shows rows only for that same week (Mon–Fri).",
+        "The Daily Participation grid does not load/render a full-month range on initial load when the active tab is Daily and the date range selector is showing the current week.",
+        "No user interaction (e.g., changing the date range) is required for the Daily Participation grid to match the initially displayed week date range."
       ]
     },
     {
       "id": "REQ-2",
-      "text": "Add Month and Year dropdown selectors for the Overall tab that instantly update the shared date range: selecting a month sets the date range to the first and last day of that month (in the currently selected year), and selecting a year sets the range to Jan 1–Dec 31 of that year when no specific month is selected; if a month is selected, changing the year keeps the month selection and updates the range to that month within the new year.",
+      "text": "Ensure changing the date range immediately updates the Daily Participation grid to match the newly selected date range (including when switching between weeks).",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-1"
+          "msg-4"
         ],
         "quotes": [
-          "Also provide Month wise and Year wise drop down which change date un range",
-          "2. Yes"
+          "Should changing the date range (week selector) immediately update the Daily Participation view to match?"
         ]
       },
       "acceptanceCriteria": [
-        "When viewing the Overall tab, Month and Year dropdowns are visible near the date range controls.",
-        "Selecting a Month immediately updates the date range to that month’s full span.",
-        "Selecting a Year immediately updates the date range (full year if no month selected; otherwise the selected month within that year).",
-        "Selecting Month/Year updates the existing DateRangePicker start/end displays accordingly."
-      ]
-    },
-    {
-      "id": "REQ-3",
-      "text": "Keep the Month/Year dropdowns synchronized with manual custom date selection: when a user changes the date range using the DateRangePicker, the dropdowns update to reflect the new range when it maps cleanly to a single month or a single full year; otherwise they show a clear \"Custom\" state.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-1"
-        ],
-        "quotes": [
-          "3. Update to match"
-        ]
-      },
-      "acceptanceCriteria": [
-        "Changing start/end dates via the DateRangePicker updates the Year dropdown to the year of the selected range when determinable.",
-        "If the selected range exactly matches a full calendar month (first to last day within the same month/year), the Month dropdown updates to that month.",
-        "If the selected range exactly matches a full calendar year (Jan 1–Dec 31), the Month dropdown switches to a non-month state (e.g., \"All\" or empty) and the Year dropdown reflects that year.",
-        "If the selected range spans multiple months or does not align to full-month/full-year boundaries, the Month dropdown shows \"Custom\" (and Year shows \"Custom\" only if the range spans multiple years)."
+        "When the user changes the date range using the date range picker, the Daily Participation grid updates its displayed rows to match the new start/end dates without requiring additional actions.",
+        "Switching away from and back to the Daily tab preserves and restores that tab’s saved date range and the grid matches it."
       ]
     }
   ],
   "constraints": [
-    "Do not edit files under frontend/src/components/ui (compose existing UI primitives instead).",
-    "Do not edit immutable hook files listed in SYSTEM_CONTEXT.frontend.immutablePaths.",
-    "Backend architecture must remain single-actor; no new backend services."
+    "Do not edit files under frontend/src/components/ui (compose them only).",
+    "Do not modify immutable hook files listed in SYSTEM_CONTEXT (e.g., frontend/src/hooks/useInternetIdentity.ts(x), frontend/src/hooks/useActor.ts, frontend/src/main.tsx)."
   ],
   "nonGoals": [
-    "Do not add preset ranges beyond Month and Year selectors (e.g., Last 3 Months, Last 6 Months).",
-    "Do not change any backend data schema or persistence format as part of this request.",
-    "Do not add third-party authentication; continue using Internet Identity only."
+    "Do not change the default date range behavior for non-Daily tabs (they may remain month-based as currently implemented).",
+    "Do not change backend data models or Motoko canister APIs for this fix."
   ],
   "imageRequirements": {
     "required": [],
     "edits": []
-  },
-  "userProfileUpdate": {
-    "goalsToAdd": [],
-    "goalsToRemove": [],
-    "preferencesToAdd": [],
-    "preferencesToRemove": [],
-    "miscToAdd": [],
-    "miscToRemove": [],
-    "fieldsToSet": {},
-    "fieldsToDelete": []
   }
 }

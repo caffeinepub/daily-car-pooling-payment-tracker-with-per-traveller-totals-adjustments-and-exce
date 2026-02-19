@@ -16,11 +16,10 @@ import CoTravellerIncomeDialog from './CoTravellerIncomeDialog';
 import MobileLedgerSidebarNav from './MobileLedgerSidebarNav';
 import TripHistoryPanel from './TripHistoryPanel';
 import PaymentSummaryPanel from './PaymentSummaryPanel';
-import TripsPaymentYearSelector from './TripsPaymentYearSelector';
-import OverallMonthYearSelector from './OverallMonthYearSelector';
+import MonthYearRangeSelector from './MonthYearRangeSelector';
 import { LedgerStateProvider, useLedgerState } from './LedgerStateContext';
 import { useAppDataSync } from '../../hooks/useAppDataSync';
-import { getFullYearRange } from '../../utils/dateRange';
+import { getCurrentMonthRange, getCurrentWeekMondayToFriday } from '../../utils/dateRange';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import {
@@ -55,11 +54,11 @@ const TAB_LABELS: Record<string, string> = {
   paymentSummary: 'Trips & Payment',
 };
 
-// Tabs that use full-year date range
-const TRIPS_PAYMENT_TABS = ['tripHistory', 'paymentSummary'];
+// Define tab keys type
+type TabKey = 'travellers' | 'grid' | 'summary' | 'car' | 'overall' | 'tripHistory' | 'paymentSummary' | 'backup' | 'clear';
 
 function LedgerPageContent() {
-  const [activeTab, setActiveTab] = useState('grid'); // Default to Daily Participation
+  const [activeTab, setActiveTab] = useState<TabKey>('grid'); // Default to Daily Participation
   const [pendingTab, setPendingTab] = useState<string | null>(null);
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -67,15 +66,26 @@ function LedgerPageContent() {
   const [isExpenseHistoryOpen, setIsExpenseHistoryOpen] = useState(false);
   const [isExportOpen, setIsExportOpen] = useState(false);
   const [isCoTravellerIncomeOpen, setIsCoTravellerIncomeOpen] = useState(false);
-  const { hasDraftChanges, discardDraftDailyData, getPersistedState, applyMergedState, stateRevision, dateRange: contextDateRange, setDateRange: contextSetDateRange } = useLedgerState();
+  const { hasDraftChanges, discardDraftDailyData, getPersistedState, applyMergedState, stateRevision, setDateRange: contextSetDateRange } = useLedgerState();
 
-  // Separate date range buckets for session memory
-  const [tripsPaymentDateRange, setTripsPaymentDateRange] = useState<{ start: Date; end: Date } | null>(null);
-  const [otherTabsDateRange, setOtherTabsDateRange] = useState<{ start: Date; end: Date } | null>(null);
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  // Per-tab date range storage (session-scoped)
+  const tabDateRanges = useRef<Map<TabKey, { start: Date; end: Date }>>(new Map());
   
-  // Track if we've initialized the Trips/Payment date range
-  const hasInitializedTripsPayment = useRef(false);
+  // Initialize currentDateRange with the Daily tab's week range immediately
+  const [currentDateRange, setCurrentDateRange] = useState<{ start: Date; end: Date }>(() => {
+    const weekRange = getCurrentWeekMondayToFriday();
+    tabDateRanges.current.set('grid', weekRange);
+    
+    // Set other tabs to current month
+    const currentMonth = getCurrentMonthRange();
+    (['travellers', 'summary', 'car', 'overall', 'tripHistory', 'paymentSummary', 'backup', 'clear'] as TabKey[]).forEach(tab => {
+      if (tab !== 'grid') {
+        tabDateRanges.current.set(tab, currentMonth);
+      }
+    });
+    
+    return weekRange;
+  });
 
   // Initialize sync
   const { syncStatus, lastSyncTime, error: syncError } = useAppDataSync({
@@ -84,45 +94,26 @@ function LedgerPageContent() {
     stateRevision,
   });
 
-  // Initialize date range buckets on mount
+  // Sync context date range on mount
   useEffect(() => {
-    setOtherTabsDateRange(contextDateRange);
+    contextSetDateRange(currentDateRange);
   }, []);
 
-  // Handle tab changes and date range switching
+  // Handle tab changes - restore that tab's date range
   useEffect(() => {
-    const isTripsPaymentTab = TRIPS_PAYMENT_TABS.includes(activeTab);
-
-    if (isTripsPaymentTab) {
-      // Entering Trips/Payment tab
-      if (!hasInitializedTripsPayment.current) {
-        // First time entering Trips/Payment: set to full year
-        const fullYearRange = getFullYearRange(selectedYear);
-        setTripsPaymentDateRange(fullYearRange);
-        contextSetDateRange(fullYearRange);
-        hasInitializedTripsPayment.current = true;
-      } else if (tripsPaymentDateRange) {
-        // Restore previously used Trips/Payment date range
-        contextSetDateRange(tripsPaymentDateRange);
-      }
-    } else {
-      // Entering other tab: restore other tabs date range
-      if (otherTabsDateRange) {
-        contextSetDateRange(otherTabsDateRange);
-      }
+    const savedRange = tabDateRanges.current.get(activeTab);
+    if (savedRange) {
+      setCurrentDateRange(savedRange);
+      contextSetDateRange(savedRange);
     }
   }, [activeTab]);
 
-  // Save current date range to appropriate bucket when it changes
-  useEffect(() => {
-    const isTripsPaymentTab = TRIPS_PAYMENT_TABS.includes(activeTab);
-    
-    if (isTripsPaymentTab) {
-      setTripsPaymentDateRange(contextDateRange);
-    } else {
-      setOtherTabsDateRange(contextDateRange);
-    }
-  }, [contextDateRange, activeTab]);
+  // Handle date range changes - save to active tab
+  const handleDateRangeChange = (newRange: { start: Date; end: Date }) => {
+    tabDateRanges.current.set(activeTab, newRange);
+    setCurrentDateRange(newRange);
+    contextSetDateRange(newRange);
+  };
 
   const handleTabChange = (newTab: string) => {
     // Check for unsaved changes when leaving the Daily tab
@@ -130,14 +121,14 @@ function LedgerPageContent() {
       setPendingTab(newTab);
       setShowUnsavedDialog(true);
     } else {
-      setActiveTab(newTab);
+      setActiveTab(newTab as TabKey);
     }
   };
 
   const handleDiscardChanges = () => {
     discardDraftDailyData();
     if (pendingTab) {
-      setActiveTab(pendingTab);
+      setActiveTab(pendingTab as TabKey);
     }
     setShowUnsavedDialog(false);
     setPendingTab(null);
@@ -183,30 +174,22 @@ function LedgerPageContent() {
     });
   };
 
-  const handleYearChange = (year: number) => {
-    setSelectedYear(year);
-    const fullYearRange = getFullYearRange(year);
-    setTripsPaymentDateRange(fullYearRange);
-    contextSetDateRange(fullYearRange);
-  };
-
-  const isTripsPaymentTab = TRIPS_PAYMENT_TABS.includes(activeTab);
-  const isOverallTab = activeTab === 'overall';
+  // Show Month/Year selector for non-Daily tabs
+  const showMonthYearSelector = activeTab !== 'grid';
 
   return (
     <div className="min-h-screen flex flex-col">
       <AppHeader syncStatus={syncStatus} lastSyncTime={lastSyncTime} syncError={syncError} onLogout={handleLogout} />
 
       <main className="flex-1 container py-6 px-4 space-y-6">
-        {/* Date Range, Rate, Year Selector, Month/Year Selector, and Other Co-Traveller */}
+        {/* Date Range, Rate, Month/Year Selector, and Other Co-Traveller */}
         <div className="flex flex-col gap-4">
           <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
             <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-              <DateRangePicker />
-              {isTripsPaymentTab && (
-                <TripsPaymentYearSelector selectedYear={selectedYear} onYearChange={handleYearChange} />
+              <DateRangePicker value={currentDateRange} onChange={handleDateRangeChange} />
+              {showMonthYearSelector && (
+                <MonthYearRangeSelector value={currentDateRange} onChange={handleDateRangeChange} />
               )}
-              {isOverallTab && <OverallMonthYearSelector />}
             </div>
             {activeTab === 'grid' && (
               <Button
@@ -321,7 +304,7 @@ function LedgerPageContent() {
             <TravellerManager />
           </TabsContent>
           <TabsContent value="grid" className="mt-6">
-            <DailyParticipationGrid onSaveAndNext={handleSaveAndNext} />
+            <DailyParticipationGrid dateRange={currentDateRange} onSaveAndNext={handleSaveAndNext} />
           </TabsContent>
           <TabsContent value="summary" className="mt-6">
             <SummaryPanel />

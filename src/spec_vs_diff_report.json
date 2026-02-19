@@ -1,35 +1,15 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-17T05:05:29.652Z",
-  "summary": "Implemented current-month default date range via ledger local state, added date range utilities (current month/full month/full year/classification), and introduced an Overall Month/Year selector component wired to shared ledger dateRange. However, based on the truncated diff summary, some acceptance criteria (Clear Data reset behavior and Trips & Payment tab defaulting behavior) cannot be fully verified.",
-  "missing_requirements": [
-    {
-      "id": "REQ-1",
-      "requirement": "Using \"Clear Data\" / clear-all behavior resets the date range to the current month (not the current week).",
-      "reason": "The diff shows the default date range changed to current month in local state, but there is no visible (non-truncated) evidence that the Clear Data / clear-all flow resets the dateRange to current month.",
-      "evidence": [
-        "frontend/src/hooks/useLedgerLocalState.ts (shows default date range only)",
-        "frontend/src/features/ledger/LedgerPage.tsx (truncated; ClearDataPanel integration not verifiable)"
-      ]
-    },
-    {
-      "id": "REQ-1",
-      "requirement": "Existing behavior for Trips & Payment tabs continues to default to a full-year range when first entering those tabs, unless explicitly changed by the user.",
-      "reason": "LedgerPage.tsx introduces separate date-range buckets and imports getFullYearRange and TRIPS_PAYMENT_TABS, but the relevant tab-switching initialization logic is truncated, so the full-year default on first entry cannot be confirmed from the provided excerpt.",
-      "evidence": [
-        "frontend/src/features/ledger/LedgerPage.tsx (truncated; shows TRIPS_PAYMENT_TABS and getFullYearRange import but not the full tab-change logic)"
-      ]
-    }
-  ],
+  "generatedAt": "2026-02-18T12:45:21.989Z",
+  "summary": "Diff appears to address the initial full-month render by lazily initializing the Daily tab’s date range to the current week (Mon–Fri) and passing a controlled dateRange into DailyParticipationGrid, which computes displayed days directly from that prop. It also introduces per-tab date range storage to preserve/restore ranges when switching tabs.",
+  "missing_requirements": [],
   "hallucinated_features": [],
-  "confidence": 0.62,
+  "confidence": 0.66,
   "changed_files": [
     "frontend-file-summaries.txt",
+    "frontend/src/features/ledger/DailyParticipationGrid.tsx",
     "frontend/src/features/ledger/LedgerPage.tsx",
-    "frontend/src/features/ledger/OverallMonthYearSelector.tsx",
-    "frontend/src/hooks/useLedgerLocalState.ts",
-    "frontend/src/utils/dateRange.ts",
     "project_state.json"
   ]
 }

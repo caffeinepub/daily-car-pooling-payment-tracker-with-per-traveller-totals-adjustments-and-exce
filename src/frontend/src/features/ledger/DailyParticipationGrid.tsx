@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useLedgerState } from './LedgerStateContext';
 import { getDaysInRange, formatDateKey, formatDisplayDate } from '../../utils/dateRange';
 import { isDateEditable, isWeekendDay } from '../../utils/weekendInclusion';
@@ -5,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
 import ResponsiveTableShell from '../../components/ResponsiveTableShell';
 import EmptyState from '../../components/EmptyState';
 import { Calendar, Save, ChevronRight } from 'lucide-react';
@@ -12,13 +14,13 @@ import { formatCurrency } from '../../utils/money';
 import { toast } from 'sonner';
 
 interface DailyParticipationGridProps {
+  dateRange: { start: Date; end: Date };
   onSaveAndNext?: () => void;
 }
 
-export default function DailyParticipationGrid({ onSaveAndNext }: DailyParticipationGridProps) {
+export default function DailyParticipationGrid({ dateRange, onSaveAndNext }: DailyParticipationGridProps) {
   const { 
     travellers, 
-    dateRange, 
     draftDailyData, 
     toggleDraftTrip, 
     ratePerTrip, 
@@ -30,6 +32,9 @@ export default function DailyParticipationGrid({ onSaveAndNext }: DailyParticipa
     includeSunday,
     setIncludeSunday,
   } = useLedgerState();
+
+  // Local state for participation edit toggle
+  const [allowParticipationEdit, setAllowParticipationEdit] = useState(false);
 
   const days = getDaysInRange(dateRange.start, dateRange.end);
 
@@ -58,194 +63,226 @@ export default function DailyParticipationGrid({ onSaveAndNext }: DailyParticipa
     }
   };
 
+  // Per-date bulk checkbox handler
+  const handlePerDateBulkToggle = (dateKey: string) => {
+    // Check if all travellers have both AM and PM for this date
+    const allMarked = travellers.length > 0 && travellers.every((t) => {
+      const tripData = draftDailyData[dateKey]?.[t.id];
+      return tripData?.morning && tripData?.evening;
+    });
+
+    if (allMarked) {
+      // Uncheck all
+      setDraftTripsForAllTravellers(dateKey, false, false);
+    } else {
+      // Check all
+      setDraftTripsForAllTravellers(dateKey, true, true);
+    }
+  };
+
   const handleSave = () => {
     saveDraftDailyData();
-    toast.success('Data saved successfully');
+    toast.success('Daily participation saved successfully');
   };
 
   const handleSaveAndNext = () => {
     saveDraftDailyData();
-    toast.success('Data saved successfully');
-    if (onSaveAndNext) {
-      onSaveAndNext();
-    }
+    toast.success('Daily participation saved successfully');
+    onSaveAndNext?.();
   };
 
   if (travellers.length === 0) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Daily Participation</CardTitle>
-          <CardDescription>Track who travelled each day</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <EmptyState
-            icon={Calendar}
-            title="Add travellers first"
-            description="You need to add travellers before tracking daily participation"
-          />
-        </CardContent>
-      </Card>
+      <EmptyState
+        icon={Calendar}
+        title="No Travellers Added"
+        description="Add travellers first to start tracking daily participation."
+      />
     );
   }
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Daily Participation</CardTitle>
-        <CardDescription>
-          Mark Morning and/or Evening trips for each traveller. Each checked AM box counts as 1 trip and each checked PM box counts as 1 trip. Each trip is charged at {formatCurrency(ratePerTrip)} per trip.
-        </CardDescription>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <CardTitle>Daily Participation</CardTitle>
+            <CardDescription>Track morning and evening trips for each traveller</CardDescription>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Button onClick={handleSave} disabled={!hasUnsavedChanges} className="gap-2">
+              <Save className="h-4 w-4" />
+              Save
+            </Button>
+            <Button onClick={handleSaveAndNext} disabled={!hasUnsavedChanges} variant="default" className="gap-2">
+              Save & Next
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Weekend Inclusion Controls */}
-        <div className="flex flex-col sm:flex-row gap-3 p-3 bg-accent/30 rounded-lg border">
-          <div className="flex items-center gap-2">
-            <Checkbox
-              id="include-saturday"
-              checked={includeSaturday}
-              onCheckedChange={(checked) => setIncludeSaturday(checked === true)}
-            />
-            <Label
-              htmlFor="include-saturday"
-              className="text-sm font-medium cursor-pointer"
-            >
-              Include Saturday
-            </Label>
+        {/* Controls */}
+        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between p-4 bg-muted/50 rounded-lg">
+          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="include-saturday"
+                checked={includeSaturday}
+                onCheckedChange={(checked) => setIncludeSaturday(!!checked)}
+              />
+              <Label htmlFor="include-saturday" className="cursor-pointer">
+                Include Saturday
+              </Label>
+            </div>
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="include-sunday"
+                checked={includeSunday}
+                onCheckedChange={(checked) => setIncludeSunday(!!checked)}
+              />
+              <Label htmlFor="include-sunday" className="cursor-pointer">
+                Include Sunday
+              </Label>
+            </div>
           </div>
           <div className="flex items-center gap-2">
-            <Checkbox
-              id="include-sunday"
-              checked={includeSunday}
-              onCheckedChange={(checked) => setIncludeSunday(checked === true)}
+            <Switch
+              id="allow-edit"
+              checked={allowParticipationEdit}
+              onCheckedChange={setAllowParticipationEdit}
             />
-            <Label
-              htmlFor="include-sunday"
-              className="text-sm font-medium cursor-pointer"
-            >
-              Include Sunday
+            <Label htmlFor="allow-edit" className="cursor-pointer">
+              Allow Participation Edit
             </Label>
           </div>
         </div>
 
-        {/* Bulk checkbox for today */}
-        <div className="flex items-center gap-3 p-3 bg-accent/30 rounded-lg border">
-          <Checkbox
-            id="bulk-today"
-            checked={allTravellersMarkedForToday}
-            onCheckedChange={handleBulkToggle}
-            disabled={!isTodayEditable}
-          />
-          <Label
-            htmlFor="bulk-today"
-            className="text-sm font-medium cursor-pointer"
-          >
-            Mark all travellers for today (AM + PM)
-          </Label>
-        </div>
+        {/* Mark all travellers for today checkbox */}
+        {isTodayEditable && (
+          <div className="flex items-center gap-2 p-3 bg-primary/5 rounded-lg border border-primary/20">
+            <Checkbox
+              id="mark-all-today"
+              checked={allTravellersMarkedForToday}
+              onCheckedChange={handleBulkToggle}
+            />
+            <Label htmlFor="mark-all-today" className="cursor-pointer font-medium">
+              Mark all travellers for today (AM & PM)
+            </Label>
+          </div>
+        )}
 
+        {/* Grid */}
         <ResponsiveTableShell>
           <table className="w-full border-collapse">
             <thead>
               <tr className="border-b bg-muted/50">
-                <th className="p-3 text-left text-sm font-semibold sticky left-0 bg-muted/50 z-10 min-w-[120px]">
-                  Date
-                </th>
-                {travellers.map((t) => (
-                  <th key={t.id} className="p-3 text-center text-sm font-semibold min-w-[120px]">
-                    <div>{t.name}</div>
-                    <div className="text-xs font-normal text-muted-foreground mt-1">AM / PM</div>
-                  </th>
-                ))}
+                <th className="p-3 text-left font-semibold sticky left-0 bg-muted/50 z-10">Traveller</th>
+                {days.map((day) => {
+                  const dateKey = formatDateKey(day);
+                  const isWeekend = isWeekendDay(day);
+                  const editable = isDateEditable(day, includeSaturday, includeSunday);
+                  
+                  // Check if all travellers have both AM and PM for this date
+                  const allMarked = travellers.length > 0 && travellers.every((t) => {
+                    const tripData = draftDailyData[dateKey]?.[t.id];
+                    return tripData?.morning && tripData?.evening;
+                  });
+
+                  return (
+                    <th
+                      key={dateKey}
+                      className={`p-3 text-center font-semibold min-w-[120px] ${
+                        isWeekend ? 'bg-muted/30' : ''
+                      } ${!editable ? 'opacity-50' : ''}`}
+                    >
+                      <div className="flex flex-col gap-1">
+                        <div className="text-xs text-muted-foreground">
+                          {day.toLocaleDateString('en-US', { weekday: 'short' })}
+                        </div>
+                        <div className="text-sm">{formatDisplayDate(day)}</div>
+                        {editable && (
+                          <div className="flex items-center justify-center gap-1 mt-1">
+                            <Checkbox
+                              checked={allMarked}
+                              onCheckedChange={() => handlePerDateBulkToggle(dateKey)}
+                              className="h-3 w-3"
+                            />
+                            <span className="text-xs text-muted-foreground">All</span>
+                          </div>
+                        )}
+                      </div>
+                    </th>
+                  );
+                })}
               </tr>
             </thead>
             <tbody>
-              {days.map((day, idx) => {
-                const dateKey = formatDateKey(day);
-                const isEditable = isDateEditable(day, includeSaturday, includeSunday);
-                const { isSaturday, isSunday } = isWeekendDay(day);
-                const isWeekend = isSaturday || isSunday;
+              {travellers.map((traveller) => (
+                <tr key={traveller.id} className="border-b hover:bg-muted/30 transition-colors">
+                  <td className="p-3 font-medium sticky left-0 bg-background z-10">{traveller.name}</td>
+                  {days.map((day) => {
+                    const dateKey = formatDateKey(day);
+                    const tripData = draftDailyData[dateKey]?.[traveller.id] || { morning: false, evening: false };
+                    const isWeekend = isWeekendDay(day);
+                    const editable = isDateEditable(day, includeSaturday, includeSunday);
+                    const canEdit = editable && allowParticipationEdit;
 
-                return (
-                  <tr
-                    key={dateKey}
-                    className={`border-b hover:bg-accent/30 transition-colors ${
-                      idx % 2 === 0 ? 'bg-background' : 'bg-muted/20'
-                    } ${!isEditable ? 'opacity-60' : ''}`}
-                  >
-                    <td className="p-3 text-sm font-medium sticky left-0 bg-inherit z-10">
-                      {formatDisplayDate(day)}
-                    </td>
-                    {travellers.map((t) => {
-                      const tripData = draftDailyData[dateKey]?.[t.id] || { morning: false, evening: false };
-                      return (
-                        <td key={t.id} className="p-3">
-                          <div className="flex justify-center items-center gap-3">
-                            <div className="flex flex-col items-center gap-1">
+                    const tripCount = (tripData.morning ? 1 : 0) + (tripData.evening ? 1 : 0);
+                    const amount = tripCount * ratePerTrip;
+
+                    return (
+                      <td
+                        key={dateKey}
+                        className={`p-3 text-center ${isWeekend ? 'bg-muted/30' : ''} ${
+                          !editable ? 'opacity-50' : ''
+                        }`}
+                      >
+                        <div className="flex flex-col gap-2">
+                          <div className="flex items-center justify-center gap-3">
+                            <div className="flex items-center gap-1">
                               <Checkbox
+                                id={`${traveller.id}-${dateKey}-morning`}
                                 checked={tripData.morning}
-                                onCheckedChange={() => {
-                                  if (isEditable) {
-                                    toggleDraftTrip(dateKey, t.id, 'morning');
-                                  }
-                                }}
-                                disabled={!isEditable}
-                                aria-label={`${t.name} morning trip on ${formatDisplayDate(day)}`}
+                                onCheckedChange={() => toggleDraftTrip(dateKey, traveller.id, 'morning')}
+                                disabled={!canEdit}
                               />
+                              <Label
+                                htmlFor={`${traveller.id}-${dateKey}-morning`}
+                                className="text-xs cursor-pointer"
+                              >
+                                AM
+                              </Label>
                             </div>
-                            <div className="text-muted-foreground">/</div>
-                            <div className="flex flex-col items-center gap-1">
+                            <div className="flex items-center gap-1">
                               <Checkbox
+                                id={`${traveller.id}-${dateKey}-evening`}
                                 checked={tripData.evening}
-                                onCheckedChange={() => {
-                                  if (isEditable) {
-                                    toggleDraftTrip(dateKey, t.id, 'evening');
-                                  }
-                                }}
-                                disabled={!isEditable}
-                                aria-label={`${t.name} evening trip on ${formatDisplayDate(day)}`}
+                                onCheckedChange={() => toggleDraftTrip(dateKey, traveller.id, 'evening')}
+                                disabled={!canEdit}
                               />
+                              <Label
+                                htmlFor={`${traveller.id}-${dateKey}-evening`}
+                                className="text-xs cursor-pointer"
+                              >
+                                PM
+                              </Label>
                             </div>
                           </div>
-                        </td>
-                      );
-                    })}
-                  </tr>
-                );
-              })}
+                          {tripCount > 0 && (
+                            <div className="text-xs text-muted-foreground">
+                              {tripCount} × {formatCurrency(ratePerTrip)} = {formatCurrency(amount)}
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
             </tbody>
           </table>
         </ResponsiveTableShell>
-
-        {/* Save Actions */}
-        <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t">
-          <Button
-            onClick={handleSave}
-            disabled={!hasUnsavedChanges}
-            className="flex-1 sm:flex-none"
-          >
-            <Save className="h-4 w-4 mr-2" />
-            Save
-          </Button>
-          
-          {onSaveAndNext && (
-            <Button
-              onClick={handleSaveAndNext}
-              disabled={!hasUnsavedChanges}
-              variant="outline"
-              className="flex-1 sm:flex-none"
-            >
-              Save & Next
-              <ChevronRight className="h-4 w-4 ml-2" />
-            </Button>
-          )}
-          
-          {hasUnsavedChanges && (
-            <span className="text-sm text-muted-foreground self-center">
-              You have unsaved changes
-            </span>
-          )}
-        </div>
       </CardContent>
     </Card>
   );

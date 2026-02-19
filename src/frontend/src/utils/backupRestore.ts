@@ -1,4 +1,4 @@
-import type { Traveller, DailyData, CashPayment, OtherPending, CarExpense, CoTravellerIncome } from '../hooks/useLedgerLocalState';
+import type { Traveller, DailyData, CashPayment, OtherPending, CarExpense, CoTravellerIncome, PerDayAutoTollSelection } from '../hooks/useLedgerLocalState';
 
 export interface LocalLedgerState {
   travellers: Traveller[];
@@ -11,6 +11,7 @@ export interface LocalLedgerState {
   includeSaturday: boolean;
   includeSunday: boolean;
   coTravellerIncomes?: CoTravellerIncome[];
+  perDayAutoTollSelection?: PerDayAutoTollSelection;
 }
 
 export interface BackupData {
@@ -165,6 +166,16 @@ export function mergeLocalStates(local: LocalLedgerState, remote: LocalLedgerSta
   });
   const mergedCoTravellerIncomes = Array.from(coTravellerIncomeMap.values());
 
+  // Merge perDayAutoTollSelection with OR logic (if either has it enabled, include it)
+  const mergedPerDayAutoTollSelection: PerDayAutoTollSelection = {};
+  const localSelection = local.perDayAutoTollSelection || {};
+  const remoteSelection = remote.perDayAutoTollSelection || {};
+  const allSelectionDateKeys = new Set([...Object.keys(localSelection), ...Object.keys(remoteSelection)]);
+  
+  allSelectionDateKeys.forEach((dateKey) => {
+    mergedPerDayAutoTollSelection[dateKey] = localSelection[dateKey] || remoteSelection[dateKey] || false;
+  });
+
   // Use remote settings (date range, rate, weekend inclusion) as they're likely more recent
   return {
     travellers: mergedTravellers,
@@ -177,5 +188,6 @@ export function mergeLocalStates(local: LocalLedgerState, remote: LocalLedgerSta
     includeSaturday: remote.includeSaturday,
     includeSunday: remote.includeSunday,
     coTravellerIncomes: mergedCoTravellerIncomes,
+    perDayAutoTollSelection: mergedPerDayAutoTollSelection,
   };
 }

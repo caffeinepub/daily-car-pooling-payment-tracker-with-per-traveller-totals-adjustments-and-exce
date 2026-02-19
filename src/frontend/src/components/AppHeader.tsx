@@ -64,26 +64,29 @@ export default function AppHeader({ syncStatus, lastSyncTime, syncError, onLogou
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           {isAuthenticated && syncStatus && (
             <SyncStatusIndicator status={syncStatus} lastSyncTime={lastSyncTime || null} error={syncError} />
           )}
 
           {isAuthenticated && (
             <>
-              {/* Desktop Logout Button */}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleLogout}
-                disabled={isLoggingOut}
-                className="hidden md:flex"
-              >
-                <LogOut className="h-4 w-4 mr-2" />
-                {isLoggingOut ? 'Logging out...' : 'Logout'}
-              </Button>
+              {/* Desktop: User dropdown with logout */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="icon" className="hidden md:flex">
+                    <User className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={handleLogout} disabled={isLoggingOut}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    {isLoggingOut ? 'Logging out...' : 'Logout'}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
 
-              {/* Mobile/Tablet User Menu */}
+              {/* Mobile/Tablet: User dropdown with logout */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" size="icon" className="md:hidden">

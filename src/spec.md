@@ -1,12 +1,11 @@
 # Specification
 
 ## Summary
-**Goal:** Default the shared date range to the current calendar month (outside Trips & Payment) and add synchronized Month/Year selectors on the Overall tab to quickly switch ranges.
+**Goal:** Make the Daily Participation view load and render using the currently selected week (Mon–Fri) date range on initial app load, and ensure date range changes immediately update the grid.
 
 **Planned changes:**
-- Update the default date range for non–Trips & Payment tabs (including Overall) to the current month (1st through last day) on fresh load and after “Clear Data”.
-- Preserve existing Trips & Payment tab behavior (default to full-year range when first entering those tabs unless the user changes it).
-- Add Month and Year dropdown selectors on the Overall tab that immediately set the shared date range (month = full selected month; year = full year when no month selected; changing year preserves selected month if set).
-- Keep Month/Year dropdowns in sync with manual DateRangePicker changes, showing the matching month/year when the range exactly equals a full month or full year, otherwise showing a “Custom” state (and Year becomes “Custom” only when spanning multiple years).
+- Align the Daily Participation grid’s initial data fetch/render to the app’s currently selected week date range (Mon–Fri) on fresh page load, avoiding any default full-month load unless the user selects a month range.
+- Ensure the Daily Participation grid reacts immediately to date range picker changes (including switching between weeks) and displays rows for the newly selected start/end dates.
+- Preserve and restore the Daily tab’s saved date range when navigating away from and back to the Daily tab, with the grid matching that restored range.
 
-**User-visible outcome:** On the Overall tab, the app starts with the current month selected by default, and users can switch the date range via Month/Year dropdowns or manual date picking with the controls staying synchronized (including a clear “Custom” state for non-standard ranges).
+**User-visible outcome:** On page load, the Daily Participation grid shows only the current week (Mon–Fri) when the week range is selected, and changing the date range updates the grid immediately without extra actions.

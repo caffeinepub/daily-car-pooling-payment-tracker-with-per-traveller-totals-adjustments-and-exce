@@ -1,58 +1,31 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "Add date range filtering for the overall payment tracking page: default to current month, with Month/Year dropdowns that instantly set the range and stay synced with custom date selections.",
-  "architectural_notes": [
-    "Date range filter logic: selecting a month sets start/end to that month’s first/last day; selecting a year sets start/end to Jan 1–Dec 31; manual date edits should update Month/Year selectors to match."
+  "summary": "New project",
+  "architectural_notes": [],
+  "known_issues": [
+    "Bug: On initial load, Daily Participation loads full current month instead of matching the current week date range; should load/update strictly based on selected week (including initial load)."
   ],
-  "known_issues": [],
-  "isFixRequest": false,
+  "isFixRequest": true,
   "existing_features": [
     {
-      "id": "feature-change-the-default-date-range-for-non-trips-payment-tabs-including-the-overall-tab-to-the-current-calendar-month-1st-through-last-day-instead-of-the-current-week-monday-friday",
-      "title": "Change the default date range for non–Trips & Payment tabs (including the Overall tab) to the current calendar month (1st through last day), instead of the current week Monday–Friday.",
+      "id": "feature-ensure-the-daily-participation-grid-initially-renders-only-the-currently-selected-week-date-range-mon-fri-on-app-load-and-does-not-briefly-or-persistently-render-the-full-current-month-unless-the-user-explicitly-changes-the-date-range-to-a-month",
+      "title": "Ensure the Daily Participation grid initially renders only the currently selected week date range (Mon–Fri) on app load, and does not briefly or persistently render the full current month unless the user explicitly changes the date range to a month.",
       "reqIds": [
         "REQ-1"
       ],
       "version": 1
     },
     {
-      "id": "feature-add-month-and-year-dropdown-selectors-for-the-overall-tab-that-instantly-update-the-shared-date-range-selecting-a-month-sets-the-date-range-to-the-first-and-last-day-of-that-month-in-the-currently-selected-year-and-selecting-a-year-sets-the-range-to-jan-1-dec-31-of-that-year-when-no-specific-month-is-selected-if-a-month-is-selected-changing-the-year-keeps-the-month-selection-and-updates-the-range-to-that-month-within-the-new-year",
-      "title": "Add Month and Year dropdown selectors for the Overall tab that instantly update the shared date range: selecting a month sets the date range to the first and last day of that month (in the currently selected year), and selecting a year sets the range to Jan 1–Dec 31 of that year when no specific month is selected; if a month is selected, changing the year keeps the month selection and updates the range to that month within the new year.",
+      "id": "feature-ensure-changing-the-date-range-immediately-updates-the-daily-participation-grid-to-match-the-newly-selected-date-range-including-when-switching-between-weeks",
+      "title": "Ensure changing the date range immediately updates the Daily Participation grid to match the newly selected date range (including when switching between weeks).",
       "reqIds": [
         "REQ-2"
       ],
       "version": 1
-    },
-    {
-      "id": "feature-keep-the-month-year-dropdowns-synchronized-with-manual-custom-date-selection-when-a-user-changes-the-date-range-using-the-daterangepicker-the-dropdowns-update-to-reflect-the-new-range-when-it-maps-cleanly-to-a-single-month-or-a-single-full-year-otherwise-they-show-a-clear-custom-state",
-      "title": "Keep the Month/Year dropdowns synchronized with manual custom date selection: when a user changes the date range using the DateRangePicker, the dropdowns update to reflect the new range when it maps cleanly to a single month or a single full year; otherwise they show a clear \"Custom\" state.",
-      "reqIds": [
-        "REQ-3"
-      ],
-      "version": 1
     }
   ],
-  "new_feature_requests": [
-    {
-      "id": "AR-1",
-      "summary": "Overall page date range defaults to current month for payment tracking",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-2",
-      "summary": "Add Month and Year dropdowns that instantly update the date range (month -> first/last day; year -> Jan 1–Dec 31)",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-3",
-      "summary": "Keep Month/Year dropdowns synchronized with manual custom date range selection",
-      "reqIds": [],
-      "status": "pending"
-    }
-  ],
+  "new_feature_requests": [],
   "projectName": "Carpool Ledger",
   "clarification_mode": "instant",
   "clarification_rounds": 0

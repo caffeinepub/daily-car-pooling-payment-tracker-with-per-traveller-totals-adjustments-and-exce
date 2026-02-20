@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import type { LocalLedgerState } from '../utils/backupRestore';
 import { mergeLocalStates } from '../utils/backupRestore';
-import { getCurrentMonthRange, formatDateKey } from '../utils/dateRange';
-import { useAutoTollSettings } from './useAutoTollSettings';
+import { getCurrentMonthRange } from '../utils/dateRange';
 
 export interface Traveller {
   id: string;
@@ -163,9 +162,6 @@ export function useLedgerLocalState() {
   const skipNextSave = useRef(false);
   const skipRevisionIncrement = useRef(false);
 
-  // Get auto toll settings
-  const { enabled: autoTollEnabled, amount: autoTollAmount } = useAutoTollSettings();
-
   // Load state on mount
   useEffect(() => {
     const loaded = loadState();
@@ -187,27 +183,6 @@ export function useLedgerLocalState() {
     setCoTravellerIncomes(loaded.coTravellerIncomes);
     setPerDayAutoTollSelection(loaded.perDayAutoTollSelection ?? {});
   }, []);
-
-  // Auto-add toll for current day when app opens
-  useEffect(() => {
-    if (!autoTollEnabled) return;
-
-    const today = formatDateKey(new Date());
-    const existingTollForToday = carExpenses.some(
-      (e) => e.category === 'Toll' && e.date === today
-    );
-
-    if (!existingTollForToday) {
-      const newExpense: CarExpense = {
-        id: generateId(),
-        category: 'Toll',
-        amount: autoTollAmount,
-        date: today,
-        note: 'Auto-added',
-      };
-      setCarExpenses((prev) => [...prev, newExpense]);
-    }
-  }, []); // Run only on mount
 
   // Save state whenever it changes
   useEffect(() => {

@@ -1,11 +1,14 @@
 # Specification
 
 ## Summary
-**Goal:** Make the Daily Participation view load and render using the currently selected week (Mon–Fri) date range on initial app load, and ensure date range changes immediately update the grid.
+**Goal:** Fix auto-toll feature to add toll once per weekday on app launch and enable multi-category expense entry.
 
 **Planned changes:**
-- Align the Daily Participation grid’s initial data fetch/render to the app’s currently selected week date range (Mon–Fri) on fresh page load, avoiding any default full-month load unless the user selects a month range.
-- Ensure the Daily Participation grid reacts immediately to date range picker changes (including switching between weeks) and displays rows for the newly selected start/end dates.
-- Preserve and restore the Daily tab’s saved date range when navigating away from and back to the Daily tab, with the grid matching that restored range.
+- Modify auto-toll to check if a toll expense already exists for the current date on app launch
+- Auto-add one toll expense only on weekdays (Monday-Friday) if no toll exists for today
+- Ensure toll is added only once per day regardless of app reopens
+- Add functionality to create 3 expense entries simultaneously in the add expense popup
+- Pre-select categories as 'Toll', 'CNG BRD', and 'CNG AHM' for the 3 expense forms
+- Allow independent amount and date input for each of the 3 expense entries
 
-**User-visible outcome:** On page load, the Daily Participation grid shows only the current week (Mon–Fri) when the week range is selected, and changing the date range updates the grid immediately without extra actions.
+**User-visible outcome:** Users will see automatic toll expenses added once per weekday when launching the app (if not already added that day), and can add 3 expenses at once with pre-filled categories for Toll, CNG BRD, and CNG AHM.

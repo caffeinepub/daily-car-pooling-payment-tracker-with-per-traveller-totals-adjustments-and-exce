@@ -8,12 +8,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
-import { Plus, Car, IndianRupee } from 'lucide-react';
+import { Plus, Car, IndianRupee, Layers } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { toast } from 'sonner';
 import { formatCurrency } from '../../utils/money';
 import { Separator } from '@/components/ui/separator';
 import { useAutoTollSettings } from '../../hooks/useAutoTollSettings';
+import MultiCategoryExpenseForm from './MultiCategoryExpenseForm';
 
 const PREDEFINED_CATEGORIES = [
   'CNG BRD',
@@ -29,6 +30,7 @@ export default function CarExpensesPanel() {
   const { enabled: autoTollEnabled, amount: autoTollAmount, setEnabled: setAutoTollEnabled, setAmount: setAutoTollAmount } = useAutoTollSettings();
   
   const [open, setOpen] = useState(false);
+  const [multiOpen, setMultiOpen] = useState(false);
   const [category, setCategory] = useState('');
   const [customCategory, setCustomCategory] = useState('');
   const [amount, setAmount] = useState('');
@@ -171,92 +173,101 @@ export default function CarExpensesPanel() {
 
         <Separator />
 
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button className="w-full">
-              <Plus className="mr-2 h-4 w-4" />
-              Add Expense
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Add Expense</DialogTitle>
-              <DialogDescription>Record a new expense</DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="category">Category</Label>
-                <Select value={category} onValueChange={setCategory}>
-                  <SelectTrigger id="category">
-                    <SelectValue placeholder="Select category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {PREDEFINED_CATEGORIES.map((cat) => (
-                      <SelectItem key={cat} value={cat}>
-                        {cat}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {category === 'Other' && (
+        <div className="flex gap-2">
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+              <Button className="flex-1">
+                <Plus className="mr-2 h-4 w-4" />
+                Add Expense
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Add Expense</DialogTitle>
+                <DialogDescription>Record a new expense</DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="customCategory">Custom Category</Label>
+                  <Label htmlFor="category">Category</Label>
+                  <Select value={category} onValueChange={setCategory}>
+                    <SelectTrigger id="category">
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PREDEFINED_CATEGORIES.map((cat) => (
+                        <SelectItem key={cat} value={cat}>
+                          {cat}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {category === 'Other' && (
+                  <div className="space-y-2">
+                    <Label htmlFor="customCategory">Custom Category</Label>
+                    <Input
+                      id="customCategory"
+                      value={customCategory}
+                      onChange={(e) => setCustomCategory(e.target.value)}
+                      placeholder="Enter category name"
+                    />
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <Label htmlFor="amount">Amount (₹)</Label>
                   <Input
-                    id="customCategory"
-                    value={customCategory}
-                    onChange={(e) => setCustomCategory(e.target.value)}
-                    placeholder="Enter category name"
+                    id="amount"
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    placeholder="0.00"
                   />
                 </div>
-              )}
 
-              <div className="space-y-2">
-                <Label htmlFor="amount">Amount (₹)</Label>
-                <Input
-                  id="amount"
-                  type="number"
-                  min="0.01"
-                  step="0.01"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  placeholder="0.00"
-                />
-              </div>
+                <div className="space-y-2">
+                  <Label htmlFor="date">Date</Label>
+                  <Input
+                    id="date"
+                    type="date"
+                    value={date}
+                    onChange={(e) => setDate(e.target.value)}
+                  />
+                </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="date">Date</Label>
-                <Input
-                  id="date"
-                  type="date"
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                />
-              </div>
+                <div className="space-y-2">
+                  <Label htmlFor="note">Note (optional)</Label>
+                  <Textarea
+                    id="note"
+                    value={note}
+                    onChange={(e) => setNote(e.target.value)}
+                    placeholder="Add any additional details"
+                    rows={3}
+                  />
+                </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="note">Note (optional)</Label>
-                <Textarea
-                  id="note"
-                  value={note}
-                  onChange={(e) => setNote(e.target.value)}
-                  placeholder="Add any additional details"
-                  rows={3}
-                />
-              </div>
+                {error && <p className="text-sm text-destructive">{error}</p>}
 
-              {error && <p className="text-sm text-destructive">{error}</p>}
+                <DialogFooter>
+                  <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button type="submit">Add Expense</Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
 
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-                  Cancel
-                </Button>
-                <Button type="submit">Add Expense</Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
+          <Button variant="outline" className="flex-1" onClick={() => setMultiOpen(true)}>
+            <Layers className="mr-2 h-4 w-4" />
+            Add 3 Expenses
+          </Button>
+        </div>
+
+        <MultiCategoryExpenseForm open={multiOpen} onOpenChange={setMultiOpen} />
 
         {/* Totals Summary */}
         <div className="space-y-2">

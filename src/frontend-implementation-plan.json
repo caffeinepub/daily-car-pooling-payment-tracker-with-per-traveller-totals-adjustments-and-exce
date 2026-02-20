@@ -1,46 +1,57 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Fix Daily Participation initial load date range mismatch (week vs month)",
+  "title": "Fix auto-toll to add once per weekday and enable multi-category expense entry",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Prevent Daily Participation from rendering a full-month range on initial load when the active date range is the current week (Mon–Fri).",
+      "summary": "Modify auto-toll feature to add one toll expense per weekday on app launch, checking for existing toll entries for the current date",
       "acceptanceCriteria": [
-        "On a fresh page load, when the app’s visible date range is the current week, the Daily Participation grid shows rows only for that same week (Mon–Fri).",
-        "The Daily Participation grid does not load/render a full-month range on initial load when the active tab is Daily and the date range selector is showing the current week.",
-        "No user interaction (e.g., changing the date range) is required for the Daily Participation grid to match the initially displayed week date range."
+        "On app launch, the system checks if today is a weekday",
+        "On app launch, the system checks if a toll expense already exists for today's date",
+        "If both conditions are met (weekday and no existing toll), one toll expense is automatically added",
+        "If a toll already exists for today, no additional toll is added",
+        "The auto-toll feature works independently of the traveller checkbox"
       ],
       "file_operations": [
         {
-          "path": "frontend/src/features/ledger/LedgerPage.tsx",
+          "path": "frontend/src/hooks/useAutoTollSettings.ts",
           "operation": "modify",
-          "description": "Eliminate the initial month-based render by initializing the Daily tab’s date range to the current week (Mon–Fri) synchronously (e.g., via lazy initialization and/or useLayoutEffect), and initialize tabDateRanges with Daily=week and other tabs=month without a first-render month fallback."
+          "description": "Add a new field lastAutoTollDate to track the last date when auto-toll was added. Update the AutoTollSettings type and the hook to persist and retrieve this date from localStorage."
         },
         {
           "path": "frontend/src/hooks/useLedgerLocalState.ts",
           "operation": "modify",
-          "description": "Stop the persisted/localStorage-loaded dateRange from overriding the UI-selected initial Daily week range on mount (e.g., do not apply stored dateRange during initial load, or gate it so LedgerPage-controlled initialization wins), while keeping non-Daily tabs month-based via LedgerPage’s per-tab date range behavior."
+          "description": "Add a utility function to check if a toll expense already exists for a given date by filtering carExpenses. This function will be used by the auto-toll logic to prevent duplicate toll entries."
+        },
+        {
+          "path": "frontend/src/App.tsx",
+          "operation": "modify",
+          "description": "Add useEffect hook that runs on mount to implement the auto-toll logic: check if today is a weekday (Monday-Friday), verify no toll expense exists for today's date, check that auto-toll hasn't already been added today using lastAutoTollDate, and if all conditions are met, automatically add one toll expense and update lastAutoTollDate. Use ledger state's addCarExpense function and auto-toll settings."
         }
       ]
     },
     {
       "id": "REQ-2",
-      "summary": "Ensure changing the date range immediately updates the Daily Participation grid and that tab switching restores the saved range correctly.",
+      "summary": "Add multi-category expense entry form to add expense popup with pre-selected categories Toll, CNG BRD, and CNG AHM",
       "acceptanceCriteria": [
-        "When the user changes the date range using the date range picker, the Daily Participation grid updates its displayed rows to match the new start/end dates without requiring additional actions.",
-        "Switching away from and back to the Daily tab preserves and restores that tab’s saved date range and the grid matches it."
+        "The add expense popup displays 3 separate expense entry forms",
+        "The first form has category pre-selected as 'Toll'",
+        "The second form has category pre-selected as 'CNG BRD'",
+        "The third form has category pre-selected as 'CNG AHM'",
+        "Each form allows independent input of amount and date",
+        "All 3 expenses are created when the user submits the form"
       ],
       "file_operations": [
         {
-          "path": "frontend/src/features/ledger/DailyParticipationGrid.tsx",
-          "operation": "modify",
-          "description": "Add an optional controlled dateRange prop for rendering (while still using LedgerStateContext for data/actions), and compute displayed days from the controlled range when provided to guarantee the grid always matches the currently selected range immediately."
+          "path": "frontend/src/features/ledger/MultiCategoryExpenseForm.tsx",
+          "operation": "create",
+          "description": "Create a new dialog component that displays 3 separate expense entry forms arranged vertically or in a grid. Each form includes category (pre-selected and disabled for Toll, CNG BRD, CNG AHM respectively), amount input, date picker, and optional notes field. Add form validation to ensure all 3 amounts are provided. On submit, call addCarExpense 3 times with the respective data and close the dialog with success toast."
         },
         {
-          "path": "frontend/src/features/ledger/LedgerPage.tsx",
+          "path": "frontend/src/features/ledger/CarExpensesPanel.tsx",
           "operation": "modify",
-          "description": "Wire the DailyParticipationGrid to the LedgerPage-controlled date range (pass currentDateRange into the grid) so date picker changes and per-tab restored ranges immediately reflect in the grid without relying on timing of context updates."
+          "description": "Add a new button labeled 'Add 3 Expenses' or similar next to the existing 'Add Expense' button. Wire this button to open the new MultiCategoryExpenseForm dialog. Ensure the dialog state is managed alongside the existing single expense dialog."
         }
       ]
     }

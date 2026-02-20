@@ -2,10 +2,12 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-ensure-the-daily-participation-grid-initially-renders-only-the-currently-selected-week-date-range-mon-fri-on-app-load-and-does-not-briefly-or-persistently-render-the-full-current-month-unless-the-user-explicitly-changes-the-date-range-to-a-month",
-      "featureTitle": "Ensure the Daily Participation grid initially renders only the currently selected week date range (Mon–Fri) on app load, and does not briefly or persistently render the full current month unless the user explicitly changes the date range to a month.",
+      "featureId": "feature-modify-the-auto-toll-feature-to-check-if-a-toll-expense-already-exists-for-the-current-date-when-the-app-launches-if-no-toll-exists-and-it-is-a-weekday-monday-friday-automatically-add-one-toll-expense-entry-ensure-toll-is-only-added-once-per-day-regardless-of-how-many-times-the-app-is-opened",
+      "featureTitle": "Modify the auto-toll feature to check if a toll expense already exists for the current date when the app launches. If no toll exists and it is a weekday (Monday-Friday), automatically add one toll expense entry. Ensure toll is only added once per day regardless of how many times the app is opened.",
       "files": [
-        "frontend/src/features/ledger/LedgerPage.tsx"
+        "frontend/src/App.tsx",
+        "frontend/src/hooks/useAutoTollSettings.ts",
+        "frontend/src/hooks/useLedgerLocalState.ts"
       ],
       "components": [
         "authorization@4.0.0",
@@ -21,11 +23,11 @@
       "confidence": "high"
     },
     {
-      "featureId": "feature-ensure-changing-the-date-range-immediately-updates-the-daily-participation-grid-to-match-the-newly-selected-date-range-including-when-switching-between-weeks",
-      "featureTitle": "Ensure changing the date range immediately updates the Daily Participation grid to match the newly selected date range (including when switching between weeks).",
+      "featureId": "feature-add-functionality-to-the-add-expense-popup-to-create-3-expense-entries-simultaneously-with-categories-pre-selected-as-toll-cng-brd-and-cng-ahm-each-entry-should-allow-the-user-to-input-amount-and-date-independently",
+      "featureTitle": "Add functionality to the add expense popup to create 3 expense entries simultaneously with categories pre-selected as 'Toll', 'CNG BRD', and 'CNG AHM'. Each entry should allow the user to input amount and date independently.",
       "files": [
-        "frontend/src/features/ledger/DailyParticipationGrid.tsx",
-        "frontend/src/features/ledger/LedgerPage.tsx"
+        "frontend/src/features/ledger/CarExpensesPanel.tsx",
+        "frontend/src/features/ledger/MultiCategoryExpenseForm.tsx"
       ],
       "components": [
         "authorization@4.0.0",

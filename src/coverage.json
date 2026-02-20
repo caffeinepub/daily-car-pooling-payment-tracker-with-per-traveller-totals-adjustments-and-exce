@@ -1,7 +1,7 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-18T12:45:21.991Z",
+  "generatedAt": "2026-02-19T12:46:10.803Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
@@ -12,38 +12,45 @@
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Ensure the Daily Participation grid initially renders only the currently selected week date range (Mon–Fri) on app load, and does not briefly or persistently render the full current month unless the user explicitly changes the date range to a month.",
+        "summary": "Modify the auto-toll feature to check if a toll expense already exists for the current date when the app launches. If no toll exists and it is a weekday (Monday-Friday), automatically add one toll expense entry. Ensure toll is only added once per day regardless of how many times the app is opened.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/features/ledger/LedgerPage.tsx",
-          "frontend/src/hooks/useLedgerLocalState.ts"
+          "frontend/src/hooks/useAutoTollSettings.ts",
+          "frontend/src/hooks/useLedgerLocalState.ts",
+          "frontend/src/App.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/features/ledger/LedgerPage.tsx"
+          "frontend/src/hooks/useAutoTollSettings.ts",
+          "frontend/src/hooks/useLedgerLocalState.ts",
+          "frontend/src/App.tsx"
         ]
       },
       {
         "id": "REQ-2",
-        "summary": "Ensure changing the date range immediately updates the Daily Participation grid to match the newly selected date range (including when switching between weeks).",
+        "summary": "Add functionality to the add expense popup to create 3 expense entries simultaneously with categories pre-selected as 'Toll', 'CNG BRD', and 'CNG AHM'. Each entry should allow the user to input amount and date independently.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/features/ledger/DailyParticipationGrid.tsx",
-          "frontend/src/features/ledger/LedgerPage.tsx"
+          "frontend/src/features/ledger/MultiCategoryExpenseForm.tsx",
+          "frontend/src/features/ledger/CarExpensesPanel.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/features/ledger/DailyParticipationGrid.tsx",
-          "frontend/src/features/ledger/LedgerPage.tsx"
+          "frontend/src/features/ledger/MultiCategoryExpenseForm.tsx",
+          "frontend/src/features/ledger/CarExpensesPanel.tsx"
         ]
       }
     ]
   },
   "changedFiles": [
     "build-request.json",
+    "caffeine.lock.json",
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/features/ledger/DailyParticipationGrid.tsx",
-    "frontend/src/features/ledger/LedgerPage.tsx",
+    "frontend/src/App.tsx",
+    "frontend/src/features/ledger/CarExpensesPanel.tsx",
+    "frontend/src/features/ledger/MultiCategoryExpenseForm.tsx",
+    "frontend/src/hooks/useAutoTollSettings.ts",
+    "frontend/src/hooks/useLedgerLocalState.ts",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

@@ -5,11 +5,13 @@ const STORAGE_KEY = 'carpool-auto-toll-settings';
 interface AutoTollSettings {
   enabled: boolean;
   amount: number;
+  lastAutoTollDate: string | null;
 }
 
 const DEFAULT_SETTINGS: AutoTollSettings = {
   enabled: false,
   amount: 30,
+  lastAutoTollDate: null,
 };
 
 function loadSettings(): AutoTollSettings {
@@ -22,6 +24,7 @@ function loadSettings(): AutoTollSettings {
         amount: typeof parsed.amount === 'number' && parsed.amount > 0 
           ? parsed.amount 
           : DEFAULT_SETTINGS.amount,
+        lastAutoTollDate: parsed.lastAutoTollDate ?? null,
       };
     }
   } catch (error) {
@@ -55,10 +58,16 @@ export function useAutoTollSettings() {
     }
   };
 
+  const setLastAutoTollDate = (date: string) => {
+    setSettings((prev) => ({ ...prev, lastAutoTollDate: date }));
+  };
+
   return {
     enabled: settings.enabled,
     amount: settings.amount,
+    lastAutoTollDate: settings.lastAutoTollDate,
     setEnabled,
     setAmount,
+    setLastAutoTollDate,
   };
 }

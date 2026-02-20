@@ -1,31 +1,46 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "New project",
-  "architectural_notes": [],
-  "known_issues": [
-    "Bug: On initial load, Daily Participation loads full current month instead of matching the current week date range; should load/update strictly based on selected week (including initial load)."
+  "summary": "Expense tracking app with auto-toll feature and multi-category expense entry",
+  "architectural_notes": [
+    "App tracks expenses with categories including Toll, CNG BRD, and CNG AHM",
+    "Auto-toll feature runs on app launch and checks expense history for existing toll entries",
+    "Multi-expense entry allows batch creation of 3 expenses with predefined categories"
   ],
+  "known_issues": [],
   "isFixRequest": true,
   "existing_features": [
     {
-      "id": "feature-ensure-the-daily-participation-grid-initially-renders-only-the-currently-selected-week-date-range-mon-fri-on-app-load-and-does-not-briefly-or-persistently-render-the-full-current-month-unless-the-user-explicitly-changes-the-date-range-to-a-month",
-      "title": "Ensure the Daily Participation grid initially renders only the currently selected week date range (Mon–Fri) on app load, and does not briefly or persistently render the full current month unless the user explicitly changes the date range to a month.",
+      "id": "feature-modify-the-auto-toll-feature-to-check-if-a-toll-expense-already-exists-for-the-current-date-when-the-app-launches-if-no-toll-exists-and-it-is-a-weekday-monday-friday-automatically-add-one-toll-expense-entry-ensure-toll-is-only-added-once-per-day-regardless-of-how-many-times-the-app-is-opened",
+      "title": "Modify the auto-toll feature to check if a toll expense already exists for the current date when the app launches. If no toll exists and it is a weekday (Monday-Friday), automatically add one toll expense entry. Ensure toll is only added once per day regardless of how many times the app is opened.",
       "reqIds": [
         "REQ-1"
       ],
       "version": 1
     },
     {
-      "id": "feature-ensure-changing-the-date-range-immediately-updates-the-daily-participation-grid-to-match-the-newly-selected-date-range-including-when-switching-between-weeks",
-      "title": "Ensure changing the date range immediately updates the Daily Participation grid to match the newly selected date range (including when switching between weeks).",
+      "id": "feature-add-functionality-to-the-add-expense-popup-to-create-3-expense-entries-simultaneously-with-categories-pre-selected-as-toll-cng-brd-and-cng-ahm-each-entry-should-allow-the-user-to-input-amount-and-date-independently",
+      "title": "Add functionality to the add expense popup to create 3 expense entries simultaneously with categories pre-selected as 'Toll', 'CNG BRD', and 'CNG AHM'. Each entry should allow the user to input amount and date independently.",
       "reqIds": [
         "REQ-2"
       ],
       "version": 1
     }
   ],
-  "new_feature_requests": [],
+  "new_feature_requests": [
+    {
+      "id": "AR-1",
+      "summary": "Fix auto-add toll to only add once per weekday on app launch if not already added for that date",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-2",
+      "summary": "Add ability to create 3 expense entries at once with pre-selected categories: Toll, CNG BRD, and CNG AHM",
+      "reqIds": [],
+      "status": "pending"
+    }
+  ],
   "projectName": "Carpool Ledger",
   "clarification_mode": "instant",
   "clarification_rounds": 0

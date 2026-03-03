@@ -1,0 +1,104 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    :root {
+        --radius: 0.5rem;
+        
+        /* Warm neutral palette - earthy tones for finance/tracking */
+        --background: 0.98 0.005 60;
+        --foreground: 0.25 0.015 60;
+        
+        --card: 1 0 0;
+        --card-foreground: 0.25 0.015 60;
+        
+        --popover: 1 0 0;
+        --popover-foreground: 0.25 0.015 60;
+        
+        /* Warm amber/orange primary - professional yet friendly */
+        --primary: 0.55 0.15 45;
+        --primary-foreground: 0.98 0.005 60;
+        
+        --secondary: 0.95 0.01 60;
+        --secondary-foreground: 0.25 0.015 60;
+        
+        --muted: 0.96 0.008 60;
+        --muted-foreground: 0.50 0.012 60;
+        
+        --accent: 0.94 0.012 60;
+        --accent-foreground: 0.25 0.015 60;
+        
+        --destructive: 0.55 0.22 25;
+        --destructive-foreground: 0.98 0.005 60;
+        
+        --border: 0.90 0.008 60;
+        --input: 0.90 0.008 60;
+        --ring: 0.55 0.15 45;
+        
+        --chart-1: 0.60 0.18 140;
+        --chart-2: 0.65 0.16 200;
+        --chart-3: 0.55 0.15 45;
+        --chart-4: 0.58 0.20 320;
+        --chart-5: 0.62 0.17 280;
+    }
+
+    .dark {
+        --background: 0.15 0.01 60;
+        --foreground: 0.95 0.005 60;
+        
+        --card: 0.20 0.012 60;
+        --card-foreground: 0.95 0.005 60;
+        
+        --popover: 0.18 0.012 60;
+        --popover-foreground: 0.95 0.005 60;
+        
+        --primary: 0.65 0.18 45;
+        --primary-foreground: 0.15 0.01 60;
+        
+        --secondary: 0.25 0.015 60;
+        --secondary-foreground: 0.95 0.005 60;
+        
+        --muted: 0.25 0.015 60;
+        --muted-foreground: 0.60 0.012 60;
+        
+        --accent: 0.30 0.018 60;
+        --accent-foreground: 0.95 0.005 60;
+        
+        --destructive: 0.60 0.24 25;
+        --destructive-foreground: 0.15 0.01 60;
+        
+        --border: 0.30 0.015 60;
+        --input: 0.30 0.015 60;
+        --ring: 0.65 0.18 45;
+        
+        --chart-1: 0.65 0.20 140;
+        --chart-2: 0.70 0.18 200;
+        --chart-3: 0.65 0.18 45;
+        --chart-4: 0.63 0.22 320;
+        --chart-5: 0.67 0.19 280;
+    }
+
+    * {
+        @apply border-border;
+    }
+    
+    body {
+        @apply bg-background text-foreground;
+        font-feature-settings: "rlig" 1, "calt" 1;
+    }
+    
+    /* Improved table styling for mobile legibility */
+    table {
+        @apply text-sm;
+    }
+    
+    th {
+        @apply font-semibold;
+    }
+    
+    /* Zebra striping for better readability */
+    tbody tr:nth-child(even) {
+        @apply bg-muted/20;
+    }
+}

@@ -1,0 +1,54 @@
+{
+  "kind": "spec_vs_diff_report",
+  "version": "1.0",
+  "generatedAt": "2026-03-03T04:15:16.363Z",
+  "summary": "The diff implements most of the required functionality: a shared OtherPendingAmounts data model (REQ-1), Edit and Delete dialogs for Trip History (REQ-3, REQ-4), and integration into TripHistoryPanel (REQ-2). However, there are notable gaps: the OtherPending data model still uses 'travellerId' (an ID reference) rather than a traveller name string as specified in REQ-1, and the Name field in the edit dialog is read-only (not editable) which contradicts REQ-3's requirement that the form allows editing all four fields including Name.",
+  "missing_requirements": [
+    {
+      "id": "REQ-1",
+      "requirement": "Each OtherPending entry must have a traveller name (string) field, not a travellerId reference. The data model must store name as a direct string.",
+      "reason": "The OtherPending interface in useLedgerLocalState.ts uses 'travellerId: string' (an ID reference) rather than a direct traveller name string. The spec requires each entry to store the traveller name directly (like the backend OtherPendingAmount which uses 'traveller: Text'). The frontend model does not match the spec.",
+      "evidence": [
+        "frontend/src/hooks/useLedgerLocalState.ts"
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "requirement": "The Edit dialog must allow editing the Name field (all four fields: Name, Date, Amount, Comment must be editable).",
+      "reason": "In EditOtherPendingAmountDialog.tsx, the Name field is rendered as a read-only Input with 'readOnly' and 'cursor-not-allowed' styling, meaning the user cannot edit the traveller name. REQ-3 explicitly requires the form to allow editing Name, Date, Amount, and Comment fields.",
+      "evidence": [
+        "frontend/src/features/ledger/EditOtherPendingAmountDialog.tsx"
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "requirement": "The list of Other Pending Amounts in Trip History must be filtered by the currently selected date range.",
+      "reason": "The TripHistoryPanel.tsx is truncated and does not show the filtering logic for otherPending entries by date range. While trip entries use date range filtering, it cannot be confirmed that the otherPending list section also applies the same date range filter.",
+      "evidence": [
+        "frontend/src/features/ledger/TripHistoryPanel.tsx"
+      ]
+    }
+  ],
+  "hallucinated_features": [
+    {
+      "description": "Backend migration module (migration.mo) that migrates old AppData to new AppData with otherPendingAmounts initialized to empty arrays.",
+      "reason": "While the build request mentions backend sync (REQ-1 AC), a dedicated migration.mo file with explicit old/new actor data structure migration was not requested as a specific deliverable.",
+      "evidence": [
+        "backend/migration.mo"
+      ]
+    }
+  ],
+  "confidence": 0.72,
+  "changed_files": [
+    "backend/main.mo",
+    "backend/migration.mo",
+    "frontend-file-summaries.txt",
+    "frontend/src/features/ledger/DeleteOtherPendingAmountAlertDialog.tsx",
+    "frontend/src/features/ledger/EditOtherPendingAmountDialog.tsx",
+    "frontend/src/features/ledger/LedgerStateContext.tsx",
+    "frontend/src/features/ledger/TripHistoryPanel.tsx",
+    "frontend/src/hooks/useAppDataSync.ts",
+    "frontend/src/hooks/useLedgerLocalState.ts",
+    "project_state.json"
+  ]
+}

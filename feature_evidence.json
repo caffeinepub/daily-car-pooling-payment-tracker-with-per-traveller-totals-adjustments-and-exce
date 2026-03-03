@@ -1,0 +1,85 @@
+{
+  "kind": "feature_evidence_report",
+  "features": [
+    {
+      "featureId": "feature-add-an-otherpendingamounts-array-to-the-ledger-state-data-model-each-entry-must-have-id-unique-string-traveller-name-string-date-string-amount-number-and-comment-optional-string-ensure-crud-operations-add-edit-delete-are-available-and-that-existing-other-pending-amount-entries-from-the-summary-summarypanel-flow-map-to-this-same-data-structure",
+      "featureTitle": "Add an 'otherPendingAmounts' array to the ledger state data model. Each entry must have: id (unique string), traveller name (string), date (string), amount (number), and comment (optional string). Ensure CRUD operations (add, edit, delete) are available and that existing 'Other Pending Amount' entries from the Summary/SummaryPanel flow map to this same data structure.",
+      "files": [
+        "frontend/src/features/ledger/LedgerStateContext.tsx",
+        "frontend/src/hooks/useAppDataSync.ts",
+        "frontend/src/hooks/useLedgerLocalState.ts"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-1"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-on-the-trip-history-page-triphistorypanel-display-a-flat-list-of-all-other-pending-amounts-for-the-selected-date-range-each-row-must-show-name-date-amount-and-comment-each-row-must-have-an-edit-button-and-a-delete-button",
+      "featureTitle": "On the Trip History page (TripHistoryPanel), display a flat list of all Other Pending Amounts for the selected date range. Each row must show: Name, Date, Amount, and Comment. Each row must have an Edit button and a Delete button.",
+      "files": [
+        "frontend/src/features/ledger/TripHistoryPanel.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-2"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-implement-an-edit-dialog-for-other-pending-amount-entries-accessible-from-the-trip-history-page-the-form-must-allow-editing-name-date-amount-and-comment-fields-on-save-the-update-must-reflect-immediately-on-the-trip-history-page-the-summary-page-summarypanel-paymentsummarypanel-and-any-balance-calculations",
+      "featureTitle": "Implement an Edit dialog for Other Pending Amount entries accessible from the Trip History page. The form must allow editing Name, Date, Amount, and Comment fields. On save, the update must reflect immediately on the Trip History page, the Summary page (SummaryPanel/PaymentSummaryPanel), and any balance calculations.",
+      "files": [
+        "frontend/src/features/ledger/EditOtherPendingAmountDialog.tsx",
+        "frontend/src/features/ledger/TripHistoryPanel.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-3"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-implement-a-delete-confirmation-dialog-for-other-pending-amount-entries-accessible-from-the-trip-history-page-on-confirmation-the-entry-must-be-permanently-removed-from-the-shared-ledger-state-and-the-deletion-must-reflect-on-the-summary-page-and-balance-calculations",
+      "featureTitle": "Implement a Delete confirmation dialog for Other Pending Amount entries accessible from the Trip History page. On confirmation, the entry must be permanently removed from the shared ledger state and the deletion must reflect on the Summary page and balance calculations.",
+      "files": [
+        "frontend/src/features/ledger/DeleteOtherPendingAmountAlertDialog.tsx",
+        "frontend/src/features/ledger/TripHistoryPanel.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-4"
+      ],
+      "confidence": "high"
+    }
+  ]
+}

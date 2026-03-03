@@ -1,0 +1,93 @@
+{
+  "kind": "coverage_report",
+  "version": "1.0",
+  "generatedAt": "2026-03-03T04:15:16.366Z",
+  "sources": {
+    "buildRequest": true,
+    "implementationPlan": true
+  },
+  "requirements": {
+    "total": 4,
+    "implemented": 4,
+    "items": [
+      {
+        "id": "REQ-1",
+        "summary": "Add an 'otherPendingAmounts' array to the ledger state data model. Each entry must have: id (unique string), traveller name (string), date (string), amount (number), and comment (optional string). Ensure CRUD operations (add, edit, delete) are available and that existing 'Other Pending Amount' entries from the Summary/SummaryPanel flow map to this same data structure.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/hooks/useLedgerLocalState.ts",
+          "frontend/src/features/ledger/LedgerStateContext.tsx",
+          "frontend/src/hooks/useAppDataSync.ts",
+          "frontend/src/features/ledger/OtherPendingAmountForm.tsx",
+          "frontend/src/features/ledger/SummaryPanel.tsx",
+          "frontend/src/features/ledger/PaymentSummaryPanel.tsx",
+          "frontend/src/utils/ledgerBalances.ts"
+        ],
+        "matchedFiles": [
+          "frontend/src/hooks/useLedgerLocalState.ts",
+          "frontend/src/features/ledger/LedgerStateContext.tsx",
+          "frontend/src/hooks/useAppDataSync.ts"
+        ]
+      },
+      {
+        "id": "REQ-2",
+        "summary": "On the Trip History page (TripHistoryPanel), display a flat list of all Other Pending Amounts for the selected date range. Each row must show: Name, Date, Amount, and Comment. Each row must have an Edit button and a Delete button.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/features/ledger/TripHistoryPanel.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/features/ledger/TripHistoryPanel.tsx"
+        ]
+      },
+      {
+        "id": "REQ-3",
+        "summary": "Implement an Edit dialog for Other Pending Amount entries accessible from the Trip History page. The form must allow editing Name, Date, Amount, and Comment fields. On save, the update must reflect immediately on the Trip History page, the Summary page (SummaryPanel/PaymentSummaryPanel), and any balance calculations.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/features/ledger/EditOtherPendingAmountDialog.tsx",
+          "frontend/src/features/ledger/TripHistoryPanel.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/features/ledger/EditOtherPendingAmountDialog.tsx",
+          "frontend/src/features/ledger/TripHistoryPanel.tsx"
+        ]
+      },
+      {
+        "id": "REQ-4",
+        "summary": "Implement a Delete confirmation dialog for Other Pending Amount entries accessible from the Trip History page. On confirmation, the entry must be permanently removed from the shared ledger state and the deletion must reflect on the Summary page and balance calculations.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/features/ledger/DeleteOtherPendingAmountAlertDialog.tsx",
+          "frontend/src/features/ledger/TripHistoryPanel.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/features/ledger/DeleteOtherPendingAmountAlertDialog.tsx",
+          "frontend/src/features/ledger/TripHistoryPanel.tsx"
+        ]
+      }
+    ]
+  },
+  "changedFiles": [
+    "backend/main.mo",
+    "backend/migration.mo",
+    "build-request.json",
+    "feature_evidence.json",
+    "frontend-file-summaries.txt",
+    "frontend-implementation-plan.json",
+    "frontend/src/backend.d.ts",
+    "frontend/src/backend.ts",
+    "frontend/src/declarations/backend.did.d.ts",
+    "frontend/src/declarations/backend.did.js",
+    "frontend/src/features/ledger/DeleteOtherPendingAmountAlertDialog.tsx",
+    "frontend/src/features/ledger/EditOtherPendingAmountDialog.tsx",
+    "frontend/src/features/ledger/LedgerStateContext.tsx",
+    "frontend/src/features/ledger/TripHistoryPanel.tsx",
+    "frontend/src/hooks/useAppDataSync.ts",
+    "frontend/src/hooks/useLedgerLocalState.ts",
+    "project_state.json",
+    "scratch/component-selection.json",
+    "spec.md",
+    "spec_vs_diff_report.json"
+  ]
+}

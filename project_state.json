@@ -1,0 +1,56 @@
+{
+  "schemaVersion": "1.0.0",
+  "projectStateVersion": 3,
+  "summary": "Expense/trip tracking app with trip history, daily tab, summary page, and pending amounts management. Version 63 is live.",
+  "architectural_notes": [
+    "Other Pending Amounts are added on the Summary page per user and must sync across Trip History, Summary page, and all other applicable views"
+  ],
+  "known_issues": [],
+  "isFixRequest": false,
+  "existing_features": [
+    {
+      "id": "feature-add-an-otherpendingamounts-array-to-the-ledger-state-data-model-each-entry-must-have-id-unique-string-traveller-name-string-date-string-amount-number-and-comment-optional-string-ensure-crud-operations-add-edit-delete-are-available-and-that-existing-other-pending-amount-entries-from-the-summary-summarypanel-flow-map-to-this-same-data-structure",
+      "title": "Add an 'otherPendingAmounts' array to the ledger state data model. Each entry must have: id (unique string), traveller name (string), date (string), amount (number), and comment (optional string). Ensure CRUD operations (add, edit, delete) are available and that existing 'Other Pending Amount' entries from the Summary/SummaryPanel flow map to this same data structure.",
+      "reqIds": [
+        "REQ-1"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-on-the-trip-history-page-triphistorypanel-display-a-flat-list-of-all-other-pending-amounts-for-the-selected-date-range-each-row-must-show-name-date-amount-and-comment-each-row-must-have-an-edit-button-and-a-delete-button",
+      "title": "On the Trip History page (TripHistoryPanel), display a flat list of all Other Pending Amounts for the selected date range. Each row must show: Name, Date, Amount, and Comment. Each row must have an Edit button and a Delete button.",
+      "reqIds": [
+        "REQ-2"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-implement-an-edit-dialog-for-other-pending-amount-entries-accessible-from-the-trip-history-page-the-form-must-allow-editing-name-date-amount-and-comment-fields-on-save-the-update-must-reflect-immediately-on-the-trip-history-page-the-summary-page-summarypanel-paymentsummarypanel-and-any-balance-calculations",
+      "title": "Implement an Edit dialog for Other Pending Amount entries accessible from the Trip History page. The form must allow editing Name, Date, Amount, and Comment fields. On save, the update must reflect immediately on the Trip History page, the Summary page (SummaryPanel/PaymentSummaryPanel), and any balance calculations.",
+      "reqIds": [
+        "REQ-3"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-implement-a-delete-confirmation-dialog-for-other-pending-amount-entries-accessible-from-the-trip-history-page-on-confirmation-the-entry-must-be-permanently-removed-from-the-shared-ledger-state-and-the-deletion-must-reflect-on-the-summary-page-and-balance-calculations",
+      "title": "Implement a Delete confirmation dialog for Other Pending Amount entries accessible from the Trip History page. On confirmation, the entry must be permanently removed from the shared ledger state and the deletion must reflect on the Summary page and balance calculations.",
+      "reqIds": [
+        "REQ-4"
+      ],
+      "version": 1
+    }
+  ],
+  "new_feature_requests": [
+    {
+      "id": "AR-1",
+      "summary": "Trip History page: display flat list of Other Pending Amounts (Name, Date, Amount, Comment) per trip with Edit and Delete options that reflect changes everywhere in the app",
+      "reqIds": [],
+      "status": "pending"
+    }
+  ],
+  "gameProjectType": "none",
+  "projectName": "Carpool Ledger",
+  "clarification_mode": "instant",
+  "clarification_rounds": 0
+}

@@ -1,0 +1,115 @@
+{
+  "kind": "implementation_plan",
+  "version": "1.0",
+  "title": "Trip History: Show Other Pending Amounts with Edit/Delete",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "summary": "Add otherPendingAmounts to ledger state data model with CRUD operations and ensure integration with existing Summary/SummaryPanel flow",
+      "acceptanceCriteria": [
+        "otherPendingAmounts entries persist in localStorage and sync to the backend",
+        "Adding an entry from the Summary page stores it in this shared data model",
+        "Editing or deleting an entry from any page updates the single shared source of truth",
+        "Each entry has: id, name, date, amount, comment fields"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/hooks/useLedgerLocalState.ts",
+          "operation": "modify",
+          "description": "Add otherPendingAmounts array to the ledger state interface and initialize it as an empty array in the initial state. Implement helper functions: addOrUpdateOtherPendingAmount (upsert by id), deleteOtherPendingAmount (remove by id), and getOtherPendingAmounts (return all entries). Ensure all operations update localStorage and trigger state updates. Map the existing OtherPendingAmountForm data to this shared structure."
+        },
+        {
+          "path": "frontend/src/features/ledger/LedgerStateContext.tsx",
+          "operation": "modify",
+          "description": "Expose the new otherPendingAmounts state and CRUD actions (addOrUpdateOtherPendingAmount, deleteOtherPendingAmount, getOtherPendingAmounts) in the LedgerStateContext value object so all consuming components can access the shared data model."
+        },
+        {
+          "path": "frontend/src/hooks/useAppDataSync.ts",
+          "operation": "modify",
+          "description": "Update the sync logic to include otherPendingAmounts in both the fetch/merge cycle (when pulling from backend) and the save cycle (when pushing local changes). Ensure the backend addOrUpdateOtherPendingAmount and deleteOtherPendingAmount methods are called during sync operations."
+        },
+        {
+          "path": "frontend/src/features/ledger/OtherPendingAmountForm.tsx",
+          "operation": "modify",
+          "description": "Refactor the component to use the shared otherPendingAmounts data model from LedgerStateContext. When adding a new entry, generate a unique id (e.g., crypto.randomUUID()) and call addOrUpdateOtherPendingAmount with { id, name, date, amount, comment }. Ensure the form maps 'traveller' field to 'name' to match the requirement."
+        },
+        {
+          "path": "frontend/src/features/ledger/SummaryPanel.tsx",
+          "operation": "modify",
+          "description": "Update the component to read otherPendingAmounts from the shared LedgerStateContext instead of any local state. Ensure the OtherPendingAmountForm integration uses the shared data model and that balance calculations reflect the updated state."
+        },
+        {
+          "path": "frontend/src/features/ledger/PaymentSummaryPanel.tsx",
+          "operation": "modify",
+          "description": "Update the component to read otherPendingAmounts from the shared LedgerStateContext for displaying per-traveller other pending amounts. Ensure the data displayed matches the shared source of truth."
+        },
+        {
+          "path": "frontend/src/utils/ledgerBalances.ts",
+          "operation": "modify",
+          "description": "Update balance calculation functions to read otherPendingAmounts from the shared LedgerStateContext data model and include them correctly in all balance computations. Ensure edits and deletions are reflected immediately in calculated balances."
+        }
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "summary": "Display flat list of Other Pending Amounts on Trip History page with Name, Date, Amount, Comment, Edit, and Delete buttons",
+      "acceptanceCriteria": [
+        "Trip History page has a clearly labeled section (e.g. 'Other Pending Amounts') showing a flat list",
+        "Each row displays Name, Date, Amount, and Comment",
+        "Each row has an Edit action and a Delete action",
+        "The list is filtered by the currently selected date range"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/features/ledger/TripHistoryPanel.tsx",
+          "operation": "modify",
+          "description": "Add a new 'Other Pending Amounts' section below the existing trip history table. Retrieve otherPendingAmounts from LedgerStateContext, filter entries by the selected date range (startDate to endDate), and render a flat list or table. Each row must display Name (from entry.traveller or entry.name), Date (formatted), Amount (formatted as currency), and Comment (or empty if undefined). Include an Edit button that opens the EditOtherPendingAmountDialog and a Delete button that opens the DeleteOtherPendingAmountAlertDialog, passing the entry to each dialog."
+        }
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "summary": "Implement Edit dialog for Other Pending Amount entries with Name, Date, Amount, and Comment fields, reflecting changes across all views",
+      "acceptanceCriteria": [
+        "Edit dialog pre-fills all four fields (Name, Date, Amount, Comment) from the selected entry",
+        "Saving the edit updates the entry in the shared ledger state",
+        "Changes appear immediately on Trip History page without refresh",
+        "Changes are reflected on the Summary page and in balance calculations for the affected traveller"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/features/ledger/EditOtherPendingAmountDialog.tsx",
+          "operation": "create",
+          "description": "Create a new dialog component that accepts an OtherPendingAmount entry as a prop. Pre-fill a controlled form with Name (text input), Date (date picker), Amount (number input with validation), and Comment (text input, optional). On save, call addOrUpdateOtherPendingAmount from LedgerStateContext with the updated entry (keeping the same id). Show a success toast on completion. Include cancel and save buttons. Ensure the dialog is accessible and follows the existing dialog pattern (using shadcn/ui Dialog components)."
+        },
+        {
+          "path": "frontend/src/features/ledger/TripHistoryPanel.tsx",
+          "operation": "modify",
+          "description": "Import and integrate the EditOtherPendingAmountDialog. Add state to track the currently selected entry for editing. Wire the Edit button in each Other Pending Amount row to open the dialog with the selected entry. After a successful edit, the dialog will trigger a state update that refreshes the list automatically."
+        }
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "summary": "Implement Delete confirmation dialog for Other Pending Amount entries, ensuring deletion reflects across all views",
+      "acceptanceCriteria": [
+        "Clicking Delete on an entry opens a confirmation dialog showing the entry's Name and Amount",
+        "Confirming deletion removes the entry from the shared ledger state",
+        "The Trip History list updates immediately after deletion",
+        "The Summary page and balance calculations update to reflect the removal"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/features/ledger/DeleteOtherPendingAmountAlertDialog.tsx",
+          "operation": "create",
+          "description": "Create a new AlertDialog component that accepts an OtherPendingAmount entry and an onConfirm callback. Display the entry's Name and Amount in the confirmation message with a warning that the action is irreversible. On confirmation, call deleteOtherPendingAmount from LedgerStateContext with the entry's id and show a success toast. Include cancel and delete buttons. Follow the existing AlertDialog pattern (using shadcn/ui AlertDialog components)."
+        },
+        {
+          "path": "frontend/src/features/ledger/TripHistoryPanel.tsx",
+          "operation": "modify",
+          "description": "Import and integrate the DeleteOtherPendingAmountAlertDialog. Add state to track the currently selected entry for deletion. Wire the Delete button in each Other Pending Amount row to open the dialog with the selected entry. After a successful delete, the dialog will trigger a state update that refreshes the list automatically."
+        }
+      ]
+    }
+  ]
+}

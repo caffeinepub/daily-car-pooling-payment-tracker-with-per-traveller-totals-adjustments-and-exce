@@ -1,98 +1,58 @@
 {
   "kind": "build_request",
-  "title": "Trip History: Show Other Pending Amounts with Edit/Delete",
+  "title": "Fix Daily Page date selection to use Indian Standard Time (IST, UTC+5:30)",
   "projectName": "Carpool Ledger",
   "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Add an 'otherPendingAmounts' array to the ledger state data model. Each entry must have: id (unique string), traveller name (string), date (string), amount (number), and comment (optional string). Ensure CRUD operations (add, edit, delete) are available and that existing 'Other Pending Amount' entries from the Summary/SummaryPanel flow map to this same data structure.",
-      "target": "both",
+      "text": "Fix the 'Mark all travellers for today (AM & PM)' checkbox on the Daily Page (DailyParticipationGrid.tsx) so that 'today' is determined using Indian Standard Time (IST, UTC+5:30) instead of UTC. Any call to get the current date (e.g., `new Date()`) used for this checkbox's logic must apply a +5:30 offset to produce the correct IST date string (YYYY-MM-DD key format).",
+      "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-last"
+          "msg-user-last"
         ],
         "quotes": [
-          "Name, Date, Amount, Comment",
-          "reflects and can be adjust everywhere where applicable"
+          "On Daily Page when i am selecting check box it select a day ahead instead current date",
+          "make last requested changes related to time"
         ]
       },
       "acceptanceCriteria": [
-        "otherPendingAmounts entries persist in localStorage and sync to the backend",
-        "Adding an entry from the Summary page stores it in this shared data model",
-        "Editing or deleting an entry from any page updates the single shared source of truth",
-        "Each entry has: id, name, date, amount, comment fields"
+        "When the 'Mark all travellers for today' checkbox is clicked, it marks trips for the current calendar date in IST (UTC+5:30), not UTC.",
+        "At any time of day in India, the checkbox selects the correct local date and does not jump to the next day.",
+        "No other Daily Page functionality is broken by this change.",
+        "The IST date derivation is consistent with any shared date utility (dateRange.ts) — refactor to a shared IST 'today' helper if one does not already exist."
       ]
     },
     {
       "id": "REQ-2",
-      "text": "On the Trip History page (TripHistoryPanel), display a flat list of all Other Pending Amounts for the selected date range. Each row must show: Name, Date, Amount, and Comment. Each row must have an Edit button and a Delete button.",
+      "text": "Audit all other usages of `new Date()` (or equivalent) across the frontend where today's date is derived and displayed or used as a default value (e.g., default date in payment forms, expense forms, OtherPendingAmountForm, CashPaymentForm, DateRangePicker defaults, auto-toll date logic). Ensure every such usage also applies the IST (UTC+5:30) offset so the displayed or pre-filled date is always the correct current date in India.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-last"
+          "msg-user-last"
         ],
         "quotes": [
-          "flat list is fine",
-          "Name, Date, Amount, Comment",
-          "Trip History page to also display Other Pending Amount"
+          "Why today's date is taking 1 day ahead",
+          "make last requested changes related to time"
         ]
       },
       "acceptanceCriteria": [
-        "Trip History page has a clearly labeled section (e.g. 'Other Pending Amounts') showing a flat list",
-        "Each row displays Name, Date, Amount, and Comment",
-        "Each row has an Edit action and a Delete action",
-        "The list is filtered by the currently selected date range"
-      ]
-    },
-    {
-      "id": "REQ-3",
-      "text": "Implement an Edit dialog for Other Pending Amount entries accessible from the Trip History page. The form must allow editing Name, Date, Amount, and Comment fields. On save, the update must reflect immediately on the Trip History page, the Summary page (SummaryPanel/PaymentSummaryPanel), and any balance calculations.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-last"
-        ],
-        "quotes": [
-          "amount can be editable or deletable which reflects and can be adjust everywhere where applicable"
-        ]
-      },
-      "acceptanceCriteria": [
-        "Edit dialog pre-fills all four fields (Name, Date, Amount, Comment) from the selected entry",
-        "Saving the edit updates the entry in the shared ledger state",
-        "Changes appear immediately on Trip History page without refresh",
-        "Changes are reflected on the Summary page and in balance calculations for the affected traveller"
-      ]
-    },
-    {
-      "id": "REQ-4",
-      "text": "Implement a Delete confirmation dialog for Other Pending Amount entries accessible from the Trip History page. On confirmation, the entry must be permanently removed from the shared ledger state and the deletion must reflect on the Summary page and balance calculations.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-last"
-        ],
-        "quotes": [
-          "amount can be editable or deletable which reflects and can be adjust everywhere where applicable"
-        ]
-      },
-      "acceptanceCriteria": [
-        "Clicking Delete on an entry opens a confirmation dialog showing the entry's Name and Amount",
-        "Confirming deletion removes the entry from the shared ledger state",
-        "The Trip History list updates immediately after deletion",
-        "The Summary page and balance calculations update to reflect the removal"
+        "All date inputs that default to 'today' across the app show the correct IST date.",
+        "A single reusable IST 'today' utility function (e.g., `getTodayIST()`) is used consistently so timezone logic is not duplicated.",
+        "No form or page shows a date that is one day ahead of the actual IST date."
       ]
     }
   ],
   "constraints": [
-    "Other Pending Amount data must use a single shared source of truth — edits and deletes from Trip History must reflect on the Summary page and vice versa",
-    "Do not break existing OtherPendingAmountForm functionality on the Summary page",
-    "Balance calculations in ledgerBalances.ts must continue to include Other Pending Amounts correctly after edits/deletes"
+    "Do not modify any files listed in frontend.immutablePaths.",
+    "Do not change backend data models or stored date formats — only fix how the frontend derives the current date for display and defaults.",
+    "IST offset must be hardcoded as UTC+5:30 (19800 seconds); do not rely on the user's device timezone setting."
   ],
   "nonGoals": [
-    "Grouping Other Pending Amounts by traveller on the Trip History page (flat list is sufficient)",
-    "Adding new Other Pending Amount entries from the Trip History page (only edit/delete required there)",
-    "Changes to the Daily Tab or trip participation grid"
+    "Changing how historical dates (already saved trip entries) are stored or displayed.",
+    "Adding timezone selection UI for users.",
+    "Backend timezone changes."
   ],
   "imageRequirements": {
     "required": [],

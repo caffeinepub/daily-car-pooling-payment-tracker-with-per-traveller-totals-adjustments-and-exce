@@ -1,90 +1,68 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-03-03T04:15:16.366Z",
+  "generatedAt": "2026-03-03T12:51:59.163Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 4,
-    "implemented": 4,
+    "total": 2,
+    "implemented": 2,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Add an 'otherPendingAmounts' array to the ledger state data model. Each entry must have: id (unique string), traveller name (string), date (string), amount (number), and comment (optional string). Ensure CRUD operations (add, edit, delete) are available and that existing 'Other Pending Amount' entries from the Summary/SummaryPanel flow map to this same data structure.",
+        "summary": "Fix the 'Mark all travellers for today (AM & PM)' checkbox on the Daily Page (DailyParticipationGrid.tsx) so that 'today' is determined using Indian Standard Time (IST, UTC+5:30) instead of UTC. Any call to get the current date (e.g., `new Date()`) used for this checkbox's logic must apply a +5:30 offset to produce the correct IST date string (YYYY-MM-DD key format).",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/hooks/useLedgerLocalState.ts",
-          "frontend/src/features/ledger/LedgerStateContext.tsx",
-          "frontend/src/hooks/useAppDataSync.ts",
-          "frontend/src/features/ledger/OtherPendingAmountForm.tsx",
-          "frontend/src/features/ledger/SummaryPanel.tsx",
-          "frontend/src/features/ledger/PaymentSummaryPanel.tsx",
-          "frontend/src/utils/ledgerBalances.ts"
+          "frontend/src/utils/dateRange.ts",
+          "frontend/src/features/ledger/DailyParticipationGrid.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/hooks/useLedgerLocalState.ts",
-          "frontend/src/features/ledger/LedgerStateContext.tsx",
-          "frontend/src/hooks/useAppDataSync.ts"
+          "frontend/src/utils/dateRange.ts",
+          "frontend/src/features/ledger/DailyParticipationGrid.tsx"
         ]
       },
       {
         "id": "REQ-2",
-        "summary": "On the Trip History page (TripHistoryPanel), display a flat list of all Other Pending Amounts for the selected date range. Each row must show: Name, Date, Amount, and Comment. Each row must have an Edit button and a Delete button.",
+        "summary": "Audit all other usages of `new Date()` (or equivalent) across the frontend where today's date is derived and displayed or used as a default value (e.g., default date in payment forms, expense forms, OtherPendingAmountForm, CashPaymentForm, DateRangePicker defaults, auto-toll date logic). Ensure every such usage also applies the IST (UTC+5:30) offset so the displayed or pre-filled date is always the correct current date in India.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/features/ledger/TripHistoryPanel.tsx"
+          "frontend/src/features/ledger/CashPaymentForm.tsx",
+          "frontend/src/features/ledger/CarExpensesPanel.tsx",
+          "frontend/src/features/ledger/OtherPendingAmountForm.tsx",
+          "frontend/src/features/ledger/DateRangePicker.tsx",
+          "frontend/src/features/ledger/MultiCategoryExpenseForm.tsx",
+          "frontend/src/features/ledger/CoTravellerIncomeDialog.tsx",
+          "frontend/src/hooks/useAutoTollSettings.ts",
+          "frontend/src/App.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/features/ledger/TripHistoryPanel.tsx"
-        ]
-      },
-      {
-        "id": "REQ-3",
-        "summary": "Implement an Edit dialog for Other Pending Amount entries accessible from the Trip History page. The form must allow editing Name, Date, Amount, and Comment fields. On save, the update must reflect immediately on the Trip History page, the Summary page (SummaryPanel/PaymentSummaryPanel), and any balance calculations.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/features/ledger/EditOtherPendingAmountDialog.tsx",
-          "frontend/src/features/ledger/TripHistoryPanel.tsx"
-        ],
-        "matchedFiles": [
-          "frontend/src/features/ledger/EditOtherPendingAmountDialog.tsx",
-          "frontend/src/features/ledger/TripHistoryPanel.tsx"
-        ]
-      },
-      {
-        "id": "REQ-4",
-        "summary": "Implement a Delete confirmation dialog for Other Pending Amount entries accessible from the Trip History page. On confirmation, the entry must be permanently removed from the shared ledger state and the deletion must reflect on the Summary page and balance calculations.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/features/ledger/DeleteOtherPendingAmountAlertDialog.tsx",
-          "frontend/src/features/ledger/TripHistoryPanel.tsx"
-        ],
-        "matchedFiles": [
-          "frontend/src/features/ledger/DeleteOtherPendingAmountAlertDialog.tsx",
-          "frontend/src/features/ledger/TripHistoryPanel.tsx"
+          "frontend/src/features/ledger/CashPaymentForm.tsx",
+          "frontend/src/features/ledger/CarExpensesPanel.tsx",
+          "frontend/src/features/ledger/OtherPendingAmountForm.tsx",
+          "frontend/src/features/ledger/MultiCategoryExpenseForm.tsx",
+          "frontend/src/features/ledger/CoTravellerIncomeDialog.tsx",
+          "frontend/src/hooks/useAutoTollSettings.ts",
+          "frontend/src/App.tsx"
         ]
       }
     ]
   },
   "changedFiles": [
-    "backend/main.mo",
-    "backend/migration.mo",
     "build-request.json",
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/backend.d.ts",
-    "frontend/src/backend.ts",
-    "frontend/src/declarations/backend.did.d.ts",
-    "frontend/src/declarations/backend.did.js",
-    "frontend/src/features/ledger/DeleteOtherPendingAmountAlertDialog.tsx",
-    "frontend/src/features/ledger/EditOtherPendingAmountDialog.tsx",
-    "frontend/src/features/ledger/LedgerStateContext.tsx",
-    "frontend/src/features/ledger/TripHistoryPanel.tsx",
-    "frontend/src/hooks/useAppDataSync.ts",
-    "frontend/src/hooks/useLedgerLocalState.ts",
+    "frontend/src/App.tsx",
+    "frontend/src/features/ledger/CarExpensesPanel.tsx",
+    "frontend/src/features/ledger/CashPaymentForm.tsx",
+    "frontend/src/features/ledger/CoTravellerIncomeDialog.tsx",
+    "frontend/src/features/ledger/DailyParticipationGrid.tsx",
+    "frontend/src/features/ledger/MultiCategoryExpenseForm.tsx",
+    "frontend/src/features/ledger/OtherPendingAmountForm.tsx",
+    "frontend/src/hooks/useAutoTollSettings.ts",
+    "frontend/src/utils/dateRange.ts",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label';
 import { IndianRupee, Loader2 } from 'lucide-react';
 import { useLedgerState } from './LedgerStateContext';
 import { toast } from 'sonner';
+import { getTodayIST } from '../../utils/dateRange';
 
 interface ExpenseEntry {
   category: string;
@@ -26,21 +27,13 @@ interface MultiCategoryExpenseFormProps {
   defaultDate?: string;
 }
 
-function getTodayStr() {
-  const now = new Date();
-  const y = now.getFullYear();
-  const m = String(now.getMonth() + 1).padStart(2, '0');
-  const d = String(now.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
-}
-
 export default function MultiCategoryExpenseForm({
   open,
   onOpenChange,
   defaultDate,
 }: MultiCategoryExpenseFormProps) {
   const { addCarExpense } = useLedgerState();
-  const today = defaultDate || getTodayStr();
+  const today = defaultDate || getTodayIST();
 
   const getInitialEntries = (): ExpenseEntry[] => [
     { category: 'Toll', amount: '30', date: today },
@@ -54,7 +47,7 @@ export default function MultiCategoryExpenseForm({
 
   React.useEffect(() => {
     if (open) {
-      const t = defaultDate || getTodayStr();
+      const t = defaultDate || getTodayIST();
       setEntries([
         { category: 'Toll', amount: '30', date: t },
         { category: 'CNG BRD', amount: '', date: t },
@@ -112,82 +105,65 @@ export default function MultiCategoryExpenseForm({
       toast.success('3 expenses added successfully');
       onOpenChange(false);
     } catch (err) {
-      console.error('Failed to add expenses:', err);
       toast.error('Failed to add expenses. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleCancel = () => {
-    onOpenChange(false);
-  };
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[calc(100vw-24px)] max-w-lg mx-auto p-4 sm:p-6 rounded-xl overflow-y-auto max-h-[90vh]">
+      <DialogContent className="w-[calc(100vw-24px)] max-w-lg mx-auto p-4 sm:p-6 rounded-xl">
         <DialogHeader className="mb-2">
           <DialogTitle className="text-lg sm:text-xl">Add 3 Expenses</DialogTitle>
           <DialogDescription className="text-xs sm:text-sm">
-            Add Toll, CNG BRD, and CNG AHM expenses at once
+            Quickly add Toll, CNG BRD, and CNG AHM expenses at once.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
           {entries.map((entry, index) => (
-            <div key={entry.category} className="space-y-2">
-              <h3 className="font-semibold text-sm sm:text-base">{entry.category}</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div key={index} className="rounded-lg border p-3 space-y-3 bg-muted/20">
+              <div className="font-medium text-sm">{entry.category}</div>
+              <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <Label htmlFor={`amount-${index}`} className="text-xs sm:text-sm">
-                    Amount (₹)
-                  </Label>
+                  <Label className="text-xs">Amount (₹)</Label>
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
                       <IndianRupee className="h-3.5 w-3.5" />
                     </span>
                     <Input
-                      id={`amount-${index}`}
                       type="number"
                       min="0"
                       step="0.01"
                       placeholder="0.00"
                       value={entry.amount}
                       onChange={(e) => updateEntry(index, 'amount', e.target.value)}
-                      className="pl-8 h-11 text-sm"
-                      disabled={isSubmitting}
+                      className="pl-8 h-9 text-sm"
                     />
                   </div>
                   {errors[index] && (
                     <p className="text-destructive text-xs">{errors[index]}</p>
                   )}
                 </div>
-
                 <div className="space-y-1">
-                  <Label htmlFor={`date-${index}`} className="text-xs sm:text-sm">
-                    Date
-                  </Label>
+                  <Label className="text-xs">Date</Label>
                   <Input
-                    id={`date-${index}`}
                     type="date"
                     value={entry.date}
                     onChange={(e) => updateEntry(index, 'date', e.target.value)}
-                    className="h-11 text-sm"
-                    disabled={isSubmitting}
+                    className="h-9 text-sm"
                   />
                 </div>
               </div>
-              {index < entries.length - 1 && (
-                <div className="border-b border-border mt-3" />
-              )}
             </div>
           ))}
         </div>
 
-        <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2 mt-4 pt-2">
+        <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2 mt-4">
           <Button
             variant="outline"
-            onClick={handleCancel}
+            onClick={() => onOpenChange(false)}
             className="w-full sm:w-auto h-11 text-sm"
             disabled={isSubmitting}
           >
@@ -201,7 +177,7 @@ export default function MultiCategoryExpenseForm({
             {isSubmitting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Saving...
+                Adding...
               </>
             ) : (
               'Add All 3 Expenses'

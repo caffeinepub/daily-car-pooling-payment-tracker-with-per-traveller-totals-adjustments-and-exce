@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/select';
 import { IndianRupee, Sun, Moon } from 'lucide-react';
 import { useLedgerState } from './LedgerStateContext';
+import { getTodayIST } from '../../utils/dateRange';
 
 export interface CoTravellerIncomeEntry {
   id?: string;
@@ -38,11 +39,6 @@ export interface CoTravellerIncomeDialogProps {
   existingIncome?: CoTravellerIncomeEntry | null;
 }
 
-function getTodayStr() {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-}
-
 export default function CoTravellerIncomeDialog({
   open,
   onOpenChange,
@@ -54,7 +50,7 @@ export default function CoTravellerIncomeDialog({
   const { addCoTravellerIncome, updateCoTravellerIncome } = useLedgerState();
 
   const [amount, setAmount] = useState('');
-  const [date, setDate] = useState(defaultDate || getTodayStr());
+  const [date, setDate] = useState(defaultDate || getTodayIST());
   const [note, setNote] = useState('');
   const [tripTime, setTripTime] = useState<'morning' | 'evening' | ''>('');
   const [amountError, setAmountError] = useState('');
@@ -69,7 +65,7 @@ export default function CoTravellerIncomeDialog({
         setTripTime(existingIncome.tripTime || '');
       } else {
         setAmount('');
-        setDate(defaultDate || getTodayStr());
+        setDate(defaultDate || getTodayIST());
         setNote('');
         setTripTime('');
       }

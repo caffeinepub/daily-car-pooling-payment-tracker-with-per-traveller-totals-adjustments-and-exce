@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { IndianRupee } from 'lucide-react';
+import { getTodayIST } from '../../utils/dateRange';
 
 export interface CashPayment {
   id?: string;
@@ -27,11 +28,6 @@ interface CashPaymentFormProps {
   defaultDate?: string;
 }
 
-function getTodayStr() {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-}
-
 export default function CashPaymentForm({
   travellerName,
   travellerId,
@@ -40,13 +36,13 @@ export default function CashPaymentForm({
 }: CashPaymentFormProps) {
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState('');
-  const [date, setDate] = useState(defaultDate || getTodayStr());
+  const [date, setDate] = useState(defaultDate || getTodayIST());
   const [note, setNote] = useState('');
   const [amountError, setAmountError] = useState('');
 
   const handleOpen = () => {
     setAmount('');
-    setDate(defaultDate || getTodayStr());
+    setDate(defaultDate || getTodayIST());
     setNote('');
     setAmountError('');
     setOpen(true);

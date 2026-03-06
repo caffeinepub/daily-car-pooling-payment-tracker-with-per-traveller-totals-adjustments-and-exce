@@ -9,12 +9,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
 import { Plus, Car, IndianRupee, Layers } from 'lucide-react';
-import { format, parseISO } from 'date-fns';
+import { parseISO } from 'date-fns';
 import { toast } from 'sonner';
 import { formatCurrency } from '../../utils/money';
 import { Separator } from '@/components/ui/separator';
 import { useAutoTollSettings } from '../../hooks/useAutoTollSettings';
 import MultiCategoryExpenseForm from './MultiCategoryExpenseForm';
+import { getTodayIST } from '../../utils/dateRange';
 
 const PREDEFINED_CATEGORIES = [
   'CNG BRD',
@@ -34,7 +35,7 @@ export default function CarExpensesPanel() {
   const [category, setCategory] = useState('');
   const [customCategory, setCustomCategory] = useState('');
   const [amount, setAmount] = useState('');
-  const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [date, setDate] = useState(getTodayIST());
   const [note, setNote] = useState('');
   const [error, setError] = useState('');
   const [localAutoTollAmount, setLocalAutoTollAmount] = useState(autoTollAmount.toString());
@@ -85,7 +86,7 @@ export default function CarExpensesPanel() {
     setCategory('');
     setCustomCategory('');
     setAmount('');
-    setDate(format(new Date(), 'yyyy-MM-dd'));
+    setDate(getTodayIST());
     setNote('');
     setOpen(false);
   };

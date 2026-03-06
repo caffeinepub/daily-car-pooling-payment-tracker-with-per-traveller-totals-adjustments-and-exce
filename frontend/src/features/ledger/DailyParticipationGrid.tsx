@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useLedgerState } from './LedgerStateContext';
-import { getDaysInRange, formatDateKey, formatDisplayDate } from '../../utils/dateRange';
+import { getDaysInRange, formatDateKey, formatDisplayDate, getTodayIST } from '../../utils/dateRange';
 import { isDateEditable, isWeekendDay } from '../../utils/weekendInclusion';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -38,10 +38,12 @@ export default function DailyParticipationGrid({ dateRange, onSaveAndNext }: Dai
 
   const days = getDaysInRange(dateRange.start, dateRange.end);
 
-  // Get today's date key
-  const todayDateKey = formatDateKey(new Date());
-  const today = new Date();
-  const isTodayEditable = isDateEditable(today, includeSaturday, includeSunday);
+  // Get today's date key using IST (UTC+5:30) to avoid day-ahead issue
+  const todayDateKey = getTodayIST();
+  // Build a Date object for today in IST for editability check
+  const [todayYear, todayMonth, todayDay] = todayDateKey.split('-').map(Number);
+  const todayIST = new Date(todayYear, todayMonth - 1, todayDay);
+  const isTodayEditable = isDateEditable(todayIST, includeSaturday, includeSunday);
 
   // Check if all travellers have both AM and PM selected for today
   const allTravellersMarkedForToday = travellers.length > 0 && travellers.every((t) => {

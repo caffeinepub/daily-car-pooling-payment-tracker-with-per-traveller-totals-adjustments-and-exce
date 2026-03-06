@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { getTodayIST } from '../utils/dateRange';
 
 const STORAGE_KEY = 'carpool-auto-toll-settings';
 
@@ -62,6 +63,12 @@ export function useAutoTollSettings() {
     setSettings((prev) => ({ ...prev, lastAutoTollDate: date }));
   };
 
+  /**
+   * Returns today's date string in IST (UTC+5:30) for comparison.
+   * Use this instead of new Date() to avoid day-ahead issues.
+   */
+  const getTodayISTDate = (): string => getTodayIST();
+
   return {
     enabled: settings.enabled,
     amount: settings.amount,
@@ -69,5 +76,6 @@ export function useAutoTollSettings() {
     setEnabled,
     setAmount,
     setLastAutoTollDate,
+    getTodayISTDate,
   };
 }

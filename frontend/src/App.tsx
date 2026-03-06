@@ -8,7 +8,7 @@ import { Toaster } from '@/components/ui/sonner';
 import { ThemeProvider } from 'next-themes';
 import { useLedgerLocalState } from './hooks/useLedgerLocalState';
 import { useAutoTollSettings } from './hooks/useAutoTollSettings';
-import { formatDateKey } from './utils/dateRange';
+import { getTodayIST } from './utils/dateRange';
 
 export default function App() {
   const { identity } = useInternetIdentity();
@@ -20,13 +20,17 @@ export default function App() {
   const isAuthenticated = !!identity;
   const showProfileSetup = isAuthenticated && !profileLoading && isFetched && userProfile === null;
 
-  // Auto-add toll once per weekday on app launch
+  // Auto-add toll once per weekday on app launch — uses IST date to avoid day-ahead issue
   useEffect(() => {
     if (!autoTollEnabled) return;
 
-    const today = new Date();
-    const todayKey = formatDateKey(today);
-    const dayOfWeek = today.getDay();
+    // Use IST date string directly for comparison
+    const todayKey = getTodayIST();
+
+    // Derive day of week from the IST date string
+    const [year, month, day] = todayKey.split('-').map(Number);
+    const todayIST = new Date(year, month - 1, day);
+    const dayOfWeek = todayIST.getDay();
 
     // Check if today is a weekday (Monday = 1, Friday = 5)
     const isWeekday = dayOfWeek >= 1 && dayOfWeek <= 5;

@@ -1,4 +1,12 @@
-import type { Traveller, DailyData, CashPayment, OtherPending, CarExpense, CoTravellerIncome, PerDayAutoTollSelection } from '../hooks/useLedgerLocalState';
+import type {
+  CarExpense,
+  CashPayment,
+  CoTravellerIncome,
+  DailyData,
+  OtherPending,
+  PerDayAutoTollSelection,
+  Traveller,
+} from "../hooks/useLedgerLocalState";
 
 export interface LocalLedgerState {
   travellers: Traveller[];
@@ -37,10 +45,10 @@ export function exportBackup(ledgerState: LocalLedgerState): string {
 
 export function exportBackupToFile(ledgerState: LocalLedgerState): void {
   const backupJson = exportBackup(ledgerState);
-  const blob = new Blob([backupJson], { type: 'application/json' });
+  const blob = new Blob([backupJson], { type: "application/json" });
   const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+  const link = document.createElement("a");
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, -5);
   link.href = url;
   link.download = `carpool-backup-${timestamp}.json`;
   document.body.appendChild(link);
@@ -52,7 +60,7 @@ export function exportBackupToFile(ledgerState: LocalLedgerState): void {
 export async function importBackupFromFile(file: File): Promise<BackupPayload> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    
+
     reader.onload = (e) => {
       try {
         const content = e.target?.result as string;
@@ -66,11 +74,11 @@ export async function importBackupFromFile(file: File): Promise<BackupPayload> {
         reject(error);
       }
     };
-    
+
     reader.onerror = () => {
-      reject(new Error('Failed to read file'));
+      reject(new Error("Failed to read file"));
     };
-    
+
     reader.readAsText(file);
   });
 }
@@ -78,116 +86,122 @@ export async function importBackupFromFile(file: File): Promise<BackupPayload> {
 export function validateBackup(jsonString: string): BackupData {
   try {
     const parsed = JSON.parse(jsonString);
-    
+
     if (!parsed.version || !parsed.timestamp || !parsed.ledgerState) {
-      throw new Error('Invalid backup format: missing required fields');
+      throw new Error("Invalid backup format: missing required fields");
     }
 
     const state = parsed.ledgerState;
-    if (!Array.isArray(state.travellers) || !state.dailyData || !state.dateRange) {
-      throw new Error('Invalid backup format: malformed ledger state');
+    if (
+      !Array.isArray(state.travellers) ||
+      !state.dailyData ||
+      !state.dateRange
+    ) {
+      throw new Error("Invalid backup format: malformed ledger state");
     }
 
     return parsed as BackupData;
   } catch (error) {
     if (error instanceof SyntaxError) {
-      throw new Error('Invalid JSON format');
+      throw new Error("Invalid JSON format");
     }
     throw error;
   }
 }
 
-export function mergeLocalStates(local: LocalLedgerState, remote: LocalLedgerState): LocalLedgerState {
+export function mergeLocalStates(
+  local: LocalLedgerState,
+  remote: LocalLedgerState,
+): LocalLedgerState {
   // Merge travellers by ID (union)
   const travellerMap = new Map<string, Traveller>();
-  [...local.travellers, ...remote.travellers].forEach((t) => {
-    if (!travellerMap.has(t.id)) {
-      travellerMap.set(t.id, t);
-    }
-  });
-  const mergedTravellers = Array.from(travellerMap.values());
+  for (const t of [...local.travellers, ...remote.travellers]) {
+    if (!travellerMap.has(t.id)) travellerMap.set(t.id, t);
+  }
 
-  // Merge dailyData with OR logic (if either has a trip, include it)
+  // Merge dailyData with OR logic
   const mergedDailyData: DailyData = {};
-  const allDateKeys = new Set([...Object.keys(local.dailyData), ...Object.keys(remote.dailyData)]);
-  
-  allDateKeys.forEach((dateKey) => {
+  const allDateKeys = new Set([
+    ...Object.keys(local.dailyData),
+    ...Object.keys(remote.dailyData),
+  ]);
+
+  for (const dateKey of allDateKeys) {
     const localDay = local.dailyData[dateKey] || {};
     const remoteDay = remote.dailyData[dateKey] || {};
-    const allTravellerIds = new Set([...Object.keys(localDay), ...Object.keys(remoteDay)]);
-    
+    const allTravellerIds = new Set([
+      ...Object.keys(localDay),
+      ...Object.keys(remoteDay),
+    ]);
+
     mergedDailyData[dateKey] = {};
-    allTravellerIds.forEach((travellerId) => {
-      const localTrip = localDay[travellerId] || { morning: false, evening: false };
-      const remoteTrip = remoteDay[travellerId] || { morning: false, evening: false };
-      
+    for (const travellerId of allTravellerIds) {
+      const localTrip = localDay[travellerId] || {
+        morning: false,
+        evening: false,
+      };
+      const remoteTrip = remoteDay[travellerId] || {
+        morning: false,
+        evening: false,
+      };
       mergedDailyData[dateKey][travellerId] = {
         morning: localTrip.morning || remoteTrip.morning,
         evening: localTrip.evening || remoteTrip.evening,
       };
-    });
-  });
+    }
+  }
 
   // Merge payments by ID (union)
   const paymentMap = new Map<string, CashPayment>();
-  [...local.cashPayments, ...remote.cashPayments].forEach((p) => {
-    if (!paymentMap.has(p.id)) {
-      paymentMap.set(p.id, p);
-    }
-  });
-  const mergedPayments = Array.from(paymentMap.values());
+  for (const p of [...local.cashPayments, ...remote.cashPayments]) {
+    if (!paymentMap.has(p.id)) paymentMap.set(p.id, p);
+  }
 
   // Merge other pending by ID (union)
   const otherPendingMap = new Map<string, OtherPending>();
-  [...local.otherPending, ...remote.otherPending].forEach((p) => {
-    if (!otherPendingMap.has(p.id)) {
-      otherPendingMap.set(p.id, p);
-    }
-  });
-  const mergedOtherPending = Array.from(otherPendingMap.values());
+  for (const p of [...local.otherPending, ...remote.otherPending]) {
+    if (!otherPendingMap.has(p.id)) otherPendingMap.set(p.id, p);
+  }
 
   // Merge car expenses by ID (union)
   const expenseMap = new Map<string, CarExpense>();
-  [...local.carExpenses, ...remote.carExpenses].forEach((e) => {
-    if (!expenseMap.has(e.id)) {
-      expenseMap.set(e.id, e);
-    }
-  });
-  const mergedExpenses = Array.from(expenseMap.values());
+  for (const e of [...local.carExpenses, ...remote.carExpenses]) {
+    if (!expenseMap.has(e.id)) expenseMap.set(e.id, e);
+  }
 
   // Merge co-traveller incomes by ID (union)
   const coTravellerIncomeMap = new Map<string, CoTravellerIncome>();
-  const localIncomes = local.coTravellerIncomes || [];
-  const remoteIncomes = remote.coTravellerIncomes || [];
-  [...localIncomes, ...remoteIncomes].forEach((income) => {
-    if (!coTravellerIncomeMap.has(income.id)) {
+  for (const income of [
+    ...(local.coTravellerIncomes || []),
+    ...(remote.coTravellerIncomes || []),
+  ]) {
+    if (!coTravellerIncomeMap.has(income.id))
       coTravellerIncomeMap.set(income.id, income);
-    }
-  });
-  const mergedCoTravellerIncomes = Array.from(coTravellerIncomeMap.values());
+  }
 
-  // Merge perDayAutoTollSelection with OR logic (if either has it enabled, include it)
+  // Merge perDayAutoTollSelection with OR logic
   const mergedPerDayAutoTollSelection: PerDayAutoTollSelection = {};
   const localSelection = local.perDayAutoTollSelection || {};
   const remoteSelection = remote.perDayAutoTollSelection || {};
-  const allSelectionDateKeys = new Set([...Object.keys(localSelection), ...Object.keys(remoteSelection)]);
-  
-  allSelectionDateKeys.forEach((dateKey) => {
-    mergedPerDayAutoTollSelection[dateKey] = localSelection[dateKey] || remoteSelection[dateKey] || false;
-  });
+  for (const dateKey of new Set([
+    ...Object.keys(localSelection),
+    ...Object.keys(remoteSelection),
+  ])) {
+    mergedPerDayAutoTollSelection[dateKey] =
+      localSelection[dateKey] || remoteSelection[dateKey] || false;
+  }
 
-  // Use remote settings (date range, rate, weekend inclusion) as they're likely more recent
   return {
-    travellers: mergedTravellers,
+    travellers: Array.from(travellerMap.values()),
     dailyData: mergedDailyData,
     dateRange: remote.dateRange,
     ratePerTrip: remote.ratePerTrip,
-    cashPayments: mergedPayments,
-    otherPending: mergedOtherPending,
-    carExpenses: mergedExpenses,
+    cashPayments: Array.from(paymentMap.values()),
+    otherPending: Array.from(otherPendingMap.values()),
+    carExpenses: Array.from(expenseMap.values()),
     includeSaturday: remote.includeSaturday,
     includeSunday: remote.includeSunday,
-    coTravellerIncomes: mergedCoTravellerIncomes,
+    coTravellerIncomes: Array.from(coTravellerIncomeMap.values()),
     perDayAutoTollSelection: mergedPerDayAutoTollSelection,
   };
 }

@@ -1,14 +1,23 @@
-import { useLedgerState } from './LedgerStateContext';
-import { getDaysInRange, formatDateKey } from '../../utils/dateRange';
-import { isDateIncludedForCalculation, isWeekendDay } from '../../utils/weekendInclusion';
-import { formatCurrency } from '../../utils/money';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import EmptyState from '../../components/EmptyState';
-import { Receipt } from 'lucide-react';
-import { parseISO } from 'date-fns';
-import CashPaymentForm from './CashPaymentForm';
-import OtherPendingAmountForm from './OtherPendingAmountForm';
+import { Badge } from "@/components/ui/badge";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { parseISO } from "date-fns";
+import { Receipt } from "lucide-react";
+import EmptyState from "../../components/EmptyState";
+import { formatDateKey, getDaysInRange } from "../../utils/dateRange";
+import { formatCurrency } from "../../utils/money";
+import {
+  isDateIncludedForCalculation,
+  isWeekendDay,
+} from "../../utils/weekendInclusion";
+import CashPaymentForm from "./CashPaymentForm";
+import { useLedgerState } from "./LedgerStateContext";
+import OtherPendingAmountForm from "./OtherPendingAmountForm";
 
 export default function SummaryPanel() {
   const {
@@ -31,14 +40,21 @@ export default function SummaryPanel() {
     let weekdayTrips = 0;
     let weekendTrips = 0;
 
-    days.forEach((day) => {
+    for (const day of days) {
       const dateKey = formatDateKey(day);
-      const isIncluded = isDateIncludedForCalculation(day, includeSaturday, includeSunday, dateKey, dailyData);
-      if (!isIncluded) return;
+      const isIncluded = isDateIncludedForCalculation(
+        day,
+        includeSaturday,
+        includeSunday,
+        dateKey,
+        dailyData,
+      );
+      if (!isIncluded) continue;
 
       const tripData = dailyData[dateKey]?.[traveller.id];
       if (tripData) {
-        const tripCount = (tripData.morning ? 1 : 0) + (tripData.evening ? 1 : 0);
+        const tripCount =
+          (tripData.morning ? 1 : 0) + (tripData.evening ? 1 : 0);
         const { isSaturday, isSunday } = isWeekendDay(day);
         if (isSaturday || isSunday) {
           weekendTrips += tripCount;
@@ -46,7 +62,7 @@ export default function SummaryPanel() {
           weekdayTrips += tripCount;
         }
       }
-    });
+    }
 
     const totalTrips = weekdayTrips + weekendTrips;
     const totalCharge = totalTrips * ratePerTrip;
@@ -113,7 +129,9 @@ export default function SummaryPanel() {
     <Card>
       <CardHeader>
         <CardTitle>Summary</CardTitle>
-        <CardDescription>Per-traveller charges and balances for the selected date range</CardDescription>
+        <CardDescription>
+          Per-traveller charges and balances for the selected date range
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {summaries.map((summary) => {
@@ -128,9 +146,12 @@ export default function SummaryPanel() {
             >
               {/* Name and Status Row */}
               <div className="flex flex-wrap items-center gap-2">
-                <h3 className="text-lg font-semibold">{summary.traveller.name}</h3>
+                <h3 className="text-lg font-semibold">
+                  {summary.traveller.name}
+                </h3>
                 <Badge variant="outline">
-                  {summary.weekdayTrips} weekday + {summary.weekendTrips} weekend = {summary.totalTrips} trips
+                  {summary.weekdayTrips} weekday + {summary.weekendTrips}{" "}
+                  weekend = {summary.totalTrips} trips
                 </Badge>
                 {isDue && (
                   <Badge variant="destructive" className="font-medium">
@@ -153,25 +174,31 @@ export default function SummaryPanel() {
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
                 <div>
                   <p className="text-muted-foreground">Total Charge</p>
-                  <p className="font-semibold text-red-600 dark:text-red-400">{formatCurrency(summary.totalCharge)}</p>
+                  <p className="font-semibold text-red-600 dark:text-red-400">
+                    {formatCurrency(summary.totalCharge)}
+                  </p>
                 </div>
                 <div>
                   <p className="text-muted-foreground">Other Pending</p>
-                  <p className="font-semibold text-red-600 dark:text-red-400">{formatCurrency(summary.otherPendingInRange)}</p>
+                  <p className="font-semibold text-red-600 dark:text-red-400">
+                    {formatCurrency(summary.otherPendingInRange)}
+                  </p>
                 </div>
                 <div>
                   <p className="text-muted-foreground">Payments</p>
-                  <p className="font-semibold text-green-600 dark:text-green-400">{formatCurrency(summary.paymentsInRange)}</p>
+                  <p className="font-semibold text-green-600 dark:text-green-400">
+                    {formatCurrency(summary.paymentsInRange)}
+                  </p>
                 </div>
                 <div>
                   <p className="text-muted-foreground">Balance</p>
                   <p
                     className={`font-semibold ${
                       isDue
-                        ? 'text-red-600 dark:text-red-400'
+                        ? "text-red-600 dark:text-red-400"
                         : isOverpaid
-                          ? 'text-green-600 dark:text-green-400'
-                          : ''
+                          ? "text-green-600 dark:text-green-400"
+                          : ""
                     }`}
                   >
                     {formatCurrency(Math.abs(summary.balance))}

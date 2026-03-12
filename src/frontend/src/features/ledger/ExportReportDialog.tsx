@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { useLedgerState } from './LedgerStateContext';
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -7,37 +7,55 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Separator } from '@/components/ui/separator';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
-import { Download, Loader2, FileText } from 'lucide-react';
-import { toast } from 'sonner';
-import { exportToCSV, exportToPDF } from '../../utils/exportReport';
-import DateRangePicker from './DateRangePicker';
-import MonthYearRangeSelector from './MonthYearRangeSelector';
-import { getCurrentMonthRange } from '../../utils/dateRange';
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
+import { Download, FileText, Loader2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import { getCurrentMonthRange } from "../../utils/dateRange";
+import { exportToCSV, exportToPDF } from "../../utils/exportReport";
+import DateRangePicker from "./DateRangePicker";
+import { useLedgerState } from "./LedgerStateContext";
+import MonthYearRangeSelector from "./MonthYearRangeSelector";
 
 interface ExportReportDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-export type ReportType = 'standard' | 'monthly' | 'profitLoss' | 'income' | 'expense';
+export type ReportType =
+  | "standard"
+  | "monthly"
+  | "profitLoss"
+  | "income"
+  | "expense";
 
-export default function ExportReportDialog({ open, onOpenChange }: ExportReportDialogProps) {
+export default function ExportReportDialog({
+  open,
+  onOpenChange,
+}: ExportReportDialogProps) {
   const ledgerState = useLedgerState();
   const [isExporting, setIsExporting] = useState(false);
-  const [exportFormat, setExportFormat] = useState<'csv' | 'pdf'>('pdf');
-  const [reportType, setReportType] = useState<ReportType>('standard');
+  const [exportFormat, setExportFormat] = useState<"csv" | "pdf">("pdf");
+  const [reportType, setReportType] = useState<ReportType>("standard");
 
   // Export-specific date range (independent from page tabs)
-  const [exportDateRange, setExportDateRange] = useState<{ start: Date; end: Date }>(getCurrentMonthRange());
+  const [exportDateRange, setExportDateRange] = useState<{
+    start: Date;
+    end: Date;
+  }>(getCurrentMonthRange());
 
   // Initialize export date range when dialog opens
+  // biome-ignore lint/correctness/useExhaustiveDependencies: intentional - only reinitialize on open
   useEffect(() => {
     if (open && !exportDateRange) {
       setExportDateRange(getCurrentMonthRange());
@@ -52,20 +70,24 @@ export default function ExportReportDialog({ open, onOpenChange }: ExportReportD
   const [includeOverallSummary, setIncludeOverallSummary] = useState(true);
 
   // Traveller filter mode - default to 'all'
-  const [travellerFilterMode, setTravellerFilterMode] = useState<'all' | 'selected'>('all');
+  const [travellerFilterMode, setTravellerFilterMode] = useState<
+    "all" | "selected"
+  >("all");
   const [selectedTravellers, setSelectedTravellers] = useState<Set<string>>(
-    new Set(ledgerState.travellers.map((t) => t.id))
+    new Set(ledgerState.travellers.map((t) => t.id)),
   );
 
   // Car Expenses filters
-  const [expenseCategory, setExpenseCategory] = useState<string>('all');
-  const [expenseSearchQuery, setExpenseSearchQuery] = useState('');
+  const [expenseCategory, setExpenseCategory] = useState<string>("all");
+  const [expenseSearchQuery, setExpenseSearchQuery] = useState("");
 
   // Payment History filter
-  const [paymentTravellerId, setPaymentTravellerId] = useState<string>('all');
+  const [paymentTravellerId, setPaymentTravellerId] = useState<string>("all");
 
   // Get unique expense categories
-  const expenseCategories = Array.from(new Set(ledgerState.carExpenses.map((e) => e.category))).sort();
+  const expenseCategories = Array.from(
+    new Set(ledgerState.carExpenses.map((e) => e.category)),
+  ).sort();
 
   const toggleTraveller = (id: string) => {
     const newSet = new Set(selectedTravellers);
@@ -87,8 +109,12 @@ export default function ExportReportDialog({ open, onOpenChange }: ExportReportD
 
   const handleExport = async () => {
     // Validate traveller selection only for standard report with selected mode
-    if (reportType === 'standard' && travellerFilterMode === 'selected' && selectedTravellers.size === 0) {
-      toast.error('Please select at least one traveller to export');
+    if (
+      reportType === "standard" &&
+      travellerFilterMode === "selected" &&
+      selectedTravellers.size === 0
+    ) {
+      toast.error("Please select at least one traveller to export");
       return;
     }
 
@@ -115,30 +141,32 @@ export default function ExportReportDialog({ open, onOpenChange }: ExportReportD
         dateRange: exportDateRange,
       };
 
-      if (exportFormat === 'pdf') {
+      if (exportFormat === "pdf") {
         await exportToPDF(exportLedgerState, filters);
-        toast.success('Report exported successfully as PDF');
+        toast.success("Report exported successfully as PDF");
       } else {
         // CSV only supports standard report
-        if (reportType !== 'standard') {
-          toast.error('CSV export is only available for Standard Report. Please select PDF format for other report types.');
+        if (reportType !== "standard") {
+          toast.error(
+            "CSV export is only available for Standard Report. Please select PDF format for other report types.",
+          );
           setIsExporting(false);
           return;
         }
         await exportToCSV(exportLedgerState, filters);
-        toast.success('Report exported successfully as CSV');
+        toast.success("Report exported successfully as CSV");
       }
 
       onOpenChange(false);
     } catch (error) {
-      console.error('Export error:', error);
-      toast.error('Failed to export report. Please try again.');
+      console.error("Export error:", error);
+      toast.error("Failed to export report. Please try again.");
     } finally {
       setIsExporting(false);
     }
   };
 
-  const isStandardReport = reportType === 'standard';
+  const isStandardReport = reportType === "standard";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -146,7 +174,8 @@ export default function ExportReportDialog({ open, onOpenChange }: ExportReportD
         <DialogHeader>
           <DialogTitle>Export Report</DialogTitle>
           <DialogDescription>
-            Choose report type, format, date range, and apply filters to customize your export
+            Choose report type, format, date range, and apply filters to
+            customize your export
           </DialogDescription>
         </DialogHeader>
 
@@ -155,11 +184,18 @@ export default function ExportReportDialog({ open, onOpenChange }: ExportReportD
           <div className="space-y-3">
             <Label className="text-base font-semibold">Export Date Range</Label>
             <div className="flex flex-col gap-3">
-              <DateRangePicker value={exportDateRange} onChange={setExportDateRange} />
-              <MonthYearRangeSelector value={exportDateRange} onChange={setExportDateRange} />
+              <DateRangePicker
+                value={exportDateRange}
+                onChange={setExportDateRange}
+              />
+              <MonthYearRangeSelector
+                value={exportDateRange}
+                onChange={setExportDateRange}
+              />
             </div>
             <p className="text-xs text-muted-foreground">
-              This date range applies only to this export and does not affect page filters
+              This date range applies only to this export and does not affect
+              page filters
             </p>
           </div>
 
@@ -168,14 +204,19 @@ export default function ExportReportDialog({ open, onOpenChange }: ExportReportD
           {/* Report Type */}
           <div className="space-y-3">
             <Label className="text-base font-semibold">Report Type</Label>
-            <Select value={reportType} onValueChange={(value: ReportType) => setReportType(value)}>
+            <Select
+              value={reportType}
+              onValueChange={(value: ReportType) => setReportType(value)}
+            >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="standard">Standard Report</SelectItem>
                 <SelectItem value="monthly">Monthly Report</SelectItem>
-                <SelectItem value="profitLoss">Profit & Loss Statement</SelectItem>
+                <SelectItem value="profitLoss">
+                  Profit & Loss Statement
+                </SelectItem>
                 <SelectItem value="income">Income Statement</SelectItem>
                 <SelectItem value="expense">Expense Statement</SelectItem>
               </SelectContent>
@@ -187,14 +228,18 @@ export default function ExportReportDialog({ open, onOpenChange }: ExportReportD
           {/* Export Format */}
           <div className="space-y-3">
             <Label className="text-base font-semibold">Export Format</Label>
-            <Select value={exportFormat} onValueChange={(value: 'csv' | 'pdf') => setExportFormat(value)}>
+            <Select
+              value={exportFormat}
+              onValueChange={(value: "csv" | "pdf") => setExportFormat(value)}
+            >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="pdf">PDF (Printable)</SelectItem>
                 <SelectItem value="csv" disabled={!isStandardReport}>
-                  CSV (Spreadsheet) {!isStandardReport && '- Standard Report only'}
+                  CSV (Spreadsheet){" "}
+                  {!isStandardReport && "- Standard Report only"}
                 </SelectItem>
               </SelectContent>
             </Select>
@@ -206,13 +251,17 @@ export default function ExportReportDialog({ open, onOpenChange }: ExportReportD
 
               {/* Section Filters */}
               <div className="space-y-3">
-                <Label className="text-base font-semibold">Include Sections</Label>
+                <Label className="text-base font-semibold">
+                  Include Sections
+                </Label>
                 <div className="space-y-2">
                   <div className="flex items-center space-x-2">
                     <Checkbox
                       id="section-daily"
                       checked={includeDailyGrid}
-                      onCheckedChange={(checked) => setIncludeDailyGrid(checked === true)}
+                      onCheckedChange={(checked) =>
+                        setIncludeDailyGrid(checked === true)
+                      }
                     />
                     <Label htmlFor="section-daily" className="cursor-pointer">
                       Daily Participation Grid
@@ -222,7 +271,9 @@ export default function ExportReportDialog({ open, onOpenChange }: ExportReportD
                     <Checkbox
                       id="section-summary"
                       checked={includeSummary}
-                      onCheckedChange={(checked) => setIncludeSummary(checked === true)}
+                      onCheckedChange={(checked) =>
+                        setIncludeSummary(checked === true)
+                      }
                     />
                     <Label htmlFor="section-summary" className="cursor-pointer">
                       Per-Traveller Summary
@@ -232,9 +283,14 @@ export default function ExportReportDialog({ open, onOpenChange }: ExportReportD
                     <Checkbox
                       id="section-payments"
                       checked={includePayments}
-                      onCheckedChange={(checked) => setIncludePayments(checked === true)}
+                      onCheckedChange={(checked) =>
+                        setIncludePayments(checked === true)
+                      }
                     />
-                    <Label htmlFor="section-payments" className="cursor-pointer">
+                    <Label
+                      htmlFor="section-payments"
+                      className="cursor-pointer"
+                    >
                       Payment History
                     </Label>
                   </div>
@@ -242,7 +298,9 @@ export default function ExportReportDialog({ open, onOpenChange }: ExportReportD
                     <Checkbox
                       id="section-car"
                       checked={includeCarExpenses}
-                      onCheckedChange={(checked) => setIncludeCarExpenses(checked === true)}
+                      onCheckedChange={(checked) =>
+                        setIncludeCarExpenses(checked === true)
+                      }
                     />
                     <Label htmlFor="section-car" className="cursor-pointer">
                       Car Expenses
@@ -252,7 +310,9 @@ export default function ExportReportDialog({ open, onOpenChange }: ExportReportD
                     <Checkbox
                       id="section-overall"
                       checked={includeOverallSummary}
-                      onCheckedChange={(checked) => setIncludeOverallSummary(checked === true)}
+                      onCheckedChange={(checked) =>
+                        setIncludeOverallSummary(checked === true)
+                      }
                     />
                     <Label htmlFor="section-overall" className="cursor-pointer">
                       Overall Summary
@@ -265,43 +325,67 @@ export default function ExportReportDialog({ open, onOpenChange }: ExportReportD
 
               {/* Traveller Filters */}
               <div className="space-y-3">
-                <Label className="text-base font-semibold">Traveller Filter</Label>
+                <Label className="text-base font-semibold">
+                  Traveller Filter
+                </Label>
                 <div className="space-y-3">
                   <Select
                     value={travellerFilterMode}
-                    onValueChange={(value: 'all' | 'selected') => setTravellerFilterMode(value)}
+                    onValueChange={(value: "all" | "selected") =>
+                      setTravellerFilterMode(value)
+                    }
                   >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All travellers</SelectItem>
-                      <SelectItem value="selected">Selected travellers only</SelectItem>
+                      <SelectItem value="selected">
+                        Selected travellers only
+                      </SelectItem>
                     </SelectContent>
                   </Select>
 
-                  {travellerFilterMode === 'selected' && (
+                  {travellerFilterMode === "selected" && (
                     <>
                       <div className="flex items-center justify-between">
-                        <Label className="text-sm text-muted-foreground">Select Travellers</Label>
+                        <Label className="text-sm text-muted-foreground">
+                          Select Travellers
+                        </Label>
                         <div className="flex gap-2">
-                          <Button type="button" variant="ghost" size="sm" onClick={selectAllTravellers}>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={selectAllTravellers}
+                          >
                             Select All
                           </Button>
-                          <Button type="button" variant="ghost" size="sm" onClick={deselectAllTravellers}>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={deselectAllTravellers}
+                          >
                             Deselect All
                           </Button>
                         </div>
                       </div>
                       <div className="space-y-2 max-h-48 overflow-y-auto border rounded-md p-3">
                         {ledgerState.travellers.map((t) => (
-                          <div key={t.id} className="flex items-center space-x-2">
+                          <div
+                            key={t.id}
+                            className="flex items-center space-x-2"
+                          >
                             <Checkbox
                               id={`traveller-${t.id}`}
                               checked={selectedTravellers.has(t.id)}
                               onCheckedChange={() => toggleTraveller(t.id)}
                             />
-                            <Label htmlFor={`traveller-${t.id}`} className="cursor-pointer">
+                            <Label
+                              htmlFor={`traveller-${t.id}`}
+                              className="cursor-pointer"
+                            >
                               {t.name}
                             </Label>
                           </div>
@@ -319,12 +403,20 @@ export default function ExportReportDialog({ open, onOpenChange }: ExportReportD
 
               {/* Payment History Filters */}
               <div className="space-y-3">
-                <Label className="text-base font-semibold">Payment History Filter</Label>
+                <Label className="text-base font-semibold">
+                  Payment History Filter
+                </Label>
                 <div className="space-y-2">
-                  <Label htmlFor="payment-traveller-filter" className="text-sm text-muted-foreground">
+                  <Label
+                    htmlFor="payment-traveller-filter"
+                    className="text-sm text-muted-foreground"
+                  >
                     Filter by Traveller
                   </Label>
-                  <Select value={paymentTravellerId} onValueChange={setPaymentTravellerId}>
+                  <Select
+                    value={paymentTravellerId}
+                    onValueChange={setPaymentTravellerId}
+                  >
                     <SelectTrigger id="payment-traveller-filter">
                       <SelectValue placeholder="Select traveller" />
                     </SelectTrigger>
@@ -338,20 +430,30 @@ export default function ExportReportDialog({ open, onOpenChange }: ExportReportD
                     </SelectContent>
                   </Select>
                 </div>
-                <p className="text-xs text-muted-foreground">Applies to: Payment History section only</p>
+                <p className="text-xs text-muted-foreground">
+                  Applies to: Payment History section only
+                </p>
               </div>
 
               <Separator />
 
               {/* Car Expenses Filters */}
               <div className="space-y-3">
-                <Label className="text-base font-semibold">Car Expenses Filters</Label>
+                <Label className="text-base font-semibold">
+                  Car Expenses Filters
+                </Label>
                 <div className="space-y-3">
                   <div className="space-y-2">
-                    <Label htmlFor="expense-category-filter" className="text-sm text-muted-foreground">
+                    <Label
+                      htmlFor="expense-category-filter"
+                      className="text-sm text-muted-foreground"
+                    >
                       Filter by Category
                     </Label>
-                    <Select value={expenseCategory} onValueChange={setExpenseCategory}>
+                    <Select
+                      value={expenseCategory}
+                      onValueChange={setExpenseCategory}
+                    >
                       <SelectTrigger id="expense-category-filter">
                         <SelectValue placeholder="Select category" />
                       </SelectTrigger>
@@ -367,7 +469,10 @@ export default function ExportReportDialog({ open, onOpenChange }: ExportReportD
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="expense-search" className="text-sm text-muted-foreground">
+                    <Label
+                      htmlFor="expense-search"
+                      className="text-sm text-muted-foreground"
+                    >
                       Search Category or Note
                     </Label>
                     <Input
@@ -379,14 +484,20 @@ export default function ExportReportDialog({ open, onOpenChange }: ExportReportD
                     />
                   </div>
                 </div>
-                <p className="text-xs text-muted-foreground">Applies to: Car Expenses section only</p>
+                <p className="text-xs text-muted-foreground">
+                  Applies to: Car Expenses section only
+                </p>
               </div>
             </>
           )}
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isExporting}>
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={isExporting}
+          >
             Cancel
           </Button>
           <Button onClick={handleExport} disabled={isExporting}>
@@ -397,7 +508,7 @@ export default function ExportReportDialog({ open, onOpenChange }: ExportReportD
               </>
             ) : (
               <>
-                {exportFormat === 'pdf' ? (
+                {exportFormat === "pdf" ? (
                   <FileText className="h-4 w-4 mr-2" />
                 ) : (
                   <Download className="h-4 w-4 mr-2" />

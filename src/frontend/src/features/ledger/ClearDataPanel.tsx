@@ -1,9 +1,3 @@
-import { useState } from 'react';
-import { useLedgerState } from './LedgerStateContext';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -13,16 +7,36 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { toast } from 'sonner';
-import { Lock, Trash2, Calendar, Receipt, DollarSign, Car, Database } from 'lucide-react';
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Calendar,
+  Car,
+  Database,
+  DollarSign,
+  Lock,
+  Receipt,
+  Trash2,
+} from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
+import { useLedgerState } from "./LedgerStateContext";
 
-const CORRECT_PASSWORD = '7Days#Week';
+const CORRECT_PASSWORD = "7Days#Week";
 
 export default function ClearDataPanel() {
   const [isUnlocked, setIsUnlocked] = useState(false);
-  const [passwordInput, setPasswordInput] = useState('');
-  const [passwordError, setPasswordError] = useState('');
+  const [passwordInput, setPasswordInput] = useState("");
+  const [passwordError, setPasswordError] = useState("");
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [actionToConfirm, setActionToConfirm] = useState<{
     title: string;
@@ -41,20 +55,24 @@ export default function ClearDataPanel() {
   const handleUnlock = () => {
     if (passwordInput === CORRECT_PASSWORD) {
       setIsUnlocked(true);
-      setPasswordError('');
-      setPasswordInput('');
+      setPasswordError("");
+      setPasswordInput("");
     } else {
-      setPasswordError('Incorrect password. Please try again.');
+      setPasswordError("Incorrect password. Please try again.");
     }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
+    if (e.key === "Enter") {
       handleUnlock();
     }
   };
 
-  const openConfirmDialog = (title: string, description: string, action: () => void) => {
+  const openConfirmDialog = (
+    title: string,
+    description: string,
+    action: () => void,
+  ) => {
     setActionToConfirm({ title, description, action });
     setConfirmDialogOpen(true);
   };
@@ -69,56 +87,58 @@ export default function ClearDataPanel() {
 
   const handleClearAll = () => {
     openConfirmDialog(
-      'Clear All Ledger Data',
-      'This will permanently delete all travellers, trips, payments, expenses, and reset all settings. This action cannot be undone.',
+      "Clear All Ledger Data",
+      "This will permanently delete all travellers, trips, payments, expenses, and reset all settings. This action cannot be undone.",
       () => {
         clearAllLedgerData();
-        toast.success('All ledger data has been cleared successfully.');
-      }
+        toast.success("All ledger data has been cleared successfully.");
+      },
     );
   };
 
   const handleClearDailyData = () => {
     openConfirmDialog(
-      'Clear Trip & Daily Participation Data',
-      'This will permanently delete all trip participation records (AM/PM checkboxes) for all dates. Travellers and payments will remain.',
+      "Clear Trip & Daily Participation Data",
+      "This will permanently delete all trip participation records (AM/PM checkboxes) for all dates. Travellers and payments will remain.",
       () => {
         clearDailyData();
-        toast.success('Trip and daily participation data has been cleared successfully.');
-      }
+        toast.success(
+          "Trip and daily participation data has been cleared successfully.",
+        );
+      },
     );
   };
 
   const handleClearCashPayments = () => {
     openConfirmDialog(
-      'Clear Cash Payments',
-      'This will permanently delete all recorded cash payments. Trip data and other pending amounts will remain.',
+      "Clear Cash Payments",
+      "This will permanently delete all recorded cash payments. Trip data and other pending amounts will remain.",
       () => {
         clearCashPayments();
-        toast.success('Cash payments have been cleared successfully.');
-      }
+        toast.success("Cash payments have been cleared successfully.");
+      },
     );
   };
 
   const handleClearOtherPending = () => {
     openConfirmDialog(
-      'Clear Other Pending Amounts',
-      'This will permanently delete all other pending amounts. Trip data and cash payments will remain.',
+      "Clear Other Pending Amounts",
+      "This will permanently delete all other pending amounts. Trip data and cash payments will remain.",
       () => {
         clearOtherPending();
-        toast.success('Other pending amounts have been cleared successfully.');
-      }
+        toast.success("Other pending amounts have been cleared successfully.");
+      },
     );
   };
 
   const handleClearCarExpenses = () => {
     openConfirmDialog(
-      'Clear Car Expenses',
-      'This will permanently delete all car expense records. Trip data and payments will remain.',
+      "Clear Car Expenses",
+      "This will permanently delete all car expense records. Trip data and payments will remain.",
       () => {
         clearCarExpenses();
-        toast.success('Car expenses have been cleared successfully.');
-      }
+        toast.success("Car expenses have been cleared successfully.");
+      },
     );
   };
 
@@ -131,7 +151,8 @@ export default function ClearDataPanel() {
             <CardTitle>Clear Data - Password Protected</CardTitle>
           </div>
           <CardDescription>
-            Enter the password to access data clearing options. This area contains destructive actions.
+            Enter the password to access data clearing options. This area
+            contains destructive actions.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -144,7 +165,7 @@ export default function ClearDataPanel() {
               value={passwordInput}
               onChange={(e) => {
                 setPasswordInput(e.target.value);
-                setPasswordError('');
+                setPasswordError("");
               }}
               onKeyPress={handleKeyPress}
             />
@@ -169,7 +190,8 @@ export default function ClearDataPanel() {
             <CardTitle>Clear Data Options</CardTitle>
           </div>
           <CardDescription>
-            Select which data you want to clear. Each action requires confirmation and cannot be undone.
+            Select which data you want to clear. Each action requires
+            confirmation and cannot be undone.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -222,7 +244,8 @@ export default function ClearDataPanel() {
 
           <div className="pt-4 border-t">
             <p className="text-sm text-muted-foreground">
-              Note: This tab will lock again when you refresh the page. The password is only for accessing these controls.
+              Note: This tab will lock again when you refresh the page. The
+              password is only for accessing these controls.
             </p>
           </div>
         </CardContent>
@@ -238,7 +261,10 @@ export default function ClearDataPanel() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirm} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            <AlertDialogAction
+              onClick={handleConfirm}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
               Confirm Delete
             </AlertDialogAction>
           </AlertDialogFooter>

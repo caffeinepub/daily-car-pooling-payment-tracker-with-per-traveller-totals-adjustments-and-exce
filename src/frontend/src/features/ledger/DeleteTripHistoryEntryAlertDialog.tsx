@@ -7,12 +7,12 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+} from "@/components/ui/alert-dialog";
 
 interface DeleteTripHistoryEntryAlertDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  entryType: 'traveller' | 'coTraveller';
+  entryType: "traveller" | "coTraveller";
   entryName: string;
   entryDate: string;
   onConfirmDelete: () => void;
@@ -32,9 +32,11 @@ export default function DeleteTripHistoryEntryAlertDialog({
         <AlertDialogHeader>
           <AlertDialogTitle>Delete Trip Entry</AlertDialogTitle>
           <AlertDialogDescription>
-            Are you sure you want to delete the trip entry for <strong>{entryName}</strong> on <strong>{entryDate}</strong>?
-            {entryType === 'traveller' && ' This will clear all trip participation (morning and evening) for this date.'}
-            {' '}This action cannot be undone.
+            Are you sure you want to delete the trip entry for{" "}
+            <strong>{entryName}</strong> on <strong>{entryDate}</strong>?
+            {entryType === "traveller" &&
+              " This will clear all trip participation (morning and evening) for this date."}{" "}
+            This action cannot be undone.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

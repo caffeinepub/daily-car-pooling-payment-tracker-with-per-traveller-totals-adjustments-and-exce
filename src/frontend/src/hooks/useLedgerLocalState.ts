@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
-import type { LocalLedgerState } from '../utils/backupRestore';
-import { mergeLocalStates } from '../utils/backupRestore';
-import { getCurrentMonthRange } from '../utils/dateRange';
+import { useEffect, useRef, useState } from "react";
+import type { LocalLedgerState } from "../utils/backupRestore";
+import { mergeLocalStates } from "../utils/backupRestore";
+import { getCurrentMonthRange } from "../utils/dateRange";
 
 export interface Traveller {
   id: string;
@@ -53,13 +53,14 @@ export interface CoTravellerIncome {
   amount: number;
   date: string;
   note?: string;
+  tripTime?: "morning" | "evening";
 }
 
 export interface PerDayAutoTollSelection {
   [dateKey: string]: boolean;
 }
 
-const STORAGE_KEY = 'carpool-ledger-state';
+const STORAGE_KEY = "carpool-ledger-state";
 
 interface StoredState {
   travellers: Traveller[];
@@ -113,9 +114,9 @@ function loadState(): StoredState {
       };
     }
   } catch (error) {
-    console.error('Failed to load state:', error);
+    console.error("Failed to load state:", error);
   }
-  
+
   const defaultRange = getDefaultDateRange();
   return {
     travellers: [],
@@ -135,11 +136,25 @@ function loadState(): StoredState {
   };
 }
 
-function saveState(state: StoredState): void {
+function saveState(state: StoredState): boolean {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    return true;
   } catch (error) {
-    console.error('Failed to save state:', error);
+    console.error("Failed to save state:", error);
+    return false;
+  }
+}
+
+/**
+ * Immediately persist the current full state snapshot to localStorage.
+ * Used to guarantee persistence before async operations or dialog close.
+ */
+function saveStateImmediate(state: StoredState): void {
+  const success = saveState(state);
+  if (!success) {
+    // Retry once after a short delay as a fallback
+    setTimeout(() => saveState(state), 100);
   }
 }
 
@@ -154,13 +169,85 @@ export function useLedgerLocalState() {
   const [carExpenses, setCarExpenses] = useState<CarExpense[]>([]);
   const [includeSaturday, setIncludeSaturday] = useState(false);
   const [includeSunday, setIncludeSunday] = useState(false);
-  const [coTravellerIncomes, setCoTravellerIncomes] = useState<CoTravellerIncome[]>([]);
-  const [perDayAutoTollSelection, setPerDayAutoTollSelection] = useState<PerDayAutoTollSelection>({});
+  const [coTravellerIncomes, setCoTravellerIncomes] = useState<
+    CoTravellerIncome[]
+  >([]);
+  const [perDayAutoTollSelection, setPerDayAutoTollSelection] =
+    useState<PerDayAutoTollSelection>({});
   const [stateRevision, setStateRevision] = useState(0);
-  
+
   // Track if we should skip the next save (used for clearAllLedgerData)
   const skipNextSave = useRef(false);
   const skipRevisionIncrement = useRef(false);
+
+  // Refs to always have the latest state values for synchronous saves
+  const travellersRef = useRef(travellers);
+  const dailyDataRef = useRef(dailyData);
+  const dateRangeRef = useRef(dateRange);
+  const ratePerTripRef = useRef(ratePerTrip);
+  const cashPaymentsRef = useRef(cashPayments);
+  const otherPendingRef = useRef(otherPending);
+  const carExpensesRef = useRef(carExpenses);
+  const includeSaturdayRef = useRef(includeSaturday);
+  const includeSundayRef = useRef(includeSunday);
+  const coTravellerIncomesRef = useRef(coTravellerIncomes);
+  const perDayAutoTollSelectionRef = useRef(perDayAutoTollSelection);
+
+  // Keep refs in sync with state
+  useEffect(() => {
+    travellersRef.current = travellers;
+  }, [travellers]);
+  useEffect(() => {
+    dailyDataRef.current = dailyData;
+  }, [dailyData]);
+  useEffect(() => {
+    dateRangeRef.current = dateRange;
+  }, [dateRange]);
+  useEffect(() => {
+    ratePerTripRef.current = ratePerTrip;
+  }, [ratePerTrip]);
+  useEffect(() => {
+    cashPaymentsRef.current = cashPayments;
+  }, [cashPayments]);
+  useEffect(() => {
+    otherPendingRef.current = otherPending;
+  }, [otherPending]);
+  useEffect(() => {
+    carExpensesRef.current = carExpenses;
+  }, [carExpenses]);
+  useEffect(() => {
+    includeSaturdayRef.current = includeSaturday;
+  }, [includeSaturday]);
+  useEffect(() => {
+    includeSundayRef.current = includeSunday;
+  }, [includeSunday]);
+  useEffect(() => {
+    coTravellerIncomesRef.current = coTravellerIncomes;
+  }, [coTravellerIncomes]);
+  useEffect(() => {
+    perDayAutoTollSelectionRef.current = perDayAutoTollSelection;
+  }, [perDayAutoTollSelection]);
+
+  // Build a snapshot of the current state for immediate persistence
+  const buildSnapshot = (
+    overrides: Partial<StoredState> = {},
+  ): StoredState => ({
+    travellers: travellersRef.current,
+    dailyData: dailyDataRef.current,
+    dateRange: {
+      start: dateRangeRef.current.start.toISOString(),
+      end: dateRangeRef.current.end.toISOString(),
+    },
+    ratePerTrip: ratePerTripRef.current,
+    cashPayments: cashPaymentsRef.current,
+    otherPending: otherPendingRef.current,
+    carExpenses: carExpensesRef.current,
+    includeSaturday: includeSaturdayRef.current,
+    includeSunday: includeSundayRef.current,
+    coTravellerIncomes: coTravellerIncomesRef.current,
+    perDayAutoTollSelection: perDayAutoTollSelectionRef.current,
+    ...overrides,
+  });
 
   // Load state on mount
   useEffect(() => {
@@ -184,7 +271,7 @@ export function useLedgerLocalState() {
     setPerDayAutoTollSelection(loaded.perDayAutoTollSelection ?? {});
   }, []);
 
-  // Save state whenever it changes
+  // Save state whenever it changes (reactive effect-based persistence)
   useEffect(() => {
     if (skipNextSave.current) {
       skipNextSave.current = false;
@@ -236,7 +323,9 @@ export function useLedgerLocalState() {
   };
 
   const renameTraveller = (id: string, newName: string) => {
-    setTravellers((prev) => prev.map((t) => (t.id === id ? { ...t, name: newName } : t)));
+    setTravellers((prev) =>
+      prev.map((t) => (t.id === id ? { ...t, name: newName } : t)),
+    );
   };
 
   const removeTraveller = (id: string) => {
@@ -260,7 +349,11 @@ export function useLedgerLocalState() {
     });
   };
 
-  const toggleDraftTrip = (dateKey: string, travellerId: string, period: 'morning' | 'evening') => {
+  const toggleDraftTrip = (
+    dateKey: string,
+    travellerId: string,
+    period: "morning" | "evening",
+  ) => {
     setDraftDailyData((prev) => {
       const updated = { ...prev };
       if (!updated[dateKey]) {
@@ -277,15 +370,19 @@ export function useLedgerLocalState() {
     });
   };
 
-  const setDraftTripsForAllTravellers = (dateKey: string, morning: boolean, evening: boolean) => {
+  const setDraftTripsForAllTravellers = (
+    dateKey: string,
+    morning: boolean,
+    evening: boolean,
+  ) => {
     setDraftDailyData((prev) => {
       const updated = { ...prev };
       if (!updated[dateKey]) {
         updated[dateKey] = {};
       }
-      travellers.forEach((t) => {
+      for (const t of travellers) {
         updated[dateKey][t.id] = { morning, evening };
-      });
+      }
       return updated;
     });
   };
@@ -302,7 +399,12 @@ export function useLedgerLocalState() {
     return JSON.stringify(dailyData) !== JSON.stringify(draftDailyData);
   };
 
-  const updateTravellerTrip = (dateKey: string, travellerId: string, morning: boolean, evening: boolean) => {
+  const updateTravellerTrip = (
+    dateKey: string,
+    travellerId: string,
+    morning: boolean,
+    evening: boolean,
+  ) => {
     setDailyData((prev) => {
       const updated = { ...prev };
       if (!updated[dateKey]) {
@@ -313,7 +415,7 @@ export function useLedgerLocalState() {
     });
   };
 
-  const addCashPayment = (payment: Omit<CashPayment, 'id'>) => {
+  const addCashPayment = (payment: Omit<CashPayment, "id">) => {
     const newPayment: CashPayment = {
       ...payment,
       id: generateId(),
@@ -321,9 +423,12 @@ export function useLedgerLocalState() {
     setCashPayments((prev) => [...prev, newPayment]);
   };
 
-  const updateCashPayment = (id: string, updates: Partial<Omit<CashPayment, 'id'>>) => {
+  const updateCashPayment = (
+    id: string,
+    updates: Partial<Omit<CashPayment, "id">>,
+  ) => {
     setCashPayments((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, ...updates } : p))
+      prev.map((p) => (p.id === id ? { ...p, ...updates } : p)),
     );
   };
 
@@ -331,7 +436,7 @@ export function useLedgerLocalState() {
     setCashPayments((prev) => prev.filter((p) => p.id !== id));
   };
 
-  const addOtherPending = (pending: Omit<OtherPending, 'id'>) => {
+  const addOtherPending = (pending: Omit<OtherPending, "id">) => {
     const newPending: OtherPending = {
       ...pending,
       id: generateId(),
@@ -339,21 +444,41 @@ export function useLedgerLocalState() {
     setOtherPending((prev) => [...prev, newPending]);
   };
 
+  const updateOtherPending = (
+    id: string,
+    updates: Partial<Omit<OtherPending, "id">>,
+  ) => {
+    setOtherPending((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, ...updates } : p)),
+    );
+  };
+
   const removeOtherPending = (id: string) => {
     setOtherPending((prev) => prev.filter((p) => p.id !== id));
   };
 
-  const addCarExpense = (expense: Omit<CarExpense, 'id'>) => {
+  const addCarExpense = (expense: Omit<CarExpense, "id">) => {
     const newExpense: CarExpense = {
       ...expense,
       id: generateId(),
     };
-    setCarExpenses((prev) => [...prev, newExpense]);
+
+    // Update React state for immediate UI re-render
+    setCarExpenses((prev) => {
+      const updated = [...prev, newExpense];
+      // Synchronously persist to localStorage with the new expense included
+      // so it survives a refresh even before the effect fires
+      saveStateImmediate(buildSnapshot({ carExpenses: updated }));
+      return updated;
+    });
   };
 
-  const updateCarExpense = (id: string, updates: Partial<Omit<CarExpense, 'id'>>) => {
+  const updateCarExpense = (
+    id: string,
+    updates: Partial<Omit<CarExpense, "id">>,
+  ) => {
     setCarExpenses((prev) =>
-      prev.map((e) => (e.id === id ? { ...e, ...updates } : e))
+      prev.map((e) => (e.id === id ? { ...e, ...updates } : e)),
     );
   };
 
@@ -361,7 +486,7 @@ export function useLedgerLocalState() {
     setCarExpenses((prev) => prev.filter((e) => e.id !== id));
   };
 
-  const addCoTravellerIncome = (income: Omit<CoTravellerIncome, 'id'>) => {
+  const addCoTravellerIncome = (income: Omit<CoTravellerIncome, "id">) => {
     const newIncome: CoTravellerIncome = {
       ...income,
       id: generateId(),
@@ -369,9 +494,14 @@ export function useLedgerLocalState() {
     setCoTravellerIncomes((prev) => [...prev, newIncome]);
   };
 
-  const updateCoTravellerIncome = (id: string, updates: Partial<Omit<CoTravellerIncome, 'id'>>) => {
+  const updateCoTravellerIncome = (
+    id: string,
+    updates: Partial<Omit<CoTravellerIncome, "id">>,
+  ) => {
     setCoTravellerIncomes((prev) =>
-      prev.map((income) => (income.id === id ? { ...income, ...updates } : income))
+      prev.map((income) =>
+        income.id === id ? { ...income, ...updates } : income,
+      ),
     );
   };
 
@@ -440,30 +570,33 @@ export function useLedgerLocalState() {
     };
   };
 
-  const applyMergedState = (state: LocalLedgerState) => {
-    skipRevisionIncrement.current = true;
-    setTravellers(state.travellers);
-    const newDailyData = state.dailyData;
-    setDailyData(newDailyData);
-    setDraftDailyData(deepCloneDailyData(newDailyData));
-    setDateRange({
-      start: new Date(state.dateRange.start),
-      end: new Date(state.dateRange.end),
-    });
-    setRatePerTrip(state.ratePerTrip);
-    setCashPayments(state.cashPayments);
-    setOtherPending(state.otherPending);
-    setCarExpenses(state.carExpenses);
-    setIncludeSaturday(state.includeSaturday);
-    setIncludeSunday(state.includeSunday);
-    setCoTravellerIncomes(state.coTravellerIncomes || []);
-    setPerDayAutoTollSelection(state.perDayAutoTollSelection || {});
-  };
-
   const mergeRestoreFromBackup = (backupState: LocalLedgerState) => {
+    skipRevisionIncrement.current = true;
     const currentState = getPersistedState();
     const merged = mergeLocalStates(currentState, backupState);
-    applyMergedState(merged);
+
+    setTravellers(merged.travellers);
+    const mergedDailyData = merged.dailyData as DailyData;
+    setDailyData(mergedDailyData);
+    setDraftDailyData(deepCloneDailyData(mergedDailyData));
+    setDateRange({
+      start: new Date(merged.dateRange.start),
+      end: new Date(merged.dateRange.end),
+    });
+    setRatePerTrip(merged.ratePerTrip);
+    setCashPayments(merged.cashPayments);
+    setOtherPending(merged.otherPending);
+    setCarExpenses(merged.carExpenses);
+    setIncludeSaturday(merged.includeSaturday);
+    setIncludeSunday(merged.includeSunday);
+    setCoTravellerIncomes(merged.coTravellerIncomes as CoTravellerIncome[]);
+    setPerDayAutoTollSelection(
+      (merged.perDayAutoTollSelection as PerDayAutoTollSelection) ?? {},
+    );
+  };
+
+  const restoreFromBackup = (backupState: LocalLedgerState) => {
+    mergeRestoreFromBackup(backupState);
   };
 
   return {
@@ -471,12 +604,16 @@ export function useLedgerLocalState() {
     dailyData,
     draftDailyData,
     dateRange,
+    setDateRange,
     ratePerTrip,
+    setRatePerTrip,
     cashPayments,
     otherPending,
     carExpenses,
     includeSaturday,
+    setIncludeSaturday,
     includeSunday,
+    setIncludeSunday,
     coTravellerIncomes,
     perDayAutoTollSelection,
     stateRevision,
@@ -489,18 +626,15 @@ export function useLedgerLocalState() {
     discardDraftDailyData,
     hasDraftChanges,
     updateTravellerTrip,
-    setDateRange,
-    setRatePerTrip,
     addCashPayment,
     updateCashPayment,
     removeCashPayment,
     addOtherPending,
+    updateOtherPending,
     removeOtherPending,
     addCarExpense,
     updateCarExpense,
     removeCarExpense,
-    setIncludeSaturday,
-    setIncludeSunday,
     addCoTravellerIncome,
     updateCoTravellerIncome,
     removeCoTravellerIncome,
@@ -511,8 +645,7 @@ export function useLedgerLocalState() {
     clearOtherPending,
     clearCarExpenses,
     getPersistedState,
-    applyMergedState,
     mergeRestoreFromBackup,
-    setPerDayAutoTollSelection,
+    restoreFromBackup,
   };
 }

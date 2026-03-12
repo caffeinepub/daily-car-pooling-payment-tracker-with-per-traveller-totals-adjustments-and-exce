@@ -1,43 +1,71 @@
-import { useState, useMemo, useEffect } from 'react';
-import { useLedgerState } from './LedgerStateContext';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Switch } from '@/components/ui/switch';
-import { Plus, Car, IndianRupee, Layers } from 'lucide-react';
-import { format, parseISO } from 'date-fns';
-import { toast } from 'sonner';
-import { formatCurrency } from '../../utils/money';
-import { Separator } from '@/components/ui/separator';
-import { useAutoTollSettings } from '../../hooks/useAutoTollSettings';
-import MultiCategoryExpenseForm from './MultiCategoryExpenseForm';
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
+import { parseISO } from "date-fns";
+import { Car, IndianRupee, Layers, Plus } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
+import { useAutoTollSettings } from "../../hooks/useAutoTollSettings";
+import { getTodayIST } from "../../utils/dateRange";
+import { formatCurrency } from "../../utils/money";
+import { useLedgerState } from "./LedgerStateContext";
+import MultiCategoryExpenseForm from "./MultiCategoryExpenseForm";
 
 const PREDEFINED_CATEGORIES = [
-  'CNG BRD',
-  'CNG AHM',
-  'Petrol',
-  'Maintenance Cost',
-  'Toll',
-  'Other',
+  "CNG BRD",
+  "CNG AHM",
+  "Petrol",
+  "Maintenance Cost",
+  "Toll",
+  "Other",
 ];
 
 export default function CarExpensesPanel() {
   const { dateRange, carExpenses, addCarExpense } = useLedgerState();
-  const { enabled: autoTollEnabled, amount: autoTollAmount, setEnabled: setAutoTollEnabled, setAmount: setAutoTollAmount } = useAutoTollSettings();
-  
+  const {
+    enabled: autoTollEnabled,
+    amount: autoTollAmount,
+    setEnabled: setAutoTollEnabled,
+    setAmount: setAutoTollAmount,
+  } = useAutoTollSettings();
+
   const [open, setOpen] = useState(false);
   const [multiOpen, setMultiOpen] = useState(false);
-  const [category, setCategory] = useState('');
-  const [customCategory, setCustomCategory] = useState('');
-  const [amount, setAmount] = useState('');
-  const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
-  const [note, setNote] = useState('');
-  const [error, setError] = useState('');
-  const [localAutoTollAmount, setLocalAutoTollAmount] = useState(autoTollAmount.toString());
+  const [category, setCategory] = useState("");
+  const [customCategory, setCustomCategory] = useState("");
+  const [amount, setAmount] = useState("");
+  const [date, setDate] = useState(getTodayIST());
+  const [note, setNote] = useState("");
+  const [error, setError] = useState("");
+  const [localAutoTollAmount, setLocalAutoTollAmount] = useState(
+    autoTollAmount.toString(),
+  );
 
   // Sync local amount input with persisted amount
   useEffect(() => {
@@ -45,34 +73,36 @@ export default function CarExpensesPanel() {
   }, [autoTollAmount]);
 
   // Default amount to 30 when Toll is selected
+  // biome-ignore lint/correctness/useExhaustiveDependencies: intentional - only run when category changes
   useEffect(() => {
-    if (category === 'Toll' && !amount) {
-      setAmount('30');
+    if (category === "Toll" && !amount) {
+      setAmount("30");
     }
   }, [category]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError("");
 
-    const numAmount = parseFloat(amount);
-    
-    if (!amount || isNaN(numAmount) || numAmount <= 0) {
-      setError('Please enter a valid amount greater than 0');
+    const numAmount = Number.parseFloat(amount);
+
+    if (!amount || Number.isNaN(numAmount) || numAmount <= 0) {
+      setError("Please enter a valid amount greater than 0");
       return;
     }
 
     if (!category) {
-      setError('Please select a category');
+      setError("Please select a category");
       return;
     }
 
-    if (category === 'Other' && !customCategory.trim()) {
-      setError('Please enter a custom category name for Other');
+    if (category === "Other" && !customCategory.trim()) {
+      setError("Please enter a custom category name for Other");
       return;
     }
 
-    const finalCategory = category === 'Other' ? customCategory.trim() : category;
+    const finalCategory =
+      category === "Other" ? customCategory.trim() : category;
     addCarExpense({
       category: finalCategory,
       amount: numAmount,
@@ -80,23 +110,26 @@ export default function CarExpensesPanel() {
       note: note || undefined,
     });
     toast.success(`Expense of ₹${numAmount} added for ${finalCategory}`);
-    
+
     // Reset form
-    setCategory('');
-    setCustomCategory('');
-    setAmount('');
-    setDate(format(new Date(), 'yyyy-MM-dd'));
-    setNote('');
+    setCategory("");
+    setCustomCategory("");
+    setAmount("");
+    setDate(getTodayIST());
+    setNote("");
     setOpen(false);
   };
 
-  const handleAutoTollAmountChange = (value: string) => {
-    setLocalAutoTollAmount(value);
-    const num = parseFloat(value);
-    if (!isNaN(num) && num > 0) {
-      setAutoTollAmount(num);
-    }
-  };
+  const handleAutoTollAmountChange = useCallback(
+    (value: string) => {
+      setLocalAutoTollAmount(value);
+      const num = Number.parseFloat(value);
+      if (!Number.isNaN(num) && num > 0) {
+        setAutoTollAmount(num);
+      }
+    },
+    [setAutoTollAmount],
+  );
 
   // Calculate totals for the current date range
   const totals = useMemo(() => {
@@ -112,10 +145,11 @@ export default function CarExpensesPanel() {
     const categoryTotals: Record<string, number> = {};
     let grandTotal = 0;
 
-    expensesInRange.forEach((expense) => {
-      categoryTotals[expense.category] = (categoryTotals[expense.category] || 0) + expense.amount;
+    for (const expense of expensesInRange) {
+      categoryTotals[expense.category] =
+        (categoryTotals[expense.category] || 0) + expense.amount;
       grandTotal += expense.amount;
-    });
+    }
 
     return { categoryTotals, grandTotal };
   }, [carExpenses, dateRange]);
@@ -134,7 +168,12 @@ export default function CarExpensesPanel() {
         <div className="rounded-lg border p-4 space-y-3 bg-muted/30">
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
-              <Label htmlFor="auto-toll-toggle" className="text-base font-medium">Auto Toll Add</Label>
+              <Label
+                htmlFor="auto-toll-toggle"
+                className="text-base font-medium"
+              >
+                Auto Toll Add
+              </Label>
               <p className="text-sm text-muted-foreground">
                 Automatically add toll expenses for new days
               </p>
@@ -145,7 +184,7 @@ export default function CarExpensesPanel() {
               onCheckedChange={setAutoTollEnabled}
             />
           </div>
-          
+
           <div className="space-y-2">
             <Label htmlFor="auto-toll-amount">Toll Amount</Label>
             <div className="relative">
@@ -203,7 +242,7 @@ export default function CarExpensesPanel() {
                   </Select>
                 </div>
 
-                {category === 'Other' && (
+                {category === "Other" && (
                   <div className="space-y-2">
                     <Label htmlFor="customCategory">Custom Category</Label>
                     <Input
@@ -252,7 +291,11 @@ export default function CarExpensesPanel() {
                 {error && <p className="text-sm text-destructive">{error}</p>}
 
                 <DialogFooter>
-                  <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setOpen(false)}
+                  >
                     Cancel
                   </Button>
                   <Button type="submit">Add Expense</Button>
@@ -261,13 +304,20 @@ export default function CarExpensesPanel() {
             </DialogContent>
           </Dialog>
 
-          <Button variant="outline" className="flex-1" onClick={() => setMultiOpen(true)}>
+          <Button
+            variant="outline"
+            className="flex-1"
+            onClick={() => setMultiOpen(true)}
+          >
             <Layers className="mr-2 h-4 w-4" />
             Add 3 Expenses
           </Button>
         </div>
 
-        <MultiCategoryExpenseForm open={multiOpen} onOpenChange={setMultiOpen} />
+        <MultiCategoryExpenseForm
+          open={multiOpen}
+          onOpenChange={setMultiOpen}
+        />
 
         {/* Totals Summary */}
         <div className="space-y-2">

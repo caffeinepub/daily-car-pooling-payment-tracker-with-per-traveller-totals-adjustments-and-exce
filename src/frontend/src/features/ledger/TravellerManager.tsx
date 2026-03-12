@@ -1,19 +1,25 @@
-import { useState } from 'react';
-import { useLedgerState } from './LedgerStateContext';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Plus, Trash2, Edit2, Check, X } from 'lucide-react';
-import EmptyState from '../../components/EmptyState';
-import { Users } from 'lucide-react';
-import { toast } from 'sonner';
-import { calculateTravellerBalance } from '../../utils/ledgerBalances';
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Check, Edit2, Plus, Trash2, X } from "lucide-react";
+import { Users } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
+import EmptyState from "../../components/EmptyState";
+import { calculateTravellerBalance } from "../../utils/ledgerBalances";
+import { useLedgerState } from "./LedgerStateContext";
 
 export default function TravellerManager() {
-  const { 
-    travellers, 
-    addTraveller, 
-    removeTraveller, 
+  const {
+    travellers,
+    addTraveller,
+    removeTraveller,
     renameTraveller,
     dateRange,
     dailyData,
@@ -23,14 +29,14 @@ export default function TravellerManager() {
     includeSaturday,
     includeSunday,
   } = useLedgerState();
-  const [newName, setNewName] = useState('');
+  const [newName, setNewName] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editingName, setEditingName] = useState('');
+  const [editingName, setEditingName] = useState("");
 
   const handleAdd = () => {
     if (newName.trim()) {
       addTraveller(newName.trim());
-      setNewName('');
+      setNewName("");
     }
   };
 
@@ -43,13 +49,13 @@ export default function TravellerManager() {
     if (editingId && editingName.trim()) {
       renameTraveller(editingId, editingName.trim());
       setEditingId(null);
-      setEditingName('');
+      setEditingName("");
     }
   };
 
   const cancelEdit = () => {
     setEditingId(null);
-    setEditingName('');
+    setEditingName("");
   };
 
   const handleRemove = (id: string, name: string) => {
@@ -62,12 +68,14 @@ export default function TravellerManager() {
       cashPayments,
       includeSaturday,
       includeSunday,
-      otherPending
+      otherPending,
     );
 
     // Block deletion if traveller has outstanding balance
     if (balanceResult.balance !== 0) {
-      toast.error('Cannot delete traveller: outstanding due amount must be settled first');
+      toast.error(
+        "Cannot delete traveller: outstanding due amount must be settled first",
+      );
       return;
     }
 
@@ -89,7 +97,7 @@ export default function TravellerManager() {
             placeholder="Enter name"
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
+            onKeyDown={(e) => e.key === "Enter" && handleAdd()}
           />
           <Button onClick={handleAdd} size="icon" disabled={!newName.trim()}>
             <Plus className="h-4 w-4" />
@@ -116,8 +124,8 @@ export default function TravellerManager() {
                       value={editingName}
                       onChange={(e) => setEditingName(e.target.value)}
                       onKeyDown={(e) => {
-                        if (e.key === 'Enter') saveEdit();
-                        if (e.key === 'Escape') cancelEdit();
+                        if (e.key === "Enter") saveEdit();
+                        if (e.key === "Escape") cancelEdit();
                       }}
                       className="flex-1"
                       autoFocus

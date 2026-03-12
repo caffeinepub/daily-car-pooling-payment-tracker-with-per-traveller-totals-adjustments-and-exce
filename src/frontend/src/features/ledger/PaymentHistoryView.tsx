@@ -1,32 +1,55 @@
-import { useLedgerState } from './LedgerStateContext';
-import { formatCurrency } from '../../utils/money';
-import { format, parseISO } from 'date-fns';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
-import EmptyState from '../../components/EmptyState';
-import { Receipt, Pencil, Trash2, IndianRupee } from 'lucide-react';
-import { useState } from 'react';
-import EditCashPaymentDialog from './EditCashPaymentDialog';
-import DeleteCashPaymentAlertDialog from './DeleteCashPaymentAlertDialog';
-import type { CashPayment } from '../../hooks/useLedgerLocalState';
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { format, parseISO } from "date-fns";
+import { IndianRupee, Pencil, Receipt, Trash2 } from "lucide-react";
+import { useState } from "react";
+import EmptyState from "../../components/EmptyState";
+import type { CashPayment } from "../../hooks/useLedgerLocalState";
+import { formatCurrency } from "../../utils/money";
+import DeleteCashPaymentAlertDialog from "./DeleteCashPaymentAlertDialog";
+import EditCashPaymentDialog from "./EditCashPaymentDialog";
+import { useLedgerState } from "./LedgerStateContext";
 
 export default function PaymentHistoryView() {
-  const { travellers, cashPayments, dateRange, updateCashPayment, removeCashPayment } = useLedgerState();
-  const [selectedTravellerId, setSelectedTravellerId] = useState<string>('all');
-  const [editingPayment, setEditingPayment] = useState<CashPayment | null>(null);
-  const [deletingPayment, setDeletingPayment] = useState<CashPayment | null>(null);
+  const {
+    travellers,
+    cashPayments,
+    dateRange,
+    updateCashPayment,
+    removeCashPayment,
+  } = useLedgerState();
+  const [selectedTravellerId, setSelectedTravellerId] = useState<string>("all");
+  const [editingPayment, setEditingPayment] = useState<CashPayment | null>(
+    null,
+  );
+  const [deletingPayment, setDeletingPayment] = useState<CashPayment | null>(
+    null,
+  );
 
   // Filter payments by date range and selected traveller
   const filteredPayments = cashPayments
     .filter((payment) => {
-      // Filter by traveller
-      if (selectedTravellerId !== 'all' && payment.travellerId !== selectedTravellerId) {
+      if (
+        selectedTravellerId !== "all" &&
+        payment.travellerId !== selectedTravellerId
+      ) {
         return false;
       }
-
-      // Filter by date range
       try {
         const paymentDate = parseISO(payment.date);
         return paymentDate >= dateRange.start && paymentDate <= dateRange.end;
@@ -35,20 +58,16 @@ export default function PaymentHistoryView() {
       }
     })
     .sort((a, b) => {
-      // Sort by date, newest first
       try {
-        const dateA = parseISO(a.date);
-        const dateB = parseISO(b.date);
-        return dateB.getTime() - dateA.getTime();
+        return parseISO(b.date).getTime() - parseISO(a.date).getTime();
       } catch {
         return 0;
       }
     });
 
-  // Get traveller name by ID
   const getTravellerName = (travellerId: string): string => {
     const traveller = travellers.find((t) => t.id === travellerId);
-    return traveller?.name || 'Unknown';
+    return traveller?.name || "Unknown";
   };
 
   return (
@@ -56,7 +75,10 @@ export default function PaymentHistoryView() {
       {/* Filter Controls */}
       <div className="flex flex-col gap-2">
         <Label htmlFor="traveller-filter">Filter by Traveller</Label>
-        <Select value={selectedTravellerId} onValueChange={setSelectedTravellerId}>
+        <Select
+          value={selectedTravellerId}
+          onValueChange={setSelectedTravellerId}
+        >
           <SelectTrigger id="traveller-filter" className="w-full sm:w-[250px]">
             <SelectValue placeholder="Select traveller" />
           </SelectTrigger>
@@ -70,8 +92,8 @@ export default function PaymentHistoryView() {
           </SelectContent>
         </Select>
         <p className="text-xs text-muted-foreground">
-          Showing payments from {format(dateRange.start, 'MMM dd, yyyy')} to{' '}
-          {format(dateRange.end, 'MMM dd, yyyy')}
+          Showing payments from {format(dateRange.start, "MMM dd, yyyy")} to{" "}
+          {format(dateRange.end, "MMM dd, yyyy")}
         </p>
       </div>
 
@@ -83,7 +105,7 @@ export default function PaymentHistoryView() {
           description="Cash payments will appear here once they are recorded"
         />
       ) : (
-        <div className="border rounded-lg overflow-hidden">
+        <div className="border rounded-lg overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -98,14 +120,17 @@ export default function PaymentHistoryView() {
               {filteredPayments.map((payment) => (
                 <TableRow key={payment.id}>
                   <TableCell className="font-medium">
-                    {format(parseISO(payment.date), 'MMM dd, yyyy')}
+                    {format(parseISO(payment.date), "MMM dd, yyyy")}
                   </TableCell>
                   <TableCell>{getTravellerName(payment.travellerId)}</TableCell>
                   <TableCell className="text-right font-semibold">
-                    {formatCurrency(payment.amount)}
+                    <div className="flex items-center justify-end gap-1">
+                      <IndianRupee className="h-3 w-3" />
+                      {formatCurrency(payment.amount)}
+                    </div>
                   </TableCell>
                   <TableCell className="text-muted-foreground">
-                    {payment.note || '—'}
+                    {payment.note || "—"}
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
@@ -134,7 +159,7 @@ export default function PaymentHistoryView() {
         </div>
       )}
 
-      {/* Edit Dialog */}
+      {/* Edit Dialog — pass travellerName as separate prop */}
       {editingPayment && (
         <EditCashPaymentDialog
           payment={editingPayment}

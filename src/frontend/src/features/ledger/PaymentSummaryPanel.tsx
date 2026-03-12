@@ -1,14 +1,27 @@
-import { useLedgerState } from './LedgerStateContext';
-import { getDaysInRange, formatDateKey } from '../../utils/dateRange';
-import { isDateIncludedForCalculation } from '../../utils/weekendInclusion';
-import { formatCurrency } from '../../utils/money';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import EmptyState from '../../components/EmptyState';
-import { DollarSign } from 'lucide-react';
-import { parseISO } from 'date-fns';
+import { Badge } from "@/components/ui/badge";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { parseISO } from "date-fns";
+import { DollarSign } from "lucide-react";
+import EmptyState from "../../components/EmptyState";
+import { formatDateKey, getDaysInRange } from "../../utils/dateRange";
+import { formatCurrency } from "../../utils/money";
+import { isDateIncludedForCalculation } from "../../utils/weekendInclusion";
+import { useLedgerState } from "./LedgerStateContext";
 
 export default function PaymentSummaryPanel() {
   const {
@@ -29,17 +42,24 @@ export default function PaymentSummaryPanel() {
   const summaries = travellers.map((traveller) => {
     let totalTrips = 0;
 
-    days.forEach((day) => {
+    for (const day of days) {
       const dateKey = formatDateKey(day);
-      const isIncluded = isDateIncludedForCalculation(day, includeSaturday, includeSunday, dateKey, dailyData);
-      if (!isIncluded) return;
+      const isIncluded = isDateIncludedForCalculation(
+        day,
+        includeSaturday,
+        includeSunday,
+        dateKey,
+        dailyData,
+      );
+      if (!isIncluded) continue;
 
       const tripData = dailyData[dateKey]?.[traveller.id];
       if (tripData) {
-        const tripCount = (tripData.morning ? 1 : 0) + (tripData.evening ? 1 : 0);
+        const tripCount =
+          (tripData.morning ? 1 : 0) + (tripData.evening ? 1 : 0);
         totalTrips += tripCount;
       }
-    });
+    }
 
     const totalCharge = totalTrips * ratePerTrip;
 
@@ -95,8 +115,13 @@ export default function PaymentSummaryPanel() {
     .reduce((sum, income) => sum + income.amount, 0);
 
   // Calculate overall totals
-  const overallTotalPaymentsReceived = summaries.reduce((sum, s) => sum + s.paymentsInRange, 0) + otherCoTravellersTotal;
-  const overallTotalDue = summaries.reduce((sum, s) => sum + Math.max(0, s.balance), 0);
+  const overallTotalPaymentsReceived =
+    summaries.reduce((sum, s) => sum + s.paymentsInRange, 0) +
+    otherCoTravellersTotal;
+  const overallTotalDue = summaries.reduce(
+    (sum, s) => sum + Math.max(0, s.balance),
+    0,
+  );
 
   if (travellers.length === 0) {
     return (
@@ -126,7 +151,9 @@ export default function PaymentSummaryPanel() {
           <DollarSign className="h-5 w-5" />
           Payment Summary
         </CardTitle>
-        <CardDescription>Payment status for the selected date range</CardDescription>
+        <CardDescription>
+          Payment status for the selected date range
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Per-Traveller Table */}
@@ -149,18 +176,22 @@ export default function PaymentSummaryPanel() {
 
                 return (
                   <TableRow key={summary.traveller.id}>
-                    <TableCell className="font-medium">{summary.traveller.name}</TableCell>
-                    <TableCell className="text-right">{formatCurrency(summary.totalDue)}</TableCell>
+                    <TableCell className="font-medium">
+                      {summary.traveller.name}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {formatCurrency(summary.totalDue)}
+                    </TableCell>
                     <TableCell className="text-right text-green-600 dark:text-green-400 font-medium">
                       {formatCurrency(summary.paymentsInRange)}
                     </TableCell>
                     <TableCell
                       className={`text-right font-semibold ${
                         isDue
-                          ? 'text-red-600 dark:text-red-400'
+                          ? "text-red-600 dark:text-red-400"
                           : isOverpaid
-                            ? 'text-green-600 dark:text-green-400'
-                            : ''
+                            ? "text-green-600 dark:text-green-400"
+                            : ""
                       }`}
                     >
                       {formatCurrency(Math.abs(summary.balance))}
@@ -172,7 +203,10 @@ export default function PaymentSummaryPanel() {
                         </Badge>
                       )}
                       {isOverpaid && (
-                        <Badge variant="default" className="bg-green-600 hover:bg-green-700 font-medium">
+                        <Badge
+                          variant="default"
+                          className="bg-green-600 hover:bg-green-700 font-medium"
+                        >
                           Overpaid
                         </Badge>
                       )}
@@ -199,11 +233,19 @@ export default function PaymentSummaryPanel() {
             <div className="space-y-2">
               <div className="flex justify-between items-center text-sm">
                 <span className="text-muted-foreground">Cash Payments</span>
-                <span className="font-medium">{formatCurrency(summaries.reduce((sum, s) => sum + s.paymentsInRange, 0))}</span>
+                <span className="font-medium">
+                  {formatCurrency(
+                    summaries.reduce((sum, s) => sum + s.paymentsInRange, 0),
+                  )}
+                </span>
               </div>
               <div className="flex justify-between items-center text-sm">
-                <span className="text-muted-foreground">Other Co-Travellers</span>
-                <span className="font-medium">{formatCurrency(otherCoTravellersTotal)}</span>
+                <span className="text-muted-foreground">
+                  Other Co-Travellers
+                </span>
+                <span className="font-medium">
+                  {formatCurrency(otherCoTravellersTotal)}
+                </span>
               </div>
             </div>
 
@@ -212,13 +254,17 @@ export default function PaymentSummaryPanel() {
             {/* Total Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="p-4 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-800">
-                <p className="text-sm text-muted-foreground mb-1">Total Payments Received</p>
+                <p className="text-sm text-muted-foreground mb-1">
+                  Total Payments Received
+                </p>
                 <p className="text-2xl font-bold text-green-600 dark:text-green-400">
                   {formatCurrency(overallTotalPaymentsReceived)}
                 </p>
               </div>
               <div className="p-4 bg-red-50 dark:bg-red-950/20 rounded-lg border border-red-200 dark:border-red-800">
-                <p className="text-sm text-muted-foreground mb-1">Total Payment Due</p>
+                <p className="text-sm text-muted-foreground mb-1">
+                  Total Payment Due
+                </p>
                 <p className="text-2xl font-bold text-red-600 dark:text-red-400">
                   {formatCurrency(overallTotalDue)}
                 </p>

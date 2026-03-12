@@ -1,11 +1,11 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
-import { useActor } from './useActor';
-import { useInternetIdentity } from './useInternetIdentity';
-import type { AppData } from '../backend';
-import type { LocalLedgerState } from '../utils/backupRestore';
-import { mergeLocalStates } from '../utils/backupRestore';
+import { useCallback, useEffect, useRef, useState } from "react";
+import type { AppData } from "../backend";
+import type { LocalLedgerState } from "../utils/backupRestore";
+import { mergeLocalStates } from "../utils/backupRestore";
+import { useActor } from "./useActor";
+import { useInternetIdentity } from "./useInternetIdentity";
 
-export type SyncStatus = 'idle' | 'syncing' | 'synced' | 'failed';
+export type SyncStatus = "idle" | "syncing" | "synced" | "failed";
 
 interface SyncState {
   status: SyncStatus;
@@ -22,11 +22,15 @@ interface UseAppDataSyncProps {
 const POLL_INTERVAL = 3000; // 3 seconds
 const DEBOUNCE_DELAY = 1000; // 1 second debounce for outbound saves
 
-export function useAppDataSync({ getLocalState, applyMergedState, stateRevision }: UseAppDataSyncProps) {
+export function useAppDataSync({
+  getLocalState,
+  applyMergedState,
+  stateRevision,
+}: UseAppDataSyncProps) {
   const { actor, isFetching: actorFetching } = useActor();
   const { identity } = useInternetIdentity();
   const [syncState, setSyncState] = useState<SyncState>({
-    status: 'idle',
+    status: "idle",
     lastSyncTime: null,
     error: null,
   });
@@ -60,39 +64,46 @@ export function useAppDataSync({ getLocalState, applyMergedState, stateRevision 
     let hash = 0;
     for (let i = 0; i < state.length; i++) {
       const char = state.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
+      hash = (hash << 5) - hash + char;
       hash = hash & hash;
     }
     return hash.toString(36);
   };
 
   // Fetch and merge remote data - stabilized with useCallback
+  // biome-ignore lint/correctness/useExhaustiveDependencies: intentional - hashLedgerState is a stable pure function
   const fetchAndMerge = useCallback(async () => {
     if (!actor || !isAuthenticated) return;
 
     try {
-      setSyncState((prev) => ({ ...prev, status: 'syncing', error: null }));
+      setSyncState((prev) => ({ ...prev, status: "syncing", error: null }));
 
       const remoteAppData = await actor.fetchAppData();
 
-      if (remoteAppData && remoteAppData.ledgerState) {
+      if (remoteAppData?.ledgerState) {
         const remoteHash = hashLedgerState(remoteAppData.ledgerState);
-        
+
         // Check if remote data has actually changed
         const hasRemoteChanged =
           lastRemoteVersionRef.current === null ||
           lastRemoteLedgerHashRef.current === null ||
           remoteAppData.version > lastRemoteVersionRef.current ||
-          remoteAppData.lastUpdated > (lastRemoteTimestampRef.current || BigInt(0)) ||
+          remoteAppData.lastUpdated >
+            (lastRemoteTimestampRef.current || BigInt(0)) ||
           remoteHash !== lastRemoteLedgerHashRef.current;
 
         if (hasRemoteChanged) {
           // Parse remote ledger state
-          const remoteLedgerState: LocalLedgerState = JSON.parse(remoteAppData.ledgerState);
+          const remoteLedgerState: LocalLedgerState = JSON.parse(
+            remoteAppData.ledgerState,
+          );
           const currentLocalState = getLocalStateRef.current();
 
           // Merge remote with local (deterministic, non-destructive)
-          const mergedState = mergeLocalStates(currentLocalState, remoteLedgerState);
+          const mergedState = mergeLocalStates(
+            currentLocalState,
+            remoteLedgerState,
+          );
 
           // Apply merged state to local storage
           applyMergedStateRef.current(mergedState);
@@ -110,29 +121,30 @@ export function useAppDataSync({ getLocalState, applyMergedState, stateRevision 
       }
 
       setSyncState({
-        status: 'synced',
+        status: "synced",
         lastSyncTime: new Date(),
         error: null,
       });
       hasInitialFetchRef.current = true;
     } catch (error) {
-      console.error('Sync fetch error:', error);
+      console.error("Sync fetch error:", error);
       setSyncState((prev) => ({
         ...prev,
-        status: 'failed',
-        error: error instanceof Error ? error.message : 'Sync failed',
+        status: "failed",
+        error: error instanceof Error ? error.message : "Sync failed",
       }));
       // Don't stop polling on error - keep retrying
     }
   }, [actor, isAuthenticated]);
 
   // Save local state to backend with merge-before-save and fetch-after-save - stabilized
+  // biome-ignore lint/correctness/useExhaustiveDependencies: intentional - hashLedgerState is a stable pure function
   const saveToBackend = useCallback(async () => {
     if (!actor || !isAuthenticated || isSavingRef.current) return;
 
     try {
       isSavingRef.current = true;
-      setSyncState((prev) => ({ ...prev, status: 'syncing', error: null }));
+      setSyncState((prev) => ({ ...prev, status: "syncing", error: null }));
 
       // Fetch latest remote to check for conflicts
       const remoteAppData = await actor.fetchAppData();
@@ -142,22 +154,24 @@ export function useAppDataSync({ getLocalState, applyMergedState, stateRevision 
 
       // If remote has newer data, merge before saving
       if (
-        remoteAppData &&
-        remoteAppData.ledgerState &&
+        remoteAppData?.ledgerState &&
         remoteAppData.version > (lastRemoteVersionRef.current || BigInt(0))
       ) {
-        const remoteLedgerState: LocalLedgerState = JSON.parse(remoteAppData.ledgerState);
+        const remoteLedgerState: LocalLedgerState = JSON.parse(
+          remoteAppData.ledgerState,
+        );
         stateToSave = mergeLocalStates(remoteLedgerState, currentLocalState);
         // Apply merged state locally before saving
         applyMergedStateRef.current(stateToSave);
       }
 
-      // Prepare AppData for save
+      // Prepare AppData for save — preserve existing otherPendingAmounts from remote
       const appDataToSave: AppData = {
         userProfile: remoteAppData?.userProfile,
         ledgerState: JSON.stringify(stateToSave),
         lastUpdated: BigInt(Date.now() * 1000000), // nanoseconds
         version: remoteAppData?.version || BigInt(0),
+        otherPendingAmounts: remoteAppData?.otherPendingAmounts ?? [],
       };
 
       await actor.saveAppData(appDataToSave);
@@ -168,23 +182,25 @@ export function useAppDataSync({ getLocalState, applyMergedState, stateRevision 
         lastRemoteVersionRef.current = postSaveData.version;
         lastRemoteTimestampRef.current = postSaveData.lastUpdated;
         if (postSaveData.ledgerState) {
-          lastRemoteLedgerHashRef.current = hashLedgerState(postSaveData.ledgerState);
+          lastRemoteLedgerHashRef.current = hashLedgerState(
+            postSaveData.ledgerState,
+          );
         }
       }
 
       lastSavedRevisionRef.current = stateRevisionRef.current;
 
       setSyncState({
-        status: 'synced',
+        status: "synced",
         lastSyncTime: new Date(),
         error: null,
       });
     } catch (error) {
-      console.error('Sync save error:', error);
+      console.error("Sync save error:", error);
       setSyncState((prev) => ({
         ...prev,
-        status: 'failed',
-        error: error instanceof Error ? error.message : 'Save failed',
+        status: "failed",
+        error: error instanceof Error ? error.message : "Save failed",
       }));
       // Don't stop retrying on error
     } finally {
@@ -208,7 +224,7 @@ export function useAppDataSync({ getLocalState, applyMergedState, stateRevision 
         pollIntervalRef.current = null;
       }
       isPollingActiveRef.current = false;
-      setSyncState({ status: 'idle', lastSyncTime: null, error: null });
+      setSyncState({ status: "idle", lastSyncTime: null, error: null });
       lastRemoteVersionRef.current = null;
       lastRemoteTimestampRef.current = null;
       lastRemoteLedgerHashRef.current = null;
@@ -238,7 +254,7 @@ export function useAppDataSync({ getLocalState, applyMergedState, stateRevision 
     if (!isAuthenticated) return;
 
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
+      if (document.visibilityState === "visible") {
         fetchAndMerge();
       }
     };
@@ -247,12 +263,12 @@ export function useAppDataSync({ getLocalState, applyMergedState, stateRevision 
       fetchAndMerge();
     };
 
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('focus', handleFocus);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("focus", handleFocus);
 
     return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("focus", handleFocus);
     };
   }, [isAuthenticated, fetchAndMerge]);
 

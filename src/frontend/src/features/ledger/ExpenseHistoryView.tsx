@@ -1,36 +1,56 @@
-import { useLedgerState } from './LedgerStateContext';
-import { formatCurrency } from '../../utils/money';
-import { format, parseISO } from 'date-fns';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import EmptyState from '../../components/EmptyState';
-import { Car, Pencil, Trash2, IndianRupee } from 'lucide-react';
-import { useState } from 'react';
-import EditCarExpenseDialog from './EditCarExpenseDialog';
-import DeleteCarExpenseAlertDialog from './DeleteCarExpenseAlertDialog';
-import type { CarExpense } from '../../hooks/useLedgerLocalState';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { format, parseISO } from "date-fns";
+import { Car, IndianRupee, Pencil, Trash2 } from "lucide-react";
+import { useState } from "react";
+import EmptyState from "../../components/EmptyState";
+import type { CarExpense } from "../../hooks/useLedgerLocalState";
+import { formatCurrency } from "../../utils/money";
+import DeleteCarExpenseAlertDialog from "./DeleteCarExpenseAlertDialog";
+import EditCarExpenseDialog from "./EditCarExpenseDialog";
+import { useLedgerState } from "./LedgerStateContext";
 
 export default function ExpenseHistoryView() {
-  const { carExpenses, dateRange, updateCarExpense, removeCarExpense } = useLedgerState();
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [searchQuery, setSearchQuery] = useState('');
+  const { carExpenses, dateRange, updateCarExpense, removeCarExpense } =
+    useLedgerState();
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState("");
   const [editingExpense, setEditingExpense] = useState<CarExpense | null>(null);
-  const [deletingExpense, setDeletingExpense] = useState<CarExpense | null>(null);
+  const [deletingExpense, setDeletingExpense] = useState<CarExpense | null>(
+    null,
+  );
 
   // Get unique categories
-  const categories = Array.from(new Set(carExpenses.map((e) => e.category))).sort();
+  const categories = Array.from(
+    new Set(carExpenses.map((e) => e.category)),
+  ).sort();
 
   // Filter expenses by date range, category, and search
   const filteredExpenses = carExpenses.filter((expense) => {
     try {
       const expenseDate = parseISO(expense.date);
-      const inRange = expenseDate >= dateRange.start && expenseDate <= dateRange.end;
-      const matchesCategory = selectedCategory === 'all' || expense.category === selectedCategory;
+      const inRange =
+        expenseDate >= dateRange.start && expenseDate <= dateRange.end;
+      const matchesCategory =
+        selectedCategory === "all" || expense.category === selectedCategory;
       const matchesSearch =
-        searchQuery === '' ||
+        searchQuery === "" ||
         expense.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
         expense.note?.toLowerCase().includes(searchQuery.toLowerCase());
       return inRange && matchesCategory && matchesSearch;
@@ -123,7 +143,9 @@ export default function ExpenseHistoryView() {
             <TableBody>
               {sortedExpenses.map((expense) => (
                 <TableRow key={expense.id}>
-                  <TableCell>{format(parseISO(expense.date), 'MMM dd, yyyy')}</TableCell>
+                  <TableCell>
+                    {format(parseISO(expense.date), "MMM dd, yyyy")}
+                  </TableCell>
                   <TableCell>{expense.category}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-1">
@@ -131,7 +153,9 @@ export default function ExpenseHistoryView() {
                       <span>{formatCurrency(expense.amount)}</span>
                     </div>
                   </TableCell>
-                  <TableCell className="text-muted-foreground">{expense.note || '—'}</TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {expense.note || "—"}
+                  </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
                       <Button

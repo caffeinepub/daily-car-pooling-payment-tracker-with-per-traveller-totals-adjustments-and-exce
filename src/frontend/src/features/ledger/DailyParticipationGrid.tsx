@@ -1,29 +1,53 @@
-import { useState } from 'react';
-import { useLedgerState } from './LedgerStateContext';
-import { getDaysInRange, formatDateKey, formatDisplayDate } from '../../utils/dateRange';
-import { isDateEditable, isWeekendDay } from '../../utils/weekendInclusion';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
-import ResponsiveTableShell from '../../components/ResponsiveTableShell';
-import EmptyState from '../../components/EmptyState';
-import { Calendar, Save, ChevronRight } from 'lucide-react';
-import { formatCurrency } from '../../utils/money';
-import { toast } from 'sonner';
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Calendar, ChevronRight, Save } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
+import EmptyState from "../../components/EmptyState";
+import ResponsiveTableShell from "../../components/ResponsiveTableShell";
+import {
+  formatDateKey,
+  formatDisplayDate,
+  getDaysInRange,
+  getTodayIST,
+} from "../../utils/dateRange";
+import { formatCurrency } from "../../utils/money";
+import { isDateEditable, isWeekendDay } from "../../utils/weekendInclusion";
+import { useLedgerState } from "./LedgerStateContext";
 
 interface DailyParticipationGridProps {
   dateRange: { start: Date; end: Date };
   onSaveAndNext?: () => void;
 }
 
-export default function DailyParticipationGrid({ dateRange, onSaveAndNext }: DailyParticipationGridProps) {
-  const { 
-    travellers, 
-    draftDailyData, 
-    toggleDraftTrip, 
-    ratePerTrip, 
+// Helper: get local date key string (YYYY-MM-DD) for offset days from today
+function getLocalDateKey(offsetDays: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() + offsetDays);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+export default function DailyParticipationGrid({
+  dateRange,
+  onSaveAndNext,
+}: DailyParticipationGridProps) {
+  const {
+    travellers,
+    draftDailyData,
+    toggleDraftTrip,
+    ratePerTrip,
     setDraftTripsForAllTravellers,
     saveDraftDailyData,
     hasDraftChanges,
@@ -36,58 +60,61 @@ export default function DailyParticipationGrid({ dateRange, onSaveAndNext }: Dai
   // Local state for participation edit toggle
   const [allowParticipationEdit, setAllowParticipationEdit] = useState(false);
 
+  // Date box states — each resets to its default on mount
+  const [yesterdayDate, setYesterdayDate] = useState(() => getLocalDateKey(-1));
+  const [todayDate, setTodayDate] = useState(() => getLocalDateKey(0));
+  const [tomorrowDate, setTomorrowDate] = useState(() => getLocalDateKey(1));
+
   const days = getDaysInRange(dateRange.start, dateRange.end);
 
-  // Get today's date key
-  const todayDateKey = formatDateKey(new Date());
-  const today = new Date();
-  const isTodayEditable = isDateEditable(today, includeSaturday, includeSunday);
-
-  // Check if all travellers have both AM and PM selected for today
-  const allTravellersMarkedForToday = travellers.length > 0 && travellers.every((t) => {
-    const tripData = draftDailyData[todayDateKey]?.[t.id];
-    return tripData?.morning && tripData?.evening;
-  });
+  // Get today's date key using IST (UTC+5:30) to avoid day-ahead issue
+  const todayDateKey = getTodayIST();
+  // Build a Date object for today in IST for editability check
+  const [todayYear, todayMonth, todayDay] = todayDateKey.split("-").map(Number);
+  const todayIST = new Date(todayYear, todayMonth - 1, todayDay);
+  const isTodayEditable = isDateEditable(
+    todayIST,
+    includeSaturday,
+    includeSunday,
+  );
 
   const hasUnsavedChanges = hasDraftChanges();
 
-  const handleBulkToggle = () => {
-    if (!isTodayEditable) return;
-    
-    if (allTravellersMarkedForToday) {
-      // Uncheck all
-      setDraftTripsForAllTravellers(todayDateKey, false, false);
-    } else {
-      // Check all
-      setDraftTripsForAllTravellers(todayDateKey, true, true);
-    }
-  };
-
-  // Per-date bulk checkbox handler
-  const handlePerDateBulkToggle = (dateKey: string) => {
-    // Check if all travellers have both AM and PM for this date
-    const allMarked = travellers.length > 0 && travellers.every((t) => {
-      const tripData = draftDailyData[dateKey]?.[t.id];
-      return tripData?.morning && tripData?.evening;
-    });
-
+  // Generic bulk toggle: check all if not all checked, uncheck all if all checked
+  const handleBulkToggleForDate = (dateKey: string) => {
+    const allMarked =
+      travellers.length > 0 &&
+      travellers.every((t) => {
+        const tripData = draftDailyData[dateKey]?.[t.id];
+        return tripData?.morning && tripData?.evening;
+      });
     if (allMarked) {
-      // Uncheck all
       setDraftTripsForAllTravellers(dateKey, false, false);
     } else {
-      // Check all
       setDraftTripsForAllTravellers(dateKey, true, true);
     }
   };
 
+  const isAllMarkedForDate = (dateKey: string) =>
+    travellers.length > 0 &&
+    travellers.every((t) => {
+      const tripData = draftDailyData[dateKey]?.[t.id];
+      return tripData?.morning && tripData?.evening;
+    });
+
+  // Per-date bulk checkbox handler (table header)
+  const handlePerDateBulkToggle = (dateKey: string) => {
+    handleBulkToggleForDate(dateKey);
+  };
+
   const handleSave = () => {
     saveDraftDailyData();
-    toast.success('Daily participation saved successfully');
+    toast.success("Daily participation saved successfully");
   };
 
   const handleSaveAndNext = () => {
     saveDraftDailyData();
-    toast.success('Daily participation saved successfully');
+    toast.success("Daily participation saved successfully");
     onSaveAndNext?.();
   };
 
@@ -107,14 +134,25 @@ export default function DailyParticipationGrid({ dateRange, onSaveAndNext }: Dai
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <CardTitle>Daily Participation</CardTitle>
-            <CardDescription>Track morning and evening trips for each traveller</CardDescription>
+            <CardDescription>
+              Track morning and evening trips for each traveller
+            </CardDescription>
           </div>
           <div className="flex flex-col sm:flex-row gap-3">
-            <Button onClick={handleSave} disabled={!hasUnsavedChanges} className="gap-2">
+            <Button
+              onClick={handleSave}
+              disabled={!hasUnsavedChanges}
+              className="gap-2"
+            >
               <Save className="h-4 w-4" />
               Save
             </Button>
-            <Button onClick={handleSaveAndNext} disabled={!hasUnsavedChanges} variant="default" className="gap-2">
+            <Button
+              onClick={handleSaveAndNext}
+              disabled={!hasUnsavedChanges}
+              variant="default"
+              className="gap-2"
+            >
               Save & Next
               <ChevronRight className="h-4 w-4" />
             </Button>
@@ -158,17 +196,77 @@ export default function DailyParticipationGrid({ dateRange, onSaveAndNext }: Dai
           </div>
         </div>
 
-        {/* Mark all travellers for today checkbox */}
+        {/* Mark All — Yesterday, Today, Tomorrow */}
         {isTodayEditable && (
-          <div className="flex items-center gap-2 p-3 bg-primary/5 rounded-lg border border-primary/20">
-            <Checkbox
-              id="mark-all-today"
-              checked={allTravellersMarkedForToday}
-              onCheckedChange={handleBulkToggle}
-            />
-            <Label htmlFor="mark-all-today" className="cursor-pointer font-medium">
-              Mark all travellers for today (AM & PM)
-            </Label>
+          <div className="flex flex-col sm:flex-row gap-2 p-3 bg-primary/5 rounded-lg border border-primary/20">
+            {/* Yesterday */}
+            <div className="flex items-center gap-2 flex-1">
+              <Checkbox
+                id="mark-all-yesterday"
+                data-ocid="daily.mark_all_yesterday.checkbox"
+                checked={isAllMarkedForDate(yesterdayDate)}
+                onCheckedChange={() => handleBulkToggleForDate(yesterdayDate)}
+              />
+              <Label
+                htmlFor="mark-all-yesterday"
+                className="cursor-pointer font-medium text-sm whitespace-nowrap"
+              >
+                Mark All (Yesterday)
+              </Label>
+              <input
+                type="date"
+                value={yesterdayDate}
+                onChange={(e) => setYesterdayDate(e.target.value)}
+                className="ml-1 text-xs bg-background border border-border rounded px-2 py-1 text-foreground w-32"
+                data-ocid="daily.mark_all_yesterday.input"
+              />
+            </div>
+
+            {/* Today */}
+            <div className="flex items-center gap-2 flex-1">
+              <Checkbox
+                id="mark-all-today"
+                data-ocid="daily.mark_all_today.checkbox"
+                checked={isAllMarkedForDate(todayDate)}
+                onCheckedChange={() => handleBulkToggleForDate(todayDate)}
+              />
+              <Label
+                htmlFor="mark-all-today"
+                className="cursor-pointer font-medium text-sm whitespace-nowrap"
+              >
+                Mark All (Today)
+              </Label>
+              <input
+                type="date"
+                value={todayDate}
+                onChange={(e) => setTodayDate(e.target.value)}
+                className="ml-1 text-xs bg-background border border-border rounded px-2 py-1 text-foreground w-32"
+                data-ocid="daily.mark_all_today.input"
+              />
+            </div>
+
+            {/* Tomorrow */}
+            <div className="flex items-center gap-2 flex-1">
+              <Checkbox
+                id="mark-all-tomorrow"
+                data-ocid="daily.mark_all_tomorrow.checkbox"
+                checked={isAllMarkedForDate(tomorrowDate)}
+                onCheckedChange={() => handleBulkToggleForDate(tomorrowDate)}
+              />
+              <Label
+                htmlFor="mark-all-tomorrow"
+                className="cursor-pointer font-medium text-sm whitespace-nowrap"
+              >
+                Mark All (Tomorrow)
+              </Label>
+              <input
+                type="date"
+                value={tomorrowDate}
+                onChange={(e) => setTomorrowDate(e.target.value)}
+                className="ml-1 text-xs bg-background border border-border rounded px-2 py-1 text-foreground w-32"
+                data-ocid="daily.mark_all_tomorrow.input"
+              />
+            </div>
           </div>
         )}
 
@@ -177,38 +275,52 @@ export default function DailyParticipationGrid({ dateRange, onSaveAndNext }: Dai
           <table className="w-full border-collapse">
             <thead>
               <tr className="border-b bg-muted/50">
-                <th className="p-3 text-left font-semibold sticky left-0 bg-muted/50 z-10">Traveller</th>
+                <th className="p-3 text-left font-semibold sticky left-0 bg-muted/50 z-10">
+                  Traveller
+                </th>
                 {days.map((day) => {
                   const dateKey = formatDateKey(day);
                   const isWeekend = isWeekendDay(day);
-                  const editable = isDateEditable(day, includeSaturday, includeSunday);
-                  
+                  const editable = isDateEditable(
+                    day,
+                    includeSaturday,
+                    includeSunday,
+                  );
+
                   // Check if all travellers have both AM and PM for this date
-                  const allMarked = travellers.length > 0 && travellers.every((t) => {
-                    const tripData = draftDailyData[dateKey]?.[t.id];
-                    return tripData?.morning && tripData?.evening;
-                  });
+                  const allMarked =
+                    travellers.length > 0 &&
+                    travellers.every((t) => {
+                      const tripData = draftDailyData[dateKey]?.[t.id];
+                      return tripData?.morning && tripData?.evening;
+                    });
 
                   return (
                     <th
                       key={dateKey}
                       className={`p-3 text-center font-semibold min-w-[120px] ${
-                        isWeekend ? 'bg-muted/30' : ''
-                      } ${!editable ? 'opacity-50' : ''}`}
+                        isWeekend ? "bg-muted/30" : ""
+                      } ${!editable ? "opacity-50" : ""}`}
                     >
                       <div className="flex flex-col gap-1">
                         <div className="text-xs text-muted-foreground">
-                          {day.toLocaleDateString('en-US', { weekday: 'short' })}
+                          {day.toLocaleDateString("en-US", {
+                            weekday: "short",
+                          })}
                         </div>
                         <div className="text-sm">{formatDisplayDate(day)}</div>
                         {editable && (
                           <div className="flex items-center justify-center gap-1 mt-1">
                             <Checkbox
                               checked={allMarked}
-                              onCheckedChange={() => handlePerDateBulkToggle(dateKey)}
+                              onCheckedChange={() =>
+                                handlePerDateBulkToggle(dateKey)
+                              }
                               className="h-3 w-3"
                             />
-                            <span className="text-xs text-muted-foreground">All</span>
+                            <span className="text-xs text-muted-foreground">
+                              All
+                            </span>
                           </div>
                         )}
                       </div>
@@ -219,23 +331,35 @@ export default function DailyParticipationGrid({ dateRange, onSaveAndNext }: Dai
             </thead>
             <tbody>
               {travellers.map((traveller) => (
-                <tr key={traveller.id} className="border-b hover:bg-muted/30 transition-colors">
-                  <td className="p-3 font-medium sticky left-0 bg-background z-10">{traveller.name}</td>
+                <tr
+                  key={traveller.id}
+                  className="border-b hover:bg-muted/30 transition-colors"
+                >
+                  <td className="p-3 font-medium sticky left-0 bg-background z-10">
+                    {traveller.name}
+                  </td>
                   {days.map((day) => {
                     const dateKey = formatDateKey(day);
-                    const tripData = draftDailyData[dateKey]?.[traveller.id] || { morning: false, evening: false };
+                    const tripData = draftDailyData[dateKey]?.[
+                      traveller.id
+                    ] || { morning: false, evening: false };
                     const isWeekend = isWeekendDay(day);
-                    const editable = isDateEditable(day, includeSaturday, includeSunday);
+                    const editable = isDateEditable(
+                      day,
+                      includeSaturday,
+                      includeSunday,
+                    );
                     const canEdit = editable && allowParticipationEdit;
 
-                    const tripCount = (tripData.morning ? 1 : 0) + (tripData.evening ? 1 : 0);
+                    const tripCount =
+                      (tripData.morning ? 1 : 0) + (tripData.evening ? 1 : 0);
                     const amount = tripCount * ratePerTrip;
 
                     return (
                       <td
                         key={dateKey}
-                        className={`p-3 text-center ${isWeekend ? 'bg-muted/30' : ''} ${
-                          !editable ? 'opacity-50' : ''
+                        className={`p-3 text-center ${isWeekend ? "bg-muted/30" : ""} ${
+                          !editable ? "opacity-50" : ""
                         }`}
                       >
                         <div className="flex flex-col gap-2">
@@ -244,7 +368,13 @@ export default function DailyParticipationGrid({ dateRange, onSaveAndNext }: Dai
                               <Checkbox
                                 id={`${traveller.id}-${dateKey}-morning`}
                                 checked={tripData.morning}
-                                onCheckedChange={() => toggleDraftTrip(dateKey, traveller.id, 'morning')}
+                                onCheckedChange={() =>
+                                  toggleDraftTrip(
+                                    dateKey,
+                                    traveller.id,
+                                    "morning",
+                                  )
+                                }
                                 disabled={!canEdit}
                               />
                               <Label
@@ -258,7 +388,13 @@ export default function DailyParticipationGrid({ dateRange, onSaveAndNext }: Dai
                               <Checkbox
                                 id={`${traveller.id}-${dateKey}-evening`}
                                 checked={tripData.evening}
-                                onCheckedChange={() => toggleDraftTrip(dateKey, traveller.id, 'evening')}
+                                onCheckedChange={() =>
+                                  toggleDraftTrip(
+                                    dateKey,
+                                    traveller.id,
+                                    "evening",
+                                  )
+                                }
                                 disabled={!canEdit}
                               />
                               <Label
@@ -271,7 +407,8 @@ export default function DailyParticipationGrid({ dateRange, onSaveAndNext }: Dai
                           </div>
                           {tripCount > 0 && (
                             <div className="text-xs text-muted-foreground">
-                              {tripCount} × {formatCurrency(ratePerTrip)} = {formatCurrency(amount)}
+                              {tripCount} × {formatCurrency(ratePerTrip)} ={" "}
+                              {formatCurrency(amount)}
                             </div>
                           )}
                         </div>

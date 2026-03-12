@@ -8,10 +8,45 @@
 
 import { IDL } from '@icp-sdk/core/candid';
 
+export const TripTime = IDL.Variant({
+  'morning' : IDL.Null,
+  'evening' : IDL.Null,
+});
 export const Date = IDL.Record({
   'day' : IDL.Nat,
   'month' : IDL.Nat,
   'year' : IDL.Nat,
+});
+export const CoTravellerIncome = IDL.Record({
+  'tripTime' : IDL.Opt(TripTime),
+  'date' : Date,
+  'note' : IDL.Opt(IDL.Text),
+  'amount' : IDL.Nat,
+});
+export const Category = IDL.Variant({
+  'accomodation' : IDL.Null,
+  'cashWithdrawal' : IDL.Null,
+  'other' : IDL.Null,
+  'food' : IDL.Null,
+  'transport' : IDL.Null,
+  'tips' : IDL.Null,
+  'shopping' : IDL.Null,
+  'entryFee' : IDL.Null,
+  'activity' : IDL.Null,
+});
+export const Expense = IDL.Record({
+  'tripTime' : IDL.Opt(TripTime),
+  'date' : Date,
+  'note' : IDL.Opt(IDL.Text),
+  'category' : Category,
+  'amount' : IDL.Nat,
+});
+export const OtherPendingAmount = IDL.Record({
+  'id' : IDL.Text,
+  'date' : Date,
+  'traveller' : IDL.Text,
+  'comment' : IDL.Opt(IDL.Text),
+  'amount' : IDL.Nat,
 });
 export const UserRole = IDL.Variant({
   'admin' : IDL.Null,
@@ -22,20 +57,20 @@ export const Time = IDL.Int;
 export const UserProfile = IDL.Record({ 'name' : IDL.Text });
 export const AppData = IDL.Record({
   'lastUpdated' : Time,
+  'otherPendingAmounts' : IDL.Vec(OtherPendingAmount),
   'version' : IDL.Nat,
   'ledgerState' : IDL.Opt(IDL.Text),
   'userProfile' : IDL.Opt(UserProfile),
 });
-export const CoTravellerIncome = IDL.Record({
-  'date' : Date,
-  'note' : IDL.Opt(IDL.Text),
-  'amount' : IDL.Nat,
-});
 
 export const idlService = IDL.Service({
   '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
-  'addCoTravellerIncome' : IDL.Func([IDL.Nat, Date, IDL.Opt(IDL.Text)], [], []),
+  'addCoTravellerIncome' : IDL.Func([CoTravellerIncome], [], []),
+  'addExpense' : IDL.Func([Expense], [], []),
+  'addExpenses' : IDL.Func([IDL.Vec(Expense)], [], []),
+  'addOrUpdateOtherPendingAmount' : IDL.Func([OtherPendingAmount], [], []),
   'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
+  'deleteOtherPendingAmount' : IDL.Func([IDL.Text], [], []),
   'fetchAppData' : IDL.Func([], [IDL.Opt(AppData)], ['query']),
   'getAllBalances' : IDL.Func(
       [],
@@ -48,6 +83,12 @@ export const idlService = IDL.Service({
   'getCoTravellerIncomes' : IDL.Func(
       [IDL.Principal],
       [IDL.Vec(CoTravellerIncome)],
+      ['query'],
+    ),
+  'getExpenses' : IDL.Func([IDL.Principal], [IDL.Vec(Expense)], ['query']),
+  'getOtherPendingAmounts' : IDL.Func(
+      [],
+      [IDL.Vec(OtherPendingAmount)],
       ['query'],
     ),
   'getUserProfile' : IDL.Func(
@@ -64,10 +105,42 @@ export const idlService = IDL.Service({
 export const idlInitArgs = [];
 
 export const idlFactory = ({ IDL }) => {
+  const TripTime = IDL.Variant({ 'morning' : IDL.Null, 'evening' : IDL.Null });
   const Date = IDL.Record({
     'day' : IDL.Nat,
     'month' : IDL.Nat,
     'year' : IDL.Nat,
+  });
+  const CoTravellerIncome = IDL.Record({
+    'tripTime' : IDL.Opt(TripTime),
+    'date' : Date,
+    'note' : IDL.Opt(IDL.Text),
+    'amount' : IDL.Nat,
+  });
+  const Category = IDL.Variant({
+    'accomodation' : IDL.Null,
+    'cashWithdrawal' : IDL.Null,
+    'other' : IDL.Null,
+    'food' : IDL.Null,
+    'transport' : IDL.Null,
+    'tips' : IDL.Null,
+    'shopping' : IDL.Null,
+    'entryFee' : IDL.Null,
+    'activity' : IDL.Null,
+  });
+  const Expense = IDL.Record({
+    'tripTime' : IDL.Opt(TripTime),
+    'date' : Date,
+    'note' : IDL.Opt(IDL.Text),
+    'category' : Category,
+    'amount' : IDL.Nat,
+  });
+  const OtherPendingAmount = IDL.Record({
+    'id' : IDL.Text,
+    'date' : Date,
+    'traveller' : IDL.Text,
+    'comment' : IDL.Opt(IDL.Text),
+    'amount' : IDL.Nat,
   });
   const UserRole = IDL.Variant({
     'admin' : IDL.Null,
@@ -78,24 +151,20 @@ export const idlFactory = ({ IDL }) => {
   const UserProfile = IDL.Record({ 'name' : IDL.Text });
   const AppData = IDL.Record({
     'lastUpdated' : Time,
+    'otherPendingAmounts' : IDL.Vec(OtherPendingAmount),
     'version' : IDL.Nat,
     'ledgerState' : IDL.Opt(IDL.Text),
     'userProfile' : IDL.Opt(UserProfile),
   });
-  const CoTravellerIncome = IDL.Record({
-    'date' : Date,
-    'note' : IDL.Opt(IDL.Text),
-    'amount' : IDL.Nat,
-  });
   
   return IDL.Service({
     '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
-    'addCoTravellerIncome' : IDL.Func(
-        [IDL.Nat, Date, IDL.Opt(IDL.Text)],
-        [],
-        [],
-      ),
+    'addCoTravellerIncome' : IDL.Func([CoTravellerIncome], [], []),
+    'addExpense' : IDL.Func([Expense], [], []),
+    'addExpenses' : IDL.Func([IDL.Vec(Expense)], [], []),
+    'addOrUpdateOtherPendingAmount' : IDL.Func([OtherPendingAmount], [], []),
     'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
+    'deleteOtherPendingAmount' : IDL.Func([IDL.Text], [], []),
     'fetchAppData' : IDL.Func([], [IDL.Opt(AppData)], ['query']),
     'getAllBalances' : IDL.Func(
         [],
@@ -108,6 +177,12 @@ export const idlFactory = ({ IDL }) => {
     'getCoTravellerIncomes' : IDL.Func(
         [IDL.Principal],
         [IDL.Vec(CoTravellerIncome)],
+        ['query'],
+      ),
+    'getExpenses' : IDL.Func([IDL.Principal], [IDL.Vec(Expense)], ['query']),
+    'getOtherPendingAmounts' : IDL.Func(
+        [],
+        [IDL.Vec(OtherPendingAmount)],
         ['query'],
       ),
     'getUserProfile' : IDL.Func(

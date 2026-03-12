@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
-import { useLedgerState } from './LedgerStateContext';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { formatCurrency } from '../../utils/money';
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useEffect, useState } from "react";
+import { formatCurrency } from "../../utils/money";
+import { useLedgerState } from "./LedgerStateContext";
 
 export default function RatePerTripControl() {
   const { ratePerTrip, setRatePerTrip } = useLedgerState();
@@ -17,23 +17,26 @@ export default function RatePerTripControl() {
     setInputValue(value);
 
     // Parse and validate
-    const numValue = parseFloat(value);
-    if (!isNaN(numValue) && numValue >= 0) {
+    const numValue = Number.parseFloat(value);
+    if (!Number.isNaN(numValue) && numValue >= 0) {
       setRatePerTrip(Math.max(0, numValue));
     }
   };
 
   const handleBlur = () => {
     // Ensure valid value on blur
-    const numValue = parseFloat(inputValue);
-    if (isNaN(numValue) || numValue < 0) {
+    const numValue = Number.parseFloat(inputValue);
+    if (Number.isNaN(numValue) || numValue < 0) {
       setInputValue(ratePerTrip.toString());
     }
   };
 
   return (
     <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center">
-      <Label htmlFor="rate-per-trip" className="text-sm font-medium whitespace-nowrap">
+      <Label
+        htmlFor="rate-per-trip"
+        className="text-sm font-medium whitespace-nowrap"
+      >
         Rate per trip:
       </Label>
       <div className="flex items-center gap-2">

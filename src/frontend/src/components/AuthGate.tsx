@@ -1,7 +1,13 @@
-import { useInternetIdentity } from '../hooks/useInternetIdentity';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Car, LogIn } from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Car, LogIn } from "lucide-react";
+import { useInternetIdentity } from "../hooks/useInternetIdentity";
 
 interface AuthGateProps {
   children: React.ReactNode;
@@ -21,19 +27,22 @@ export default function AuthGate({ children }: AuthGateProps) {
             <div>
               <CardTitle className="text-2xl">Carpool Ledger</CardTitle>
               <CardDescription className="mt-2">
-                Track daily carpooling expenses, manage traveller balances, and export reports
+                Track daily carpooling expenses, manage traveller balances, and
+                export reports
               </CardDescription>
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
             <Button
               onClick={login}
-              disabled={loginStatus === 'logging-in'}
+              disabled={loginStatus === "logging-in"}
               className="w-full h-12 text-base"
               size="lg"
             >
               <LogIn className="mr-2 h-5 w-5" />
-              {loginStatus === 'logging-in' ? 'Connecting...' : 'Login to Continue'}
+              {loginStatus === "logging-in"
+                ? "Connecting..."
+                : "Login to Continue"}
             </Button>
             <p className="text-xs text-center text-muted-foreground">
               Secure authentication powered by Internet Identity

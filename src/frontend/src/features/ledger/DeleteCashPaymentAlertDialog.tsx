@@ -7,8 +7,8 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { toast } from 'sonner';
+} from "@/components/ui/alert-dialog";
+import { toast } from "sonner";
 
 interface DeleteCashPaymentAlertDialogProps {
   open: boolean;
@@ -37,12 +37,16 @@ export default function DeleteCashPaymentAlertDialog({
         <AlertDialogHeader>
           <AlertDialogTitle>Delete Payment</AlertDialogTitle>
           <AlertDialogDescription>
-            Are you sure you want to delete this payment of ₹{amount} for {travellerName}? This action cannot be undone.
+            Are you sure you want to delete this payment of ₹{amount} for{" "}
+            {travellerName}? This action cannot be undone.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={handleConfirm} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+          <AlertDialogAction
+            onClick={handleConfirm}
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+          >
             Delete
           </AlertDialogAction>
         </AlertDialogFooter>

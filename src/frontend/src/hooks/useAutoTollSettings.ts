@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from "react";
+import { getTodayIST } from "../utils/dateRange";
 
-const STORAGE_KEY = 'carpool-auto-toll-settings';
+const STORAGE_KEY = "carpool-auto-toll-settings";
 
 interface AutoTollSettings {
   enabled: boolean;
@@ -21,14 +22,15 @@ function loadSettings(): AutoTollSettings {
       const parsed = JSON.parse(stored);
       return {
         enabled: parsed.enabled ?? DEFAULT_SETTINGS.enabled,
-        amount: typeof parsed.amount === 'number' && parsed.amount > 0 
-          ? parsed.amount 
-          : DEFAULT_SETTINGS.amount,
+        amount:
+          typeof parsed.amount === "number" && parsed.amount > 0
+            ? parsed.amount
+            : DEFAULT_SETTINGS.amount,
         lastAutoTollDate: parsed.lastAutoTollDate ?? null,
       };
     }
   } catch (error) {
-    console.error('Failed to load Auto Toll settings:', error);
+    console.error("Failed to load Auto Toll settings:", error);
   }
   return DEFAULT_SETTINGS;
 }
@@ -37,7 +39,7 @@ function saveSettings(settings: AutoTollSettings): void {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
   } catch (error) {
-    console.error('Failed to save Auto Toll settings:', error);
+    console.error("Failed to save Auto Toll settings:", error);
   }
 }
 
@@ -62,6 +64,12 @@ export function useAutoTollSettings() {
     setSettings((prev) => ({ ...prev, lastAutoTollDate: date }));
   };
 
+  /**
+   * Returns today's date string in IST (UTC+5:30) for comparison.
+   * Use this instead of new Date() to avoid day-ahead issues.
+   */
+  const getTodayISTDate = (): string => getTodayIST();
+
   return {
     enabled: settings.enabled,
     amount: settings.amount,
@@ -69,5 +77,6 @@ export function useAutoTollSettings() {
     setEnabled,
     setAmount,
     setLastAutoTollDate,
+    getTodayISTDate,
   };
 }

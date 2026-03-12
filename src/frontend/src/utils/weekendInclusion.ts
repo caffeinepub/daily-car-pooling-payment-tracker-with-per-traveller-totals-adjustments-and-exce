@@ -1,4 +1,7 @@
-export function isWeekendDay(date: Date): { isSaturday: boolean; isSunday: boolean } {
+export function isWeekendDay(date: Date): {
+  isSaturday: boolean;
+  isSunday: boolean;
+} {
   const day = date.getDay();
   return {
     isSaturday: day === 6,
@@ -9,20 +12,20 @@ export function isWeekendDay(date: Date): { isSaturday: boolean; isSunday: boole
 export function isDateIncluded(
   date: Date,
   includeSaturday: boolean,
-  includeSunday: boolean
+  includeSunday: boolean,
 ): boolean {
   const { isSaturday, isSunday } = isWeekendDay(date);
-  
+
   if (isSaturday && !includeSaturday) return false;
   if (isSunday && !includeSunday) return false;
-  
+
   return true;
 }
 
 export function isDateEditable(
   date: Date,
   includeSaturday: boolean,
-  includeSunday: boolean
+  includeSunday: boolean,
 ): boolean {
   return isDateIncluded(date, includeSaturday, includeSunday);
 }
@@ -38,32 +41,35 @@ export function isDateIncludedForCalculation(
   includeSaturday: boolean,
   includeSunday: boolean,
   dateKey: string,
-  dailyData: Record<string, any>
+  dailyData: Record<string, any>,
 ): boolean {
   const { isSaturday, isSunday } = isWeekendDay(date);
-  
+
   // Weekdays are always included
   if (!isSaturday && !isSunday) return true;
-  
+
   // Weekend: check if enabled OR has saved data
   if (isSaturday) {
     return includeSaturday || hasSavedTripData(dateKey, dailyData);
   }
-  
+
   if (isSunday) {
     return includeSunday || hasSavedTripData(dateKey, dailyData);
   }
-  
+
   return true;
 }
 
 /**
  * Helper to check if a date has any saved trip selections
  */
-function hasSavedTripData(dateKey: string, dailyData: Record<string, any>): boolean {
+function hasSavedTripData(
+  dateKey: string,
+  dailyData: Record<string, any>,
+): boolean {
   const dayData = dailyData[dateKey];
   if (!dayData) return false;
-  
+
   // Check if any traveller has trip data for this date
   return Object.keys(dayData).some((travellerId) => {
     const tripData = dayData[travellerId];

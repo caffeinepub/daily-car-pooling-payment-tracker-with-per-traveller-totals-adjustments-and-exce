@@ -12,34 +12,67 @@ import type { Principal } from '@icp-sdk/core/principal';
 
 export interface AppData {
   'lastUpdated' : Time,
+  'otherPendingAmounts' : Array<OtherPendingAmount>,
   'version' : bigint,
   'ledgerState' : [] | [string],
   'userProfile' : [] | [UserProfile],
 }
+export type Category = { 'accomodation' : null } |
+  { 'cashWithdrawal' : null } |
+  { 'other' : null } |
+  { 'food' : null } |
+  { 'transport' : null } |
+  { 'tips' : null } |
+  { 'shopping' : null } |
+  { 'entryFee' : null } |
+  { 'activity' : null };
 export interface CoTravellerIncome {
+  'tripTime' : [] | [TripTime],
   'date' : Date,
   'note' : [] | [string],
   'amount' : bigint,
 }
 export interface Date { 'day' : bigint, 'month' : bigint, 'year' : bigint }
+export interface Expense {
+  'tripTime' : [] | [TripTime],
+  'date' : Date,
+  'note' : [] | [string],
+  'category' : Category,
+  'amount' : bigint,
+}
+export interface OtherPendingAmount {
+  'id' : string,
+  'date' : Date,
+  'traveller' : string,
+  'comment' : [] | [string],
+  'amount' : bigint,
+}
 export type Time = bigint;
+export type TripTime = { 'morning' : null } |
+  { 'evening' : null };
 export interface UserProfile { 'name' : string }
 export type UserRole = { 'admin' : null } |
   { 'user' : null } |
   { 'guest' : null };
 export interface _SERVICE {
   '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
-  'addCoTravellerIncome' : ActorMethod<
-    [bigint, Date, [] | [string]],
+  'addCoTravellerIncome' : ActorMethod<[CoTravellerIncome], undefined>,
+  'addExpense' : ActorMethod<[Expense], undefined>,
+  'addExpenses' : ActorMethod<[Array<Expense>], undefined>,
+  'addOrUpdateOtherPendingAmount' : ActorMethod<
+    [OtherPendingAmount],
     undefined
   >,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
+  'deleteOtherPendingAmount' : ActorMethod<[string], undefined>,
   'fetchAppData' : ActorMethod<[], [] | [AppData]>,
   'getAllBalances' : ActorMethod<[], Array<[Principal, bigint]>>,
   'getBalance' : ActorMethod<[], bigint>,
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
   'getCoTravellerIncomes' : ActorMethod<[Principal], Array<CoTravellerIncome>>,
+  'getExpenses' : ActorMethod<[Principal], Array<Expense>>,
+  'getOtherPendingAmounts' : ActorMethod<[], Array<OtherPendingAmount>>,
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
   'saveAppData' : ActorMethod<[AppData], undefined>,

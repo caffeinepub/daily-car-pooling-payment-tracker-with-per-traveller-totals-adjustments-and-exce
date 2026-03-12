@@ -1,12 +1,29 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useLedgerState } from './LedgerStateContext';
-import { formatINR } from '../../utils/money';
-import { IndianRupee, Car } from 'lucide-react';
-import { parseISO } from 'date-fns';
-import { calculateIncomeFromDailyData, calculateMonthlyIncomeFromDailyData } from '../../utils/tripCalculations';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { parseISO } from "date-fns";
+import { Car, IndianRupee } from "lucide-react";
+import { formatINR } from "../../utils/money";
+import {
+  calculateIncomeFromDailyData,
+  calculateMonthlyIncomeFromDailyData,
+} from "../../utils/tripCalculations";
+import { useLedgerState } from "./LedgerStateContext";
 
 export default function OverallSummaryPanel() {
-  const { dailyData, dateRange, ratePerTrip, carExpenses, includeSaturday, includeSunday, coTravellerIncomes } = useLedgerState();
+  const {
+    dailyData,
+    dateRange,
+    ratePerTrip,
+    carExpenses,
+    includeSaturday,
+    includeSunday,
+    coTravellerIncomes,
+  } = useLedgerState();
 
   // Calculate total income using dailyData-driven calculation
   const totalIncome = calculateIncomeFromDailyData(
@@ -15,7 +32,7 @@ export default function OverallSummaryPanel() {
     ratePerTrip,
     includeSaturday,
     includeSunday,
-    coTravellerIncomes
+    coTravellerIncomes,
   );
 
   // Calculate total car expenses within date range
@@ -39,24 +56,30 @@ export default function OverallSummaryPanel() {
     ratePerTrip,
     includeSaturday,
     includeSunday,
-    coTravellerIncomes
+    coTravellerIncomes,
   );
 
   const monthlyExpenses = new Map<string, number>();
-  carExpenses.forEach((e) => {
+  for (const e of carExpenses) {
     try {
       const expenseDate = parseISO(e.date);
       if (expenseDate >= dateRange.start && expenseDate <= dateRange.end) {
-        const monthKey = `${expenseDate.getFullYear()}-${String(expenseDate.getMonth() + 1).padStart(2, '0')}`;
-        monthlyExpenses.set(monthKey, (monthlyExpenses.get(monthKey) || 0) + e.amount);
+        const monthKey = `${expenseDate.getFullYear()}-${String(expenseDate.getMonth() + 1).padStart(2, "0")}`;
+        monthlyExpenses.set(
+          monthKey,
+          (monthlyExpenses.get(monthKey) || 0) + e.amount,
+        );
       }
     } catch {
       // Skip invalid dates
     }
-  });
+  }
 
   // Combine all months
-  const allMonths = new Set([...monthlyIncome.keys(), ...monthlyExpenses.keys()]);
+  const allMonths = new Set([
+    ...monthlyIncome.keys(),
+    ...monthlyExpenses.keys(),
+  ]);
   const sortedMonths = Array.from(allMonths).sort();
 
   return (
@@ -99,10 +122,10 @@ export default function OverallSummaryPanel() {
               <div
                 className={`text-2xl font-bold ${
                   profitLoss > 0
-                    ? 'text-green-600 dark:text-green-400'
+                    ? "text-green-600 dark:text-green-400"
                     : profitLoss < 0
-                    ? 'text-red-600 dark:text-red-400'
-                    : 'text-foreground'
+                      ? "text-red-600 dark:text-red-400"
+                      : "text-foreground"
                 }`}
               >
                 {formatINR(profitLoss)}
@@ -113,15 +136,25 @@ export default function OverallSummaryPanel() {
           {/* Monthly Breakdown */}
           {sortedMonths.length > 0 && (
             <div>
-              <h3 className="text-lg font-semibold mb-3">Month-wise Breakdown</h3>
+              <h3 className="text-lg font-semibold mb-3">
+                Month-wise Breakdown
+              </h3>
               <div className="border rounded-lg overflow-hidden">
                 <table className="w-full">
                   <thead className="bg-muted">
                     <tr>
-                      <th className="px-4 py-2 text-left text-sm font-medium">Month</th>
-                      <th className="px-4 py-2 text-right text-sm font-medium">Income</th>
-                      <th className="px-4 py-2 text-right text-sm font-medium">Expense</th>
-                      <th className="px-4 py-2 text-right text-sm font-medium">Profit/Loss</th>
+                      <th className="px-4 py-2 text-left text-sm font-medium">
+                        Month
+                      </th>
+                      <th className="px-4 py-2 text-right text-sm font-medium">
+                        Income
+                      </th>
+                      <th className="px-4 py-2 text-right text-sm font-medium">
+                        Expense
+                      </th>
+                      <th className="px-4 py-2 text-right text-sm font-medium">
+                        Profit/Loss
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -142,10 +175,10 @@ export default function OverallSummaryPanel() {
                           <td
                             className={`px-4 py-2 text-sm text-right font-medium ${
                               profit > 0
-                                ? 'text-green-600 dark:text-green-400'
+                                ? "text-green-600 dark:text-green-400"
                                 : profit < 0
-                                ? 'text-red-600 dark:text-red-400'
-                                : 'text-foreground'
+                                  ? "text-red-600 dark:text-red-400"
+                                  : "text-foreground"
                             }`}
                           >
                             {formatINR(profit)}

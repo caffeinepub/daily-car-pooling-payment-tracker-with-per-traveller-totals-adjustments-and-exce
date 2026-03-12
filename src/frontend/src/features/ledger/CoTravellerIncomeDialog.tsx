@@ -1,170 +1,232 @@
-import { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, Loader2 } from 'lucide-react';
-import { format } from 'date-fns';
-import { toast } from 'sonner';
-import { useLedgerState } from './LedgerStateContext';
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { IndianRupee, Moon, Sun } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { getTodayIST } from "../../utils/dateRange";
+import { useLedgerState } from "./LedgerStateContext";
 
-interface CoTravellerIncomeDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  mode?: 'add' | 'edit';
-  existingIncome?: {
-    id: string;
-    amount: number;
-    date: string;
-    note?: string;
-  };
+export interface CoTravellerIncomeEntry {
+  id?: string;
+  amount: number;
+  date: string;
+  note?: string;
+  tripTime?: "morning" | "evening";
 }
 
-export default function CoTravellerIncomeDialog({ open, onOpenChange, mode = 'add', existingIncome }: CoTravellerIncomeDialogProps) {
+export interface CoTravellerIncomeDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  /** Optional: provide to override internal ledger state submission */
+  onSubmit?: (entry: Omit<CoTravellerIncomeEntry, "id">) => void;
+  defaultDate?: string;
+  mode?: "add" | "edit";
+  existingIncome?: CoTravellerIncomeEntry | null;
+}
+
+export default function CoTravellerIncomeDialog({
+  open,
+  onOpenChange,
+  onSubmit,
+  defaultDate,
+  mode = "add",
+  existingIncome,
+}: CoTravellerIncomeDialogProps) {
   const { addCoTravellerIncome, updateCoTravellerIncome } = useLedgerState();
-  const [amount, setAmount] = useState('');
-  const [date, setDate] = useState<Date>(new Date());
-  const [note, setNote] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const [amount, setAmount] = useState("");
+  const [date, setDate] = useState(defaultDate || getTodayIST());
+  const [note, setNote] = useState("");
+  const [tripTime, setTripTime] = useState<"morning" | "evening" | "">("");
+  const [amountError, setAmountError] = useState("");
+  const [tripTimeError, setTripTimeError] = useState("");
 
   useEffect(() => {
-    if (open && mode === 'edit' && existingIncome) {
-      setAmount(existingIncome.amount.toString());
-      setDate(new Date(existingIncome.date));
-      setNote(existingIncome.note || '');
-    } else if (open && mode === 'add') {
-      setAmount('');
-      setDate(new Date());
-      setNote('');
-    }
-  }, [open, mode, existingIncome]);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    const parsedAmount = parseFloat(amount);
-    if (isNaN(parsedAmount) || parsedAmount <= 0) {
-      toast.error('Please enter a valid amount greater than 0');
-      return;
-    }
-
-    setIsSubmitting(true);
-
-    try {
-      if (mode === 'edit' && existingIncome) {
-        updateCoTravellerIncome(existingIncome.id, {
-          amount: parsedAmount,
-          date: format(date, 'yyyy-MM-dd'),
-          note: note.trim() || undefined,
-        });
-        toast.success('Other Co-Traveller income updated successfully');
+    if (open) {
+      if (mode === "edit" && existingIncome) {
+        setAmount(String(existingIncome.amount));
+        setDate(existingIncome.date);
+        setNote(existingIncome.note || "");
+        setTripTime(existingIncome.tripTime || "");
       } else {
-        addCoTravellerIncome({
-          id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-          amount: parsedAmount,
-          date: format(date, 'yyyy-MM-dd'),
-          note: note.trim() || undefined,
-        });
-        toast.success('Other Co-Traveller income added successfully');
+        setAmount("");
+        setDate(defaultDate || getTodayIST());
+        setNote("");
+        setTripTime("");
       }
-
-      setAmount('');
-      setDate(new Date());
-      setNote('');
-      onOpenChange(false);
-    } catch (error) {
-      console.error('Failed to save income:', error);
-      toast.error('Failed to save income. Please try again.');
-    } finally {
-      setIsSubmitting(false);
+      setAmountError("");
+      setTripTimeError("");
     }
+  }, [open, mode, existingIncome, defaultDate]);
+
+  const handleSubmit = () => {
+    let valid = true;
+    const val = Number.parseFloat(amount);
+    if (!amount.trim() || Number.isNaN(val) || val <= 0) {
+      setAmountError("Enter a valid amount greater than 0");
+      valid = false;
+    }
+    if (!tripTime) {
+      setTripTimeError("Please select a trip time");
+      valid = false;
+    }
+    if (!valid) return;
+
+    const entry: Omit<CoTravellerIncomeEntry, "id"> = {
+      amount: val,
+      date,
+      note: note.trim() || undefined,
+      tripTime: tripTime as "morning" | "evening",
+    };
+
+    if (onSubmit) {
+      // External handler provided (e.g. from LedgerPage)
+      onSubmit(entry);
+    } else if (mode === "edit" && existingIncome?.id) {
+      // Edit mode: update via ledger state
+      updateCoTravellerIncome(existingIncome.id, entry);
+    } else {
+      // Add mode: add via ledger state
+      addCoTravellerIncome(entry);
+    }
+
+    onOpenChange(false);
   };
+
+  const isEdit = mode === "edit";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>{mode === 'edit' ? 'Edit' : 'Add'} Other Co-Traveller Income</DialogTitle>
-          <DialogDescription>
-            {mode === 'edit' ? 'Update' : 'Record'} income from other co-travellers
+      <DialogContent className="w-[calc(100vw-24px)] max-w-md mx-auto p-4 sm:p-6 rounded-xl">
+        <DialogHeader className="mb-2">
+          <DialogTitle className="text-lg sm:text-xl">
+            {isEdit ? "Edit Co-Traveller Income" : "Add Co-Traveller Income"}
+          </DialogTitle>
+          <DialogDescription className="text-xs sm:text-sm">
+            {isEdit
+              ? "Update the co-traveller income entry."
+              : "Record income from a co-traveller for a trip."}
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit}>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="amount">Amount (₹)</Label>
+
+        <div className="space-y-4">
+          <div className="space-y-1">
+            <Label htmlFor="cti-amount" className="text-xs sm:text-sm">
+              Amount (₹)
+            </Label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                <IndianRupee className="h-3.5 w-3.5" />
+              </span>
               <Input
-                id="amount"
+                id="cti-amount"
                 type="number"
+                min="0"
                 step="0.01"
-                placeholder="Enter amount"
+                placeholder="0.00"
                 value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                required
-                min="0.01"
+                onChange={(e) => {
+                  setAmount(e.target.value);
+                  setAmountError("");
+                }}
+                className="pl-8 h-11 text-sm"
               />
             </div>
-
-            <div className="space-y-2">
-              <Label>Date</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start text-left font-normal"
-                    type="button"
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {format(date, 'PPP')}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={date}
-                    onSelect={(newDate) => newDate && setDate(newDate)}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="note">Note (optional)</Label>
-              <Textarea
-                id="note"
-                placeholder="Add a note..."
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                rows={3}
-              />
-            </div>
+            {amountError && (
+              <p className="text-destructive text-xs">{amountError}</p>
+            )}
           </div>
 
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={isSubmitting}
+          <div className="space-y-1">
+            <Label htmlFor="cti-date" className="text-xs sm:text-sm">
+              Date
+            </Label>
+            <Input
+              id="cti-date"
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className="h-11 text-sm"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <Label htmlFor="cti-triptime" className="text-xs sm:text-sm">
+              Trip Time
+            </Label>
+            <Select
+              value={tripTime}
+              onValueChange={(v) => {
+                setTripTime(v as "morning" | "evening");
+                setTripTimeError("");
+              }}
             >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  {mode === 'edit' ? 'Updating...' : 'Adding...'}
-                </>
-              ) : (
-                mode === 'edit' ? 'Update Income' : 'Add Income'
-              )}
-            </Button>
-          </DialogFooter>
-        </form>
+              <SelectTrigger id="cti-triptime" className="h-11 text-sm">
+                <SelectValue placeholder="Select trip time..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="morning">
+                  <span className="flex items-center gap-2">
+                    <Sun className="h-4 w-4 text-amber-500" /> Morning
+                  </span>
+                </SelectItem>
+                <SelectItem value="evening">
+                  <span className="flex items-center gap-2">
+                    <Moon className="h-4 w-4 text-indigo-400" /> Evening
+                  </span>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+            {tripTimeError && (
+              <p className="text-destructive text-xs">{tripTimeError}</p>
+            )}
+          </div>
+
+          <div className="space-y-1">
+            <Label htmlFor="cti-note" className="text-xs sm:text-sm">
+              Note (optional)
+            </Label>
+            <Input
+              id="cti-note"
+              type="text"
+              placeholder="Add a note..."
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              className="h-11 text-sm"
+            />
+          </div>
+        </div>
+
+        <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2 mt-4">
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            className="w-full sm:w-auto h-11 text-sm"
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleSubmit}
+            className="w-full sm:w-auto h-11 text-sm font-semibold"
+          >
+            {isEdit ? "Save Changes" : "Add Income"}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

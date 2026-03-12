@@ -1,120 +1,164 @@
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Wallet, Plus } from 'lucide-react';
-import { format } from 'date-fns';
-import { toast } from 'sonner';
-import type { CashPayment } from '../../hooks/useLedgerLocalState';
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { IndianRupee } from "lucide-react";
+import React, { useState } from "react";
+import { getTodayIST } from "../../utils/dateRange";
+
+export interface CashPayment {
+  id?: string;
+  travellerId: string;
+  amount: number;
+  date: string;
+  note?: string;
+}
 
 interface CashPaymentFormProps {
   travellerId: string;
   travellerName: string;
-  onSubmit: (payment: Omit<CashPayment, 'id'>) => void;
+  onSubmit: (payment: Omit<CashPayment, "id">) => void;
+  defaultDate?: string;
 }
 
-export default function CashPaymentForm({ travellerId, travellerName, onSubmit }: CashPaymentFormProps) {
+export default function CashPaymentForm({
+  travellerName,
+  travellerId,
+  onSubmit,
+  defaultDate,
+}: CashPaymentFormProps) {
   const [open, setOpen] = useState(false);
-  const [amount, setAmount] = useState('');
-  const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
-  const [note, setNote] = useState('');
-  const [error, setError] = useState('');
+  const [amount, setAmount] = useState("");
+  const [date, setDate] = useState(defaultDate || getTodayIST());
+  const [note, setNote] = useState("");
+  const [amountError, setAmountError] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
+  const handleOpen = () => {
+    setAmount("");
+    setDate(defaultDate || getTodayIST());
+    setNote("");
+    setAmountError("");
+    setOpen(true);
+  };
 
-    const numAmount = parseFloat(amount);
-    
-    if (!amount || isNaN(numAmount) || numAmount <= 0) {
-      setError('Please enter a valid amount greater than 0');
+  const handleSubmit = () => {
+    const val = Number.parseFloat(amount);
+    if (!amount.trim() || Number.isNaN(val) || val <= 0) {
+      setAmountError("Enter a valid amount greater than 0");
       return;
     }
-
     onSubmit({
       travellerId,
-      amount: numAmount,
+      amount: val,
       date,
-      note: note || undefined,
+      note: note.trim() || undefined,
     });
-    toast.success(`Payment of ₹${numAmount} recorded for ${travellerName}`);
-    
-    // Reset form
-    setAmount('');
-    setDate(format(new Date(), 'yyyy-MM-dd'));
-    setNote('');
     setOpen(false);
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="w-full">
-          <Plus className="mr-2 h-3 w-3" />
-          Add Payment
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Wallet className="h-5 w-5" />
-            Record Cash Payment
-          </DialogTitle>
-          <DialogDescription>
-            Record a cash payment for {travellerName}
-          </DialogDescription>
-        </DialogHeader>
-        <form onSubmit={handleSubmit}>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="amount">
-                Amount (₹) <span className="text-destructive">*</span>
+    <>
+      <Button
+        size="sm"
+        variant="outline"
+        onClick={handleOpen}
+        className="h-9 text-xs sm:text-sm"
+      >
+        + Cash Payment
+      </Button>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="w-[calc(100vw-24px)] max-w-md mx-auto p-4 sm:p-6 rounded-xl">
+          <DialogHeader className="mb-2">
+            <DialogTitle className="text-lg sm:text-xl">
+              Add Cash Payment
+            </DialogTitle>
+            <DialogDescription className="text-xs sm:text-sm">
+              Record a cash payment for{" "}
+              <span className="font-medium">{travellerName}</span>
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-1">
+              <Label htmlFor="cp-amount" className="text-xs sm:text-sm">
+                Amount (₹)
+              </Label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                  <IndianRupee className="h-3.5 w-3.5" />
+                </span>
+                <Input
+                  id="cp-amount"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="0.00"
+                  value={amount}
+                  onChange={(e) => {
+                    setAmount(e.target.value);
+                    setAmountError("");
+                  }}
+                  className="pl-8 h-11 text-sm"
+                />
+              </div>
+              {amountError && (
+                <p className="text-destructive text-xs">{amountError}</p>
+              )}
+            </div>
+
+            <div className="space-y-1">
+              <Label htmlFor="cp-date" className="text-xs sm:text-sm">
+                Date
               </Label>
               <Input
-                id="amount"
-                type="number"
-                step="0.01"
-                min="0"
-                placeholder="Enter amount"
-                value={amount}
-                onChange={(e) => {
-                  setAmount(e.target.value);
-                  setError('');
-                }}
-                className={error ? 'border-destructive' : ''}
-              />
-              {error && <p className="text-sm text-destructive">{error}</p>}
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="date">Payment Date</Label>
-              <Input
-                id="date"
+                id="cp-date"
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
+                className="h-11 text-sm"
               />
             </div>
-            <div className="grid gap-2">
-              <Label htmlFor="note">Note (optional)</Label>
-              <Textarea
-                id="note"
-                placeholder="Add a note about this payment"
+
+            <div className="space-y-1">
+              <Label htmlFor="cp-note" className="text-xs sm:text-sm">
+                Note (optional)
+              </Label>
+              <Input
+                id="cp-note"
+                type="text"
+                placeholder="Add a note..."
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
-                rows={3}
+                className="h-11 text-sm"
               />
             </div>
           </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+
+          <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2 mt-4">
+            <Button
+              variant="outline"
+              onClick={() => setOpen(false)}
+              className="w-full sm:w-auto h-11 text-sm"
+            >
               Cancel
             </Button>
-            <Button type="submit">Record Payment</Button>
+            <Button
+              onClick={handleSubmit}
+              className="w-full sm:w-auto h-11 text-sm font-semibold"
+            >
+              Add Payment
+            </Button>
           </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

@@ -1,124 +1,148 @@
-import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Pencil } from 'lucide-react';
-import { toast } from 'sonner';
-import type { CashPayment } from '../../hooks/useLedgerLocalState';
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { IndianRupee } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import type { CashPayment } from "../../hooks/useLedgerLocalState";
 
-interface EditCashPaymentDialogProps {
-  payment: CashPayment;
-  travellerName: string;
+export interface EditCashPaymentDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onUpdatePayment: (paymentId: string, patch: Partial<Pick<CashPayment, 'amount' | 'date' | 'note'>>) => void;
+  payment: CashPayment | null;
+  travellerName: string;
+  onUpdatePayment: (
+    paymentId: string,
+    updates: Partial<Pick<CashPayment, "amount" | "date" | "note">>,
+  ) => void;
 }
 
 export default function EditCashPaymentDialog({
-  payment,
-  travellerName,
   open,
   onOpenChange,
+  payment,
+  travellerName,
   onUpdatePayment,
 }: EditCashPaymentDialogProps) {
-  const [amount, setAmount] = useState(payment.amount.toString());
-  const [date, setDate] = useState(payment.date);
-  const [note, setNote] = useState(payment.note || '');
-  const [error, setError] = useState('');
+  const [amount, setAmount] = useState("");
+  const [date, setDate] = useState("");
+  const [note, setNote] = useState("");
+  const [amountError, setAmountError] = useState("");
 
-  // Reset form when payment changes or dialog opens
   useEffect(() => {
-    if (open) {
-      setAmount(payment.amount.toString());
+    if (payment && open) {
+      setAmount(String(payment.amount));
       setDate(payment.date);
-      setNote(payment.note || '');
-      setError('');
+      setNote(payment.note || "");
+      setAmountError("");
     }
-  }, [open, payment]);
+  }, [payment, open]);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-
-    const numAmount = parseFloat(amount);
-    
-    if (!amount || isNaN(numAmount) || numAmount <= 0) {
-      setError('Please enter a valid amount greater than 0');
+  const handleSave = () => {
+    const val = Number.parseFloat(amount);
+    if (!amount.trim() || Number.isNaN(val) || val <= 0) {
+      setAmountError("Enter a valid amount greater than 0");
       return;
     }
-
+    if (!payment) return;
     onUpdatePayment(payment.id, {
-      amount: numAmount,
+      amount: val,
       date,
-      note: note || undefined,
+      note: note.trim() || undefined,
     });
-
-    toast.success(`Payment updated for ${travellerName}`);
     onOpenChange(false);
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Pencil className="h-5 w-5" />
+      <DialogContent className="w-[calc(100vw-24px)] max-w-md mx-auto p-4 sm:p-6 rounded-xl">
+        <DialogHeader className="mb-2">
+          <DialogTitle className="text-lg sm:text-xl">
             Edit Cash Payment
           </DialogTitle>
-          <DialogDescription>
-            Update the payment details for {travellerName}
+          <DialogDescription className="text-xs sm:text-sm">
+            Update payment details for{" "}
+            <span className="font-medium">{travellerName}</span>
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit}>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="edit-amount">
-                Amount (₹) <span className="text-destructive">*</span>
-              </Label>
+
+        <div className="space-y-4">
+          <div className="space-y-1">
+            <Label htmlFor="ecp-amount" className="text-xs sm:text-sm">
+              Amount (₹)
+            </Label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                <IndianRupee className="h-3.5 w-3.5" />
+              </span>
               <Input
-                id="edit-amount"
+                id="ecp-amount"
                 type="number"
-                step="0.01"
                 min="0"
-                placeholder="Enter amount"
+                step="0.01"
                 value={amount}
                 onChange={(e) => {
                   setAmount(e.target.value);
-                  setError('');
+                  setAmountError("");
                 }}
-                className={error ? 'border-destructive' : ''}
-              />
-              {error && <p className="text-sm text-destructive">{error}</p>}
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="edit-date">Payment Date</Label>
-              <Input
-                id="edit-date"
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
+                className="pl-8 h-11 text-sm"
               />
             </div>
-            <div className="grid gap-2">
-              <Label htmlFor="edit-note">Note (optional)</Label>
-              <Textarea
-                id="edit-note"
-                placeholder="Add a note about this payment"
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                rows={3}
-              />
-            </div>
+            {amountError && (
+              <p className="text-destructive text-xs">{amountError}</p>
+            )}
           </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
-            <Button type="submit">Save Changes</Button>
-          </DialogFooter>
-        </form>
+
+          <div className="space-y-1">
+            <Label htmlFor="ecp-date" className="text-xs sm:text-sm">
+              Date
+            </Label>
+            <Input
+              id="ecp-date"
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className="h-11 text-sm"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <Label htmlFor="ecp-note" className="text-xs sm:text-sm">
+              Note (optional)
+            </Label>
+            <Input
+              id="ecp-note"
+              type="text"
+              placeholder="Add a note..."
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              className="h-11 text-sm"
+            />
+          </div>
+        </div>
+
+        <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2 mt-4">
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            className="w-full sm:w-auto h-11 text-sm"
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleSave}
+            className="w-full sm:w-auto h-11 text-sm font-semibold"
+          >
+            Save Changes
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

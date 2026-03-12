@@ -1,26 +1,30 @@
-import { useMemo } from 'react';
-import { classifyDateRange, getFullMonthRange, getFullYearRange } from '../../utils/dateRange';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from "@/components/ui/select";
+import { useMemo } from "react";
+import {
+  classifyDateRange,
+  getFullMonthRange,
+  getFullYearRange,
+} from "../../utils/dateRange";
 
 const MONTHS = [
-  { value: 1, label: 'January' },
-  { value: 2, label: 'February' },
-  { value: 3, label: 'March' },
-  { value: 4, label: 'April' },
-  { value: 5, label: 'May' },
-  { value: 6, label: 'June' },
-  { value: 7, label: 'July' },
-  { value: 8, label: 'August' },
-  { value: 9, label: 'September' },
-  { value: 10, label: 'October' },
-  { value: 11, label: 'November' },
-  { value: 12, label: 'December' },
+  { value: 1, label: "January" },
+  { value: 2, label: "February" },
+  { value: 3, label: "March" },
+  { value: 4, label: "April" },
+  { value: 5, label: "May" },
+  { value: 6, label: "June" },
+  { value: 7, label: "July" },
+  { value: 8, label: "August" },
+  { value: 9, label: "September" },
+  { value: 10, label: "October" },
+  { value: 11, label: "November" },
+  { value: 12, label: "December" },
 ];
 
 interface MonthYearRangeSelectorProps {
@@ -28,7 +32,10 @@ interface MonthYearRangeSelectorProps {
   onChange: (range: { start: Date; end: Date }) => void;
 }
 
-export default function MonthYearRangeSelector({ value, onChange }: MonthYearRangeSelectorProps) {
+export default function MonthYearRangeSelector({
+  value,
+  onChange,
+}: MonthYearRangeSelectorProps) {
   // Generate year options (5 years back to 2 years forward)
   const currentYear = new Date().getFullYear();
   const yearOptions = useMemo(() => {
@@ -45,38 +52,39 @@ export default function MonthYearRangeSelector({ value, onChange }: MonthYearRan
   }, [value]);
 
   // Derive selected month and year from classification
-  const selectedMonth = classification.type === 'full-month' ? classification.month : null;
+  const _selectedMonth =
+    classification.type === "full-month" ? classification.month : null;
   const selectedYear = classification.year ?? value.start.getFullYear();
 
   const handleMonthChange = (newValue: string) => {
-    if (newValue === 'all') {
+    if (newValue === "all") {
       // Set to full year
       const fullYearRange = getFullYearRange(selectedYear);
       onChange(fullYearRange);
-    } else if (newValue === 'custom') {
+    } else if (newValue === "custom") {
       // Do nothing, keep current custom range
       return;
     } else {
       // Set to specific month
-      const month = parseInt(newValue, 10);
+      const month = Number.parseInt(newValue, 10);
       const fullMonthRange = getFullMonthRange(selectedYear, month);
       onChange(fullMonthRange);
     }
   };
 
   const handleYearChange = (newValue: string) => {
-    if (newValue === 'custom') {
+    if (newValue === "custom") {
       // Do nothing, keep current custom range
       return;
     }
 
-    const year = parseInt(newValue, 10);
+    const year = Number.parseInt(newValue, 10);
 
-    if (classification.type === 'full-month' && classification.month) {
+    if (classification.type === "full-month" && classification.month) {
       // Update to the same month in the new year
       const fullMonthRange = getFullMonthRange(year, classification.month);
       onChange(fullMonthRange);
-    } else if (classification.type === 'full-year') {
+    } else if (classification.type === "full-year") {
       // Update to full year of the new year
       const fullYearRange = getFullYearRange(year);
       onChange(fullYearRange);
@@ -89,24 +97,24 @@ export default function MonthYearRangeSelector({ value, onChange }: MonthYearRan
 
   // Determine display values
   const monthDisplayValue = useMemo(() => {
-    if (classification.type === 'full-month' && classification.month) {
+    if (classification.type === "full-month" && classification.month) {
       return classification.month.toString();
-    } else if (classification.type === 'full-year') {
-      return 'all';
-    } else {
-      return 'custom';
     }
+    if (classification.type === "full-year") {
+      return "all";
+    }
+    return "custom";
   }, [classification]);
 
   const yearDisplayValue = useMemo(() => {
     // Check if range spans multiple years
     const startYear = value.start.getFullYear();
     const endYear = value.end.getFullYear();
-    
+
     if (startYear !== endYear) {
-      return 'custom';
+      return "custom";
     }
-    
+
     return selectedYear.toString();
   }, [value, selectedYear]);
 
@@ -123,7 +131,7 @@ export default function MonthYearRangeSelector({ value, onChange }: MonthYearRan
               {month.label}
             </SelectItem>
           ))}
-          {classification.type === 'custom' && (
+          {classification.type === "custom" && (
             <SelectItem value="custom">Custom</SelectItem>
           )}
         </SelectContent>
@@ -139,7 +147,7 @@ export default function MonthYearRangeSelector({ value, onChange }: MonthYearRan
               {year}
             </SelectItem>
           ))}
-          {yearDisplayValue === 'custom' && (
+          {yearDisplayValue === "custom" && (
             <SelectItem value="custom">Custom</SelectItem>
           )}
         </SelectContent>

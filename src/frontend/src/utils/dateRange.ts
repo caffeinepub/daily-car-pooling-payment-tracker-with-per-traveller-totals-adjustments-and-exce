@@ -14,34 +14,23 @@ export interface DateRange {
 }
 
 /**
- * Returns the current date string (YYYY-MM-DD) in Indian Standard Time (IST, UTC+5:30).
- * The IST offset is hardcoded as +19800 seconds (5 hours 30 minutes) and does NOT
- * rely on the device's local timezone setting.
+ * Returns today's date string (YYYY-MM-DD) using the device's local timezone.
+ * Uses local date parts to avoid UTC conversion issues (day-ahead bug in IST).
  */
 export function getTodayIST(): string {
-  const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000; // 5 hours 30 minutes in milliseconds
-  const nowUTC = Date.now();
-  const nowIST = new Date(nowUTC + IST_OFFSET_MS);
-  const year = nowIST.getUTCFullYear();
-  const month = String(nowIST.getUTCMonth() + 1).padStart(2, "0");
-  const day = String(nowIST.getUTCDate()).padStart(2, "0");
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 }
 
 /**
- * Returns a Date object representing today in IST (UTC+5:30).
- * Useful for date range calculations that need a Date object.
+ * Returns a Date object for today using the device's local timezone.
  */
 export function getTodayDateIST(): Date {
-  const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
-  const nowUTC = Date.now();
-  const nowIST = new Date(nowUTC + IST_OFFSET_MS);
-  // Return a local Date set to the IST calendar date at midnight local time
-  return new Date(
-    nowIST.getUTCFullYear(),
-    nowIST.getUTCMonth(),
-    nowIST.getUTCDate(),
-  );
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate());
 }
 
 export function getCurrentMonthRange(): DateRange {
@@ -84,12 +73,20 @@ export function getDaysInRange(start: Date, end: Date): Date[] {
   return eachDayOfInterval({ start, end });
 }
 
+/**
+ * Returns a YYYY-MM-DD key for the given date using LOCAL date parts.
+ * CRITICAL: Do NOT use toISOString() here — it converts to UTC and causes
+ * a day-ahead mismatch for IST users (UTC+5:30).
+ */
 export function formatDateKey(date: Date): string {
-  return date.toISOString().split("T")[0];
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
 }
 
 export function formatDisplayDate(date: Date): string {
-  return date.toLocaleDateString("en-US", {
+  return date.toLocaleDateString(undefined, {
     month: "short",
     day: "numeric",
     year: "numeric",

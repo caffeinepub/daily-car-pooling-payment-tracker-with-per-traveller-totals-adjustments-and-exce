@@ -242,11 +242,11 @@ function LedgerPageContent() {
         onLogout={handleLogout}
       />
 
-      <main className="flex-1 container py-6 px-4 space-y-6">
+      <main className="flex-1 container py-3 sm:py-6 px-3 sm:px-4 space-y-3 sm:space-y-6">
         {/* Date Range, Rate, Month/Year Selector, and Other Co-Traveller */}
-        <div className="flex flex-col gap-4">
-          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+        <div className="flex flex-col gap-3 sm:gap-4">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-start sm:items-center justify-between">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-start sm:items-center w-full sm:w-auto">
               <DateRangePicker
                 value={currentDateRange}
                 onChange={handleDateRangeChange}
@@ -263,7 +263,7 @@ function LedgerPageContent() {
                 variant="outline"
                 size="default"
                 onClick={() => setIsCoTravellerIncomeOpen(true)}
-                className="gap-2"
+                className="gap-2 w-full sm:w-auto"
               >
                 <UserPlus className="h-4 w-4" />
                 Other Co-Traveller
@@ -284,6 +284,7 @@ function LedgerPageContent() {
             className="w-full justify-start gap-2"
             aria-expanded={isSidebarOpen}
             aria-label="Open Carpool Menu"
+            data-ocid="nav.open_modal_button"
           >
             <Menu className="h-5 w-5" />
             <span>{TAB_LABELS[activeTab] || "Carpool Menu"}</span>
@@ -303,114 +304,170 @@ function LedgerPageContent() {
 
         {/* Unified Tab Navigation for Desktop/Tablet */}
         <Tabs value={activeTab} onValueChange={handleTabChange}>
-          <div className="hidden sm:flex items-center gap-4">
-            <TabsList className="grid grid-cols-10 h-auto flex-1">
+          <div className="hidden sm:block">
+            <TabsList className="h-auto w-full flex flex-wrap gap-0.5 p-1 justify-start">
               <TabsTrigger
                 value="travellers"
-                className="flex flex-col sm:flex-row items-center gap-1 py-2"
+                className="flex items-center gap-1.5 py-2 px-2 lg:px-3 flex-shrink-0"
+                data-ocid="nav.travellers.tab"
               >
-                <Users className="h-4 w-4" />
-                <span className="text-xs sm:text-sm">Travellers</span>
+                <Users className="h-3.5 w-3.5 flex-shrink-0" />
+                <span className="text-xs whitespace-nowrap">Travellers</span>
               </TabsTrigger>
               <TabsTrigger
                 value="grid"
-                className="flex flex-col sm:flex-row items-center gap-1 py-2"
+                className="flex items-center gap-1.5 py-2 px-2 lg:px-3 flex-shrink-0"
+                data-ocid="nav.daily.tab"
               >
-                <Calendar className="h-4 w-4" />
-                <span className="text-xs sm:text-sm">Daily</span>
+                <Calendar className="h-3.5 w-3.5 flex-shrink-0" />
+                <span className="text-xs whitespace-nowrap">Daily</span>
               </TabsTrigger>
               <TabsTrigger
                 value="summary"
-                className="flex flex-col sm:flex-row items-center gap-1 py-2"
+                className="flex items-center gap-1.5 py-2 px-2 lg:px-3 flex-shrink-0"
+                data-ocid="nav.summary.tab"
               >
-                <Receipt className="h-4 w-4" />
-                <span className="text-xs sm:text-sm">
+                <Receipt className="h-3.5 w-3.5 flex-shrink-0" />
+                <span className="text-xs whitespace-nowrap hidden lg:inline">
                   Participation Payment
+                </span>
+                <span className="text-xs whitespace-nowrap lg:hidden">
+                  Part. Pay.
                 </span>
               </TabsTrigger>
               <TabsTrigger
                 value="car"
-                className="flex flex-col sm:flex-row items-center gap-1 py-2"
+                className="flex items-center gap-1.5 py-2 px-2 lg:px-3 flex-shrink-0"
+                data-ocid="nav.expense.tab"
               >
-                <Car className="h-4 w-4" />
-                <span className="text-xs sm:text-sm">Expense</span>
+                <Car className="h-3.5 w-3.5 flex-shrink-0" />
+                <span className="text-xs whitespace-nowrap">Expense</span>
               </TabsTrigger>
               <TabsTrigger
                 value="overall"
-                className="flex flex-col sm:flex-row items-center gap-1 py-2"
+                className="flex items-center gap-1.5 py-2 px-2 lg:px-3 flex-shrink-0"
+                data-ocid="nav.overall.tab"
               >
-                <TrendingUp className="h-4 w-4" />
-                <span className="text-xs sm:text-sm">Overall</span>
+                <TrendingUp className="h-3.5 w-3.5 flex-shrink-0" />
+                <span className="text-xs whitespace-nowrap">Overall</span>
               </TabsTrigger>
               <TabsTrigger
                 value="tripHistory"
-                className="flex flex-col sm:flex-row items-center gap-1 py-2"
+                className="flex items-center gap-1.5 py-2 px-2 lg:px-3 flex-shrink-0"
+                data-ocid="nav.triphistory.tab"
               >
-                <History className="h-4 w-4" />
-                <span className="text-xs sm:text-sm">Trip History</span>
+                <History className="h-3.5 w-3.5 flex-shrink-0" />
+                <span className="text-xs whitespace-nowrap hidden lg:inline">
+                  Trip History
+                </span>
+                <span className="text-xs whitespace-nowrap lg:hidden">
+                  Trip Hist.
+                </span>
               </TabsTrigger>
               <TabsTrigger
                 value="paymentSummary"
-                className="flex flex-col sm:flex-row items-center gap-1 py-2"
+                className="flex items-center gap-1.5 py-2 px-2 lg:px-3 flex-shrink-0"
+                data-ocid="nav.payment.tab"
               >
-                <DollarSign className="h-4 w-4" />
-                <span className="text-xs sm:text-sm">Payment</span>
+                <DollarSign className="h-3.5 w-3.5 flex-shrink-0" />
+                <span className="text-xs whitespace-nowrap hidden lg:inline">
+                  Trips & Payment
+                </span>
+                <span className="text-xs whitespace-nowrap lg:hidden">
+                  Payment
+                </span>
               </TabsTrigger>
               <TabsTrigger
                 value="paymentHistory"
-                className="flex flex-col sm:flex-row items-center gap-1 py-2"
+                className="flex items-center gap-1.5 py-2 px-2 lg:px-3 flex-shrink-0"
                 data-ocid="nav.paymenthistory.tab"
               >
-                <Receipt className="h-4 w-4" />
-                <span className="text-xs sm:text-sm">Payment History</span>
+                <Receipt className="h-3.5 w-3.5 flex-shrink-0" />
+                <span className="text-xs whitespace-nowrap hidden lg:inline">
+                  Payment History
+                </span>
+                <span className="text-xs whitespace-nowrap lg:hidden">
+                  Pay. Hist.
+                </span>
               </TabsTrigger>
               <TabsTrigger
                 value="expenseHistory"
-                className="flex flex-col sm:flex-row items-center gap-1 py-2"
+                className="flex items-center gap-1.5 py-2 px-2 lg:px-3 flex-shrink-0"
                 data-ocid="nav.expensehistory.tab"
               >
-                <Car className="h-4 w-4" />
-                <span className="text-xs sm:text-sm">Expense History</span>
+                <Car className="h-3.5 w-3.5 flex-shrink-0" />
+                <span className="text-xs whitespace-nowrap hidden lg:inline">
+                  Expense History
+                </span>
+                <span className="text-xs whitespace-nowrap lg:hidden">
+                  Exp. Hist.
+                </span>
               </TabsTrigger>
               <TabsTrigger
                 value="export"
-                className="flex flex-col sm:flex-row items-center gap-1 py-2"
+                className="flex items-center gap-1.5 py-2 px-2 lg:px-3 flex-shrink-0"
                 data-ocid="nav.export.tab"
               >
-                <FileText className="h-4 w-4" />
-                <span className="text-xs sm:text-sm">Export</span>
+                <FileText className="h-3.5 w-3.5 flex-shrink-0" />
+                <span className="text-xs whitespace-nowrap">Export</span>
+              </TabsTrigger>
+              <TabsTrigger
+                value="backup"
+                className="flex items-center gap-1.5 py-2 px-2 lg:px-3 flex-shrink-0"
+                data-ocid="nav.backup.tab"
+              >
+                <Database className="h-3.5 w-3.5 flex-shrink-0" />
+                <span className="text-xs whitespace-nowrap hidden lg:inline">
+                  Backup &amp; Restore
+                </span>
+                <span className="text-xs whitespace-nowrap lg:hidden">
+                  Backup
+                </span>
+              </TabsTrigger>
+              <TabsTrigger
+                value="clear"
+                className="flex items-center gap-1.5 py-2 px-2 lg:px-3 flex-shrink-0"
+                data-ocid="nav.cleardata.tab"
+              >
+                <Trash2 className="h-3.5 w-3.5 flex-shrink-0" />
+                <span className="text-xs whitespace-nowrap hidden lg:inline">
+                  Clear Data
+                </span>
+                <span className="text-xs whitespace-nowrap lg:hidden">
+                  Clear
+                </span>
               </TabsTrigger>
             </TabsList>
           </div>
 
-          <TabsContent value="travellers" className="mt-6">
+          <TabsContent value="travellers" className="mt-4 sm:mt-6">
             <TravellerManager />
           </TabsContent>
-          <TabsContent value="grid" className="mt-6">
+          <TabsContent value="grid" className="mt-4 sm:mt-6">
             <DailyParticipationGrid
               dateRange={currentDateRange}
               onSaveAndNext={handleSaveAndNext}
             />
           </TabsContent>
-          <TabsContent value="summary" className="mt-6">
+          <TabsContent value="summary" className="mt-4 sm:mt-6">
             <SummaryPanel />
           </TabsContent>
-          <TabsContent value="car" className="mt-6">
+          <TabsContent value="car" className="mt-4 sm:mt-6">
             <CarExpensesPanel />
           </TabsContent>
-          <TabsContent value="overall" className="mt-6">
+          <TabsContent value="overall" className="mt-4 sm:mt-6">
             <OverallSummaryPanel />
           </TabsContent>
-          <TabsContent value="tripHistory" className="mt-6">
+          <TabsContent value="tripHistory" className="mt-4 sm:mt-6">
             <TripHistoryPanel />
           </TabsContent>
-          <TabsContent value="paymentSummary" className="mt-6">
+          <TabsContent value="paymentSummary" className="mt-4 sm:mt-6">
             <PaymentSummaryPanel />
           </TabsContent>
-          <TabsContent value="backup" className="mt-6">
+          <TabsContent value="backup" className="mt-4 sm:mt-6">
             <BackupRestorePanel />
           </TabsContent>
-          <TabsContent value="clear" className="mt-6">
+          <TabsContent value="clear" className="mt-4 sm:mt-6">
             <ClearDataPanel />
           </TabsContent>
         </Tabs>
@@ -460,8 +517,8 @@ function LedgerPageContent() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t py-6 px-4 bg-muted/30">
-        <div className="container flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
+      <footer className="border-t py-4 sm:py-6 px-3 sm:px-4 bg-muted/30">
+        <div className="container flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
           <p>
             © {new Date().getFullYear()} Carpool Ledger. All rights reserved.
           </p>

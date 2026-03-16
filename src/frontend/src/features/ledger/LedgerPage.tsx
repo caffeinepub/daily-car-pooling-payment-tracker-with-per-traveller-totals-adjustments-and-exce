@@ -31,6 +31,7 @@ import { useAppDataSync } from "../../hooks/useAppDataSync";
 import {
   getCurrentMonthRange,
   getCurrentWeekMondayToFriday,
+  getFullYearRange,
 } from "../../utils/dateRange";
 import BackupRestorePanel from "./BackupRestorePanel";
 import CarExpensesPanel from "./CarExpensesPanel";
@@ -114,22 +115,25 @@ function LedgerPageContent() {
     const weekRange = getCurrentWeekMondayToFriday();
     tabDateRanges.current.set("grid", weekRange);
 
-    // Set other tabs to current month
+    // Set other tabs to current month, except paymentSummary which defaults to full year
     const currentMonth = getCurrentMonthRange();
+    const currentYear = new Date().getFullYear();
+    const fullYear = getFullYearRange(currentYear);
+
     for (const tab of [
       "travellers",
       "summary",
       "car",
       "overall",
       "tripHistory",
-      "paymentSummary",
       "backup",
       "clear",
     ] as TabKey[]) {
-      if (tab !== "grid") {
-        tabDateRanges.current.set(tab, currentMonth);
-      }
+      tabDateRanges.current.set(tab, currentMonth);
     }
+
+    // Trips & Payment defaults to full year for better payment tracking
+    tabDateRanges.current.set("paymentSummary", fullYear);
 
     return weekRange;
   });
@@ -305,139 +309,106 @@ function LedgerPageContent() {
         {/* Unified Tab Navigation for Desktop/Tablet */}
         <Tabs value={activeTab} onValueChange={handleTabChange}>
           <div className="hidden sm:block">
-            <TabsList className="h-auto w-full flex flex-wrap gap-0.5 p-1 justify-start">
-              <TabsTrigger
-                value="travellers"
-                className="flex items-center gap-1.5 py-2 px-2 lg:px-3 flex-shrink-0"
-                data-ocid="nav.travellers.tab"
-              >
-                <Users className="h-3.5 w-3.5 flex-shrink-0" />
-                <span className="text-xs whitespace-nowrap">Travellers</span>
-              </TabsTrigger>
-              <TabsTrigger
-                value="grid"
-                className="flex items-center gap-1.5 py-2 px-2 lg:px-3 flex-shrink-0"
-                data-ocid="nav.daily.tab"
-              >
-                <Calendar className="h-3.5 w-3.5 flex-shrink-0" />
-                <span className="text-xs whitespace-nowrap">Daily</span>
-              </TabsTrigger>
-              <TabsTrigger
-                value="summary"
-                className="flex items-center gap-1.5 py-2 px-2 lg:px-3 flex-shrink-0"
-                data-ocid="nav.summary.tab"
-              >
-                <Receipt className="h-3.5 w-3.5 flex-shrink-0" />
-                <span className="text-xs whitespace-nowrap hidden lg:inline">
-                  Participation Payment
-                </span>
-                <span className="text-xs whitespace-nowrap lg:hidden">
-                  Part. Pay.
-                </span>
-              </TabsTrigger>
-              <TabsTrigger
-                value="car"
-                className="flex items-center gap-1.5 py-2 px-2 lg:px-3 flex-shrink-0"
-                data-ocid="nav.expense.tab"
-              >
-                <Car className="h-3.5 w-3.5 flex-shrink-0" />
-                <span className="text-xs whitespace-nowrap">Expense</span>
-              </TabsTrigger>
-              <TabsTrigger
-                value="overall"
-                className="flex items-center gap-1.5 py-2 px-2 lg:px-3 flex-shrink-0"
-                data-ocid="nav.overall.tab"
-              >
-                <TrendingUp className="h-3.5 w-3.5 flex-shrink-0" />
-                <span className="text-xs whitespace-nowrap">Overall</span>
-              </TabsTrigger>
-              <TabsTrigger
-                value="tripHistory"
-                className="flex items-center gap-1.5 py-2 px-2 lg:px-3 flex-shrink-0"
-                data-ocid="nav.triphistory.tab"
-              >
-                <History className="h-3.5 w-3.5 flex-shrink-0" />
-                <span className="text-xs whitespace-nowrap hidden lg:inline">
+            <div className="overflow-x-auto pb-1">
+              <TabsList className="h-9 inline-flex w-max min-w-full gap-0 p-1">
+                <TabsTrigger
+                  value="travellers"
+                  className="px-3 py-1.5 text-xs whitespace-nowrap flex items-center gap-1.5"
+                  data-ocid="nav.travellers.tab"
+                >
+                  <Users className="h-3.5 w-3.5 flex-shrink-0" />
+                  Travellers
+                </TabsTrigger>
+                <TabsTrigger
+                  value="grid"
+                  className="px-3 py-1.5 text-xs whitespace-nowrap flex items-center gap-1.5"
+                  data-ocid="nav.daily.tab"
+                >
+                  <Calendar className="h-3.5 w-3.5 flex-shrink-0" />
+                  Daily
+                </TabsTrigger>
+                <TabsTrigger
+                  value="summary"
+                  className="px-3 py-1.5 text-xs whitespace-nowrap flex items-center gap-1.5"
+                  data-ocid="nav.summary.tab"
+                >
+                  <Receipt className="h-3.5 w-3.5 flex-shrink-0" />
+                  Part. Payment
+                </TabsTrigger>
+                <TabsTrigger
+                  value="car"
+                  className="px-3 py-1.5 text-xs whitespace-nowrap flex items-center gap-1.5"
+                  data-ocid="nav.expense.tab"
+                >
+                  <Car className="h-3.5 w-3.5 flex-shrink-0" />
+                  Expense
+                </TabsTrigger>
+                <TabsTrigger
+                  value="overall"
+                  className="px-3 py-1.5 text-xs whitespace-nowrap flex items-center gap-1.5"
+                  data-ocid="nav.overall.tab"
+                >
+                  <TrendingUp className="h-3.5 w-3.5 flex-shrink-0" />
+                  Overall
+                </TabsTrigger>
+                <TabsTrigger
+                  value="tripHistory"
+                  className="px-3 py-1.5 text-xs whitespace-nowrap flex items-center gap-1.5"
+                  data-ocid="nav.triphistory.tab"
+                >
+                  <History className="h-3.5 w-3.5 flex-shrink-0" />
                   Trip History
-                </span>
-                <span className="text-xs whitespace-nowrap lg:hidden">
-                  Trip Hist.
-                </span>
-              </TabsTrigger>
-              <TabsTrigger
-                value="paymentSummary"
-                className="flex items-center gap-1.5 py-2 px-2 lg:px-3 flex-shrink-0"
-                data-ocid="nav.payment.tab"
-              >
-                <DollarSign className="h-3.5 w-3.5 flex-shrink-0" />
-                <span className="text-xs whitespace-nowrap hidden lg:inline">
-                  Trips & Payment
-                </span>
-                <span className="text-xs whitespace-nowrap lg:hidden">
-                  Payment
-                </span>
-              </TabsTrigger>
-              <TabsTrigger
-                value="paymentHistory"
-                className="flex items-center gap-1.5 py-2 px-2 lg:px-3 flex-shrink-0"
-                data-ocid="nav.paymenthistory.tab"
-              >
-                <Receipt className="h-3.5 w-3.5 flex-shrink-0" />
-                <span className="text-xs whitespace-nowrap hidden lg:inline">
-                  Payment History
-                </span>
-                <span className="text-xs whitespace-nowrap lg:hidden">
-                  Pay. Hist.
-                </span>
-              </TabsTrigger>
-              <TabsTrigger
-                value="expenseHistory"
-                className="flex items-center gap-1.5 py-2 px-2 lg:px-3 flex-shrink-0"
-                data-ocid="nav.expensehistory.tab"
-              >
-                <Car className="h-3.5 w-3.5 flex-shrink-0" />
-                <span className="text-xs whitespace-nowrap hidden lg:inline">
-                  Expense History
-                </span>
-                <span className="text-xs whitespace-nowrap lg:hidden">
-                  Exp. Hist.
-                </span>
-              </TabsTrigger>
-              <TabsTrigger
-                value="export"
-                className="flex items-center gap-1.5 py-2 px-2 lg:px-3 flex-shrink-0"
-                data-ocid="nav.export.tab"
-              >
-                <FileText className="h-3.5 w-3.5 flex-shrink-0" />
-                <span className="text-xs whitespace-nowrap">Export</span>
-              </TabsTrigger>
-              <TabsTrigger
-                value="backup"
-                className="flex items-center gap-1.5 py-2 px-2 lg:px-3 flex-shrink-0"
-                data-ocid="nav.backup.tab"
-              >
-                <Database className="h-3.5 w-3.5 flex-shrink-0" />
-                <span className="text-xs whitespace-nowrap hidden lg:inline">
-                  Backup &amp; Restore
-                </span>
-                <span className="text-xs whitespace-nowrap lg:hidden">
+                </TabsTrigger>
+                <TabsTrigger
+                  value="paymentSummary"
+                  className="px-3 py-1.5 text-xs whitespace-nowrap flex items-center gap-1.5"
+                  data-ocid="nav.payment.tab"
+                >
+                  <DollarSign className="h-3.5 w-3.5 flex-shrink-0" />
+                  Trips &amp; Payment
+                </TabsTrigger>
+                <TabsTrigger
+                  value="paymentHistory"
+                  className="px-3 py-1.5 text-xs whitespace-nowrap flex items-center gap-1.5"
+                  data-ocid="nav.paymenthistory.tab"
+                >
+                  <Receipt className="h-3.5 w-3.5 flex-shrink-0" />
+                  Pay. History
+                </TabsTrigger>
+                <TabsTrigger
+                  value="expenseHistory"
+                  className="px-3 py-1.5 text-xs whitespace-nowrap flex items-center gap-1.5"
+                  data-ocid="nav.expensehistory.tab"
+                >
+                  <Car className="h-3.5 w-3.5 flex-shrink-0" />
+                  Exp. History
+                </TabsTrigger>
+                <TabsTrigger
+                  value="export"
+                  className="px-3 py-1.5 text-xs whitespace-nowrap flex items-center gap-1.5"
+                  data-ocid="nav.export.tab"
+                >
+                  <FileText className="h-3.5 w-3.5 flex-shrink-0" />
+                  Export
+                </TabsTrigger>
+                <TabsTrigger
+                  value="backup"
+                  className="px-3 py-1.5 text-xs whitespace-nowrap flex items-center gap-1.5"
+                  data-ocid="nav.backup.tab"
+                >
+                  <Database className="h-3.5 w-3.5 flex-shrink-0" />
                   Backup
-                </span>
-              </TabsTrigger>
-              <TabsTrigger
-                value="clear"
-                className="flex items-center gap-1.5 py-2 px-2 lg:px-3 flex-shrink-0"
-                data-ocid="nav.cleardata.tab"
-              >
-                <Trash2 className="h-3.5 w-3.5 flex-shrink-0" />
-                <span className="text-xs whitespace-nowrap hidden lg:inline">
+                </TabsTrigger>
+                <TabsTrigger
+                  value="clear"
+                  className="px-3 py-1.5 text-xs whitespace-nowrap flex items-center gap-1.5"
+                  data-ocid="nav.cleardata.tab"
+                >
+                  <Trash2 className="h-3.5 w-3.5 flex-shrink-0" />
                   Clear Data
-                </span>
-                <span className="text-xs whitespace-nowrap lg:hidden">
-                  Clear
-                </span>
-              </TabsTrigger>
-            </TabsList>
+                </TabsTrigger>
+              </TabsList>
+            </div>
           </div>
 
           <TabsContent value="travellers" className="mt-4 sm:mt-6">

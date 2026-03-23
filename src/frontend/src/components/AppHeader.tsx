@@ -50,24 +50,29 @@ export default function AppHeader({
         .slice(0, 2)
     : "U";
 
-  // Determine sync props to pass down
   const syncProps =
     syncStatus !== undefined
       ? { status: syncStatus, lastSyncTime: lastSyncTime ?? null }
       : undefined;
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-50 w-full border-b border-border bg-card/80 backdrop-blur-md supports-[backdrop-filter]:bg-card/70">
       <div className="flex h-12 sm:h-14 items-center justify-between px-3 sm:px-4 md:px-6 max-w-7xl mx-auto">
         {/* Logo / Branding */}
-        <div className="flex items-center gap-2 min-w-0">
+        <div className="flex items-center gap-2.5 min-w-0">
           <img
             src="/assets/generated/carpool-ledger-logo.dim_512x512.png"
             alt="Carpool Ledger"
             className="h-7 w-7 sm:h-8 sm:w-8 rounded-md flex-shrink-0"
           />
-          <span className="font-bold text-sm sm:text-base md:text-lg text-foreground truncate leading-tight">
-            Carpool Ledger
+          <span
+            className="font-bold text-sm sm:text-base md:text-lg truncate leading-tight tracking-tight"
+            style={{
+              fontFamily: "'Bricolage Grotesque', system-ui, sans-serif",
+            }}
+          >
+            <span className="text-primary">Carpool</span>
+            <span className="text-foreground"> Ledger</span>
           </span>
         </div>
 
@@ -100,7 +105,10 @@ export default function AppHeader({
                   <ChevronDown className="h-3 w-3 text-muted-foreground flex-shrink-0" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48 sm:w-56">
+              <DropdownMenuContent
+                align="end"
+                className="w-48 sm:w-56 border-t-2 border-t-primary/20"
+              >
                 <DropdownMenuLabel className="text-xs sm:text-sm">
                   <div className="flex flex-col gap-0.5">
                     <span className="font-semibold truncate">

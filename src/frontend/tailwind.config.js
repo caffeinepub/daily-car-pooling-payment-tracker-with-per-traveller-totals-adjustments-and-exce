@@ -17,12 +17,16 @@ export default {
         extend: {
             fontFamily: {
                 sans: [
-                    'Inter var',
+                    'Figtree',
                     'system-ui',
                     '-apple-system',
                     'BlinkMacSystemFont',
                     'Segoe UI',
-                    'Roboto',
+                    'sans-serif'
+                ],
+                display: [
+                    'Bricolage Grotesque',
+                    'system-ui',
                     'sans-serif'
                 ],
                 mono: ['JetBrains Mono', 'Fira Code', 'Consolas', 'monospace']
@@ -76,7 +80,8 @@ export default {
             },
             boxShadow: {
                 xs: '0 1px 2px 0 rgba(0,0,0,0.05)',
-                soft: '0 2px 8px -2px rgba(0,0,0,0.1)'
+                soft: '0 2px 8px -2px rgba(0,0,0,0.1)',
+                card: '0 0 0 1px oklch(var(--border)), 0 4px 16px -4px oklch(0.05 0.005 240 / 0.7)',
             },
             keyframes: {
                 'accordion-down': {
@@ -96,4 +101,3 @@ export default {
     },
     plugins: [typography, containerQueries, animate]
 };
-

@@ -313,7 +313,7 @@ function LedgerPageContent() {
               <TabsList className="h-9 inline-flex w-max min-w-full gap-0 p-1">
                 <TabsTrigger
                   value="travellers"
-                  className="px-3 py-1.5 text-xs whitespace-nowrap flex items-center gap-1.5"
+                  className="px-3 py-1.5 text-xs whitespace-nowrap flex items-center gap-1.5 data-[state=active]:bg-primary/15 data-[state=active]:text-primary data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none"
                   data-ocid="nav.travellers.tab"
                 >
                   <Users className="h-3.5 w-3.5 flex-shrink-0" />
@@ -321,7 +321,7 @@ function LedgerPageContent() {
                 </TabsTrigger>
                 <TabsTrigger
                   value="grid"
-                  className="px-3 py-1.5 text-xs whitespace-nowrap flex items-center gap-1.5"
+                  className="px-3 py-1.5 text-xs whitespace-nowrap flex items-center gap-1.5 data-[state=active]:bg-primary/15 data-[state=active]:text-primary data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none"
                   data-ocid="nav.daily.tab"
                 >
                   <Calendar className="h-3.5 w-3.5 flex-shrink-0" />
@@ -329,7 +329,7 @@ function LedgerPageContent() {
                 </TabsTrigger>
                 <TabsTrigger
                   value="summary"
-                  className="px-3 py-1.5 text-xs whitespace-nowrap flex items-center gap-1.5"
+                  className="px-3 py-1.5 text-xs whitespace-nowrap flex items-center gap-1.5 data-[state=active]:bg-primary/15 data-[state=active]:text-primary data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none"
                   data-ocid="nav.summary.tab"
                 >
                   <Receipt className="h-3.5 w-3.5 flex-shrink-0" />
@@ -337,7 +337,7 @@ function LedgerPageContent() {
                 </TabsTrigger>
                 <TabsTrigger
                   value="car"
-                  className="px-3 py-1.5 text-xs whitespace-nowrap flex items-center gap-1.5"
+                  className="px-3 py-1.5 text-xs whitespace-nowrap flex items-center gap-1.5 data-[state=active]:bg-primary/15 data-[state=active]:text-primary data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none"
                   data-ocid="nav.expense.tab"
                 >
                   <Car className="h-3.5 w-3.5 flex-shrink-0" />
@@ -345,7 +345,7 @@ function LedgerPageContent() {
                 </TabsTrigger>
                 <TabsTrigger
                   value="overall"
-                  className="px-3 py-1.5 text-xs whitespace-nowrap flex items-center gap-1.5"
+                  className="px-3 py-1.5 text-xs whitespace-nowrap flex items-center gap-1.5 data-[state=active]:bg-primary/15 data-[state=active]:text-primary data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none"
                   data-ocid="nav.overall.tab"
                 >
                   <TrendingUp className="h-3.5 w-3.5 flex-shrink-0" />
@@ -353,7 +353,7 @@ function LedgerPageContent() {
                 </TabsTrigger>
                 <TabsTrigger
                   value="tripHistory"
-                  className="px-3 py-1.5 text-xs whitespace-nowrap flex items-center gap-1.5"
+                  className="px-3 py-1.5 text-xs whitespace-nowrap flex items-center gap-1.5 data-[state=active]:bg-primary/15 data-[state=active]:text-primary data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none"
                   data-ocid="nav.triphistory.tab"
                 >
                   <History className="h-3.5 w-3.5 flex-shrink-0" />
@@ -361,7 +361,7 @@ function LedgerPageContent() {
                 </TabsTrigger>
                 <TabsTrigger
                   value="paymentSummary"
-                  className="px-3 py-1.5 text-xs whitespace-nowrap flex items-center gap-1.5"
+                  className="px-3 py-1.5 text-xs whitespace-nowrap flex items-center gap-1.5 data-[state=active]:bg-primary/15 data-[state=active]:text-primary data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none"
                   data-ocid="nav.payment.tab"
                 >
                   <DollarSign className="h-3.5 w-3.5 flex-shrink-0" />
@@ -369,7 +369,7 @@ function LedgerPageContent() {
                 </TabsTrigger>
                 <TabsTrigger
                   value="paymentHistory"
-                  className="px-3 py-1.5 text-xs whitespace-nowrap flex items-center gap-1.5"
+                  className="px-3 py-1.5 text-xs whitespace-nowrap flex items-center gap-1.5 data-[state=active]:bg-primary/15 data-[state=active]:text-primary data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none"
                   data-ocid="nav.paymenthistory.tab"
                 >
                   <Receipt className="h-3.5 w-3.5 flex-shrink-0" />
@@ -377,7 +377,7 @@ function LedgerPageContent() {
                 </TabsTrigger>
                 <TabsTrigger
                   value="expenseHistory"
-                  className="px-3 py-1.5 text-xs whitespace-nowrap flex items-center gap-1.5"
+                  className="px-3 py-1.5 text-xs whitespace-nowrap flex items-center gap-1.5 data-[state=active]:bg-primary/15 data-[state=active]:text-primary data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none"
                   data-ocid="nav.expensehistory.tab"
                 >
                   <Car className="h-3.5 w-3.5 flex-shrink-0" />
@@ -385,7 +385,7 @@ function LedgerPageContent() {
                 </TabsTrigger>
                 <TabsTrigger
                   value="export"
-                  className="px-3 py-1.5 text-xs whitespace-nowrap flex items-center gap-1.5"
+                  className="px-3 py-1.5 text-xs whitespace-nowrap flex items-center gap-1.5 data-[state=active]:bg-primary/15 data-[state=active]:text-primary data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none"
                   data-ocid="nav.export.tab"
                 >
                   <FileText className="h-3.5 w-3.5 flex-shrink-0" />
@@ -393,7 +393,7 @@ function LedgerPageContent() {
                 </TabsTrigger>
                 <TabsTrigger
                   value="backup"
-                  className="px-3 py-1.5 text-xs whitespace-nowrap flex items-center gap-1.5"
+                  className="px-3 py-1.5 text-xs whitespace-nowrap flex items-center gap-1.5 data-[state=active]:bg-primary/15 data-[state=active]:text-primary data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none"
                   data-ocid="nav.backup.tab"
                 >
                   <Database className="h-3.5 w-3.5 flex-shrink-0" />
@@ -401,7 +401,7 @@ function LedgerPageContent() {
                 </TabsTrigger>
                 <TabsTrigger
                   value="clear"
-                  className="px-3 py-1.5 text-xs whitespace-nowrap flex items-center gap-1.5"
+                  className="px-3 py-1.5 text-xs whitespace-nowrap flex items-center gap-1.5 data-[state=active]:bg-primary/15 data-[state=active]:text-primary data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none"
                   data-ocid="nav.cleardata.tab"
                 >
                   <Trash2 className="h-3.5 w-3.5 flex-shrink-0" />

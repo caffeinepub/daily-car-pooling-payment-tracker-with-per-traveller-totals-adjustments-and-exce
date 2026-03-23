@@ -125,7 +125,7 @@ export default function PaymentSummaryPanel() {
 
   if (travellers.length === 0) {
     return (
-      <Card>
+      <Card className="shadow-md">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <DollarSign className="h-5 w-5" />
@@ -145,7 +145,7 @@ export default function PaymentSummaryPanel() {
   }
 
   return (
-    <Card>
+    <Card className="shadow-md">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <DollarSign className="h-5 w-5" />
@@ -198,20 +198,17 @@ export default function PaymentSummaryPanel() {
                     </TableCell>
                     <TableCell className="text-center">
                       {isDue && (
-                        <Badge variant="destructive" className="font-medium">
+                        <Badge className="font-medium bg-destructive/20 text-destructive border border-destructive/40">
                           Due
                         </Badge>
                       )}
                       {isOverpaid && (
-                        <Badge
-                          variant="default"
-                          className="bg-green-600 hover:bg-green-700 font-medium"
-                        >
+                        <Badge className="font-medium bg-primary/20 text-primary border border-primary/40">
                           Overpaid
                         </Badge>
                       )}
                       {isSettled && (
-                        <Badge variant="secondary" className="font-medium">
+                        <Badge className="font-medium bg-primary/20 text-primary border border-primary/40">
                           Settled
                         </Badge>
                       )}

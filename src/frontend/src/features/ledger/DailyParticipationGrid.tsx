@@ -129,7 +129,7 @@ export default function DailyParticipationGrid({
   }
 
   return (
-    <Card>
+    <Card className="shadow-md">
       <CardHeader>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>

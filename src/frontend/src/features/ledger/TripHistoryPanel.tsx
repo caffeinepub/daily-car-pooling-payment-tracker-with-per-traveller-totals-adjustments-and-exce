@@ -284,7 +284,7 @@ export default function TripHistoryPanel() {
 
   if (!hasTrips && !hasPending) {
     return (
-      <Card>
+      <Card className="shadow-md">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <History className="h-5 w-5" />
@@ -307,7 +307,7 @@ export default function TripHistoryPanel() {
 
   return (
     <>
-      <Card>
+      <Card className="shadow-md">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <History className="h-5 w-5" />

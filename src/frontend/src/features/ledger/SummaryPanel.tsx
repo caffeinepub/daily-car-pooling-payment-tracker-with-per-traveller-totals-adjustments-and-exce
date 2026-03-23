@@ -109,7 +109,7 @@ export default function SummaryPanel() {
 
   if (travellers.length === 0) {
     return (
-      <Card>
+      <Card className="shadow-md">
         <CardHeader>
           <CardTitle>Summary</CardTitle>
           <CardDescription>Per-traveller charges and balances</CardDescription>
@@ -126,7 +126,7 @@ export default function SummaryPanel() {
   }
 
   return (
-    <Card>
+    <Card className="shadow-md">
       <CardHeader>
         <CardTitle>Summary</CardTitle>
         <CardDescription>
@@ -154,17 +154,17 @@ export default function SummaryPanel() {
                   weekend = {summary.totalTrips} trips
                 </Badge>
                 {isDue && (
-                  <Badge variant="destructive" className="font-medium">
+                  <Badge className="font-medium bg-destructive/20 text-destructive border border-destructive/40">
                     Due
                   </Badge>
                 )}
                 {isOverpaid && (
-                  <Badge className="bg-green-600 hover:bg-green-700 font-medium">
+                  <Badge className="font-medium bg-primary/20 text-primary border border-primary/40">
                     Overpaid
                   </Badge>
                 )}
                 {isSettled && (
-                  <Badge variant="secondary" className="font-medium">
+                  <Badge className="font-medium bg-primary/20 text-primary border border-primary/40">
                     Settled
                   </Badge>
                 )}

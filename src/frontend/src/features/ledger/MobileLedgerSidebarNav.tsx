@@ -14,6 +14,7 @@ import {
   FileText,
   History,
   Receipt,
+  Share2,
   Trash2,
   TrendingUp,
   Users,
@@ -27,6 +28,7 @@ interface MobileLedgerSidebarNavProps {
   onOpenPaymentHistory: () => void;
   onOpenExpenseHistory: () => void;
   onOpenExport: () => void;
+  hiddenTabs?: string[];
 }
 
 export default function MobileLedgerSidebarNav({
@@ -37,6 +39,7 @@ export default function MobileLedgerSidebarNav({
   onOpenPaymentHistory,
   onOpenExpenseHistory,
   onOpenExport,
+  hiddenTabs = [],
 }: MobileLedgerSidebarNavProps) {
   const handleTabClick = (tab: string) => {
     onTabSelect(tab);
@@ -53,13 +56,24 @@ export default function MobileLedgerSidebarNav({
     { id: "paymentSummary", label: "Trips & Payment", icon: DollarSign },
     { id: "backup", label: "Backup & Restore", icon: Database },
     { id: "clear", label: "Clear Data", icon: Trash2 },
-  ];
+    { id: "shareAccess", label: "Share Access", icon: Share2 },
+  ].filter((item) => !hiddenTabs.includes(item.id));
 
   const actionItems = [
-    { label: "Payment History", icon: Receipt, action: onOpenPaymentHistory },
-    { label: "Expense History", icon: Car, action: onOpenExpenseHistory },
-    { label: "Export", icon: FileText, action: onOpenExport },
-  ];
+    {
+      label: "Payment History",
+      icon: Receipt,
+      action: onOpenPaymentHistory,
+      id: "paymentHistory",
+    },
+    {
+      label: "Expense History",
+      icon: Car,
+      action: onOpenExpenseHistory,
+      id: "expenseHistory",
+    },
+    { label: "Export", icon: FileText, action: onOpenExport, id: "export" },
+  ].filter((item) => !hiddenTabs.includes(item.id));
 
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
@@ -88,25 +102,28 @@ export default function MobileLedgerSidebarNav({
             );
           })}
 
-          <Separator className="my-4" />
-
-          {actionItems.map((item) => {
-            const Icon = item.icon;
-            return (
-              <Button
-                key={item.label}
-                variant="ghost"
-                className="w-full justify-start gap-3"
-                onClick={() => {
-                  item.action();
-                  onClose();
-                }}
-              >
-                <Icon className="h-4 w-4" />
-                <span>{item.label}</span>
-              </Button>
-            );
-          })}
+          {actionItems.length > 0 && (
+            <>
+              <Separator className="my-4" />
+              {actionItems.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <Button
+                    key={item.label}
+                    variant="ghost"
+                    className="w-full justify-start gap-3"
+                    onClick={() => {
+                      item.action();
+                      onClose();
+                    }}
+                  >
+                    <Icon className="h-4 w-4" />
+                    <span>{item.label}</span>
+                  </Button>
+                );
+              })}
+            </>
+          )}
         </div>
       </SheetContent>
     </Sheet>

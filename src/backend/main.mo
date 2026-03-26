@@ -13,7 +13,6 @@ import MixinAuthorization "authorization/MixinAuthorization";
 import AccessControl "authorization/access-control";
 
 
-
 actor {
   let accessControlState = AccessControl.initState();
   include MixinAuthorization(accessControlState);
@@ -149,8 +148,24 @@ actor {
   let userAppData = Map.empty<Principal, AppData>();
   let coTravellerIncomes = Map.empty<Principal, List.List<CoTravellerIncome.CoTravellerIncome>>();
   let expenseLists = Map.empty<Principal, List.List<Expense.Expense>>();
-  // Separate map for extended profile fields — new, never stored before.
   let userProfileExtendedMap = Map.empty<Principal, UserProfileExtended>();
+
+  // For tab permissions
+  public type TabPermission = {
+    tabKey : Text;
+    access : Text;
+  };
+
+  public type ShareAccessEntry = {
+    email : Text;
+    permissions : [TabPermission];
+  };
+
+  // Map from principal -> ShareAccessEntry for admins
+  let adminShareConfigs = Map.empty<Principal, [ShareAccessEntry]>();
+
+  // Map from principal -> email for shared users
+  let sharedUserEmails = Map.empty<Principal, Text>();
 
   //---------------------- Helper Functions ----------------------
   // Compare balances by amount.
@@ -449,6 +464,81 @@ actor {
     switch (userAppData.get(caller)) {
       case (null) { [] };
       case (?appData) { appData.otherPendingAmounts };
+    };
+  };
+
+  //---------------------- Share Access Functionality ----------------------
+  // Save admin share access configs
+  public shared ({ caller }) func saveShareAccessConfig(configs : [ShareAccessEntry]) : async () {
+    if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
+      Runtime.trap("Unauthorized: Only users can save share configs");
+    };
+    adminShareConfigs.add(caller, configs);
+  };
+
+  // Retrieve own share access config
+  public query ({ caller }) func getShareAccessConfig() : async [ShareAccessEntry] {
+    if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
+      Runtime.trap("Unauthorized: Only users can view share configs");
+    };
+    switch (adminShareConfigs.get(caller)) {
+      case (null) { [] };
+      case (?configs) { configs };
+    };
+  };
+
+  // Register shared user email mapping
+  public shared ({ caller }) func registerSharedUserEmail(email : Text) : async () {
+    if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
+      Runtime.trap("Unauthorized: Only users can register email addresses");
+    };
+
+    if (email == "" or email.contains(#char ' ')) {
+      Runtime.trap("Invalid email address");
+    };
+
+    sharedUserEmails.add(caller, email);
+  };
+
+  public type SharedDataResult = {
+    ledgerState : ?Text;
+    permissions : [TabPermission];
+  };
+
+  // Get admin's shared data if email is in config
+  public query ({ caller }) func getAdminSharedData(admin : Principal) : async ?SharedDataResult {
+    if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
+      Runtime.trap("Unauthorized: Only users can access shared data");
+    };
+
+    let callerEmail = switch (sharedUserEmails.get(caller)) {
+      case (null) { return null };
+      case (?email) { email };
+    };
+
+    let shareConfigs = switch (adminShareConfigs.get(admin)) {
+      case (null) { return null };
+      case (?configs) { configs };
+    };
+
+    var permissions : [TabPermission] = [];
+    var found = false;
+    for (config in shareConfigs.values()) {
+      if (config.email == callerEmail) {
+        permissions := config.permissions;
+        found := true;
+      };
+    };
+    if (not found) { return null };
+
+    let adminAppData = switch (userAppData.get(admin)) {
+      case (null) { return null };
+      case (?appData) { appData };
+    };
+
+    ?{
+      ledgerState = adminAppData.ledgerState;
+      permissions;
     };
   };
 };

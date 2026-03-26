@@ -19,6 +19,7 @@ import {
   History,
   Menu,
   Receipt,
+  Share2,
   Trash2,
   TrendingUp,
   UserPlus,
@@ -26,7 +27,9 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { SiCaffeine } from "react-icons/si";
+import type { TabPermission } from "../../backend";
 import AppHeader from "../../components/AppHeader";
+import { ReadOnlyProvider } from "../../context/ReadOnlyContext";
 import { useAppDataSync } from "../../hooks/useAppDataSync";
 import {
   getCurrentMonthRange,
@@ -48,6 +51,7 @@ import OverallSummaryPanel from "./OverallSummaryPanel";
 import PaymentHistoryDialog from "./PaymentHistoryDialog";
 import PaymentSummaryPanel from "./PaymentSummaryPanel";
 import RatePerTripControl from "./RatePerTripControl";
+import ShareAccessPanel from "./ShareAccessPanel";
 import SummaryPanel from "./SummaryPanel";
 import TravellerManager from "./TravellerManager";
 import TripHistoryPanel from "./TripHistoryPanel";
@@ -66,6 +70,7 @@ const TAB_LABELS: Record<string, string> = {
   paymentHistory: "Payment History",
   expenseHistory: "Expense History",
   export: "Export",
+  shareAccess: "Share Access",
 };
 
 // Define tab keys type
@@ -81,14 +86,24 @@ type TabKey =
   | "clear"
   | "paymentHistory"
   | "expenseHistory"
-  | "export";
+  | "export"
+  | "shareAccess";
 
 export interface LedgerPageProps {
   onOpenProfile?: () => void;
   profilePicture?: string;
+  userName?: string;
+  sharedPermissions?: TabPermission[];
+  isReadOnlyUser?: boolean;
 }
 
-function LedgerPageContent({ onOpenProfile, profilePicture }: LedgerPageProps) {
+function LedgerPageContent({
+  onOpenProfile,
+  profilePicture,
+  userName,
+  sharedPermissions,
+  isReadOnlyUser,
+}: LedgerPageProps) {
   const [activeTab, setActiveTab] = useState<TabKey>("grid"); // Default to Daily Participation
   const [pendingTab, setPendingTab] = useState<string | null>(null);
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
@@ -106,6 +121,22 @@ function LedgerPageContent({ onOpenProfile, profilePicture }: LedgerPageProps) {
     stateRevision,
     setDateRange: contextSetDateRange,
   } = useLedgerState();
+
+  // Build permission map for quick lookup
+  const permissionMap = new Map<string, string>();
+  if (sharedPermissions) {
+    for (const p of sharedPermissions) {
+      permissionMap.set(p.tabKey, p.access);
+    }
+  }
+
+  // Determine if a tab is visible for shared users
+  const isTabVisible = (tabKey: string) => {
+    if (!sharedPermissions) return true; // admin sees all
+    if (tabKey === "shareAccess") return false; // never show to shared users
+    const access = permissionMap.get(tabKey);
+    return access === "read" || access === "edit";
+  };
 
   // Per-tab date range storage (session-scoped)
   const tabDateRanges = useRef<Map<TabKey, { start: Date; end: Date }>>(
@@ -242,294 +273,371 @@ function LedgerPageContent({ onOpenProfile, profilePicture }: LedgerPageProps) {
   // Show Month/Year selector for non-Daily tabs
   const showMonthYearSelector = activeTab !== "grid";
 
-  return (
-    <div className="min-h-screen flex flex-col">
-      <AppHeader
-        syncStatus={syncStatus}
-        lastSyncTime={lastSyncTime}
-        syncError={syncError}
-        onLogout={handleLogout}
-        onOpenProfile={onOpenProfile}
-        profilePicture={profilePicture}
-      />
+  // Read-only for current tab (only relevant for shared users)
+  const currentTabAccess = sharedPermissions
+    ? (permissionMap.get(activeTab) ?? "read")
+    : "edit";
+  const isReadOnlyTab = isReadOnlyUser && currentTabAccess === "read";
 
-      <main className="flex-1 container py-3 sm:py-6 px-3 sm:px-4 space-y-3 sm:space-y-6">
-        {/* Date Range, Rate, Month/Year Selector, and Other Co-Traveller */}
-        <div className="flex flex-col gap-3 sm:gap-4">
-          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-start sm:items-center justify-between">
-            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-start sm:items-center w-full sm:w-auto">
-              <DateRangePicker
-                value={currentDateRange}
-                onChange={handleDateRangeChange}
-              />
-              {showMonthYearSelector && (
-                <MonthYearRangeSelector
+  return (
+    <ReadOnlyProvider isReadOnly={!!isReadOnlyTab}>
+      <div className="min-h-screen flex flex-col">
+        <AppHeader
+          syncStatus={syncStatus}
+          lastSyncTime={lastSyncTime}
+          syncError={syncError}
+          onLogout={handleLogout}
+          onOpenProfile={isReadOnlyUser ? undefined : onOpenProfile}
+          profilePicture={profilePicture}
+          userName={userName}
+        />
+
+        <main className="flex-1 container py-3 sm:py-6 px-3 sm:px-4 space-y-3 sm:space-y-6">
+          {/* Date Range, Rate, Month/Year Selector, and Other Co-Traveller */}
+          <div className="flex flex-col gap-3 sm:gap-4">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-start sm:items-center justify-between">
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-start sm:items-center w-full sm:w-auto">
+                <DateRangePicker
                   value={currentDateRange}
                   onChange={handleDateRangeChange}
                 />
+                {showMonthYearSelector && (
+                  <MonthYearRangeSelector
+                    value={currentDateRange}
+                    onChange={handleDateRangeChange}
+                  />
+                )}
+              </div>
+              {activeTab === "grid" && !isReadOnlyUser && (
+                <Button
+                  variant="outline"
+                  size="default"
+                  onClick={() => setIsCoTravellerIncomeOpen(true)}
+                  className="gap-2 w-full sm:w-auto"
+                >
+                  <UserPlus className="h-4 w-4" />
+                  Other Co-Traveller
+                </Button>
               )}
             </div>
-            {activeTab === "grid" && (
-              <Button
-                variant="outline"
-                size="default"
-                onClick={() => setIsCoTravellerIncomeOpen(true)}
-                className="gap-2 w-full sm:w-auto"
-              >
-                <UserPlus className="h-4 w-4" />
-                Other Co-Traveller
-              </Button>
-            )}
-          </div>
-          <div className="flex justify-start">
-            <RatePerTripControl />
-          </div>
-        </div>
-
-        {/* Mobile Hamburger Button with active tab label */}
-        <div className="sm:hidden">
-          <Button
-            variant="outline"
-            size="default"
-            onClick={() => setIsSidebarOpen(true)}
-            className="w-full justify-start gap-2"
-            aria-expanded={isSidebarOpen}
-            aria-label="Open Carpool Menu"
-            data-ocid="nav.open_modal_button"
-          >
-            <Menu className="h-5 w-5" />
-            <span>{TAB_LABELS[activeTab] || "Carpool Menu"}</span>
-          </Button>
-        </div>
-
-        {/* Mobile Sidebar Navigation */}
-        <MobileLedgerSidebarNav
-          isOpen={isSidebarOpen}
-          onClose={() => setIsSidebarOpen(false)}
-          activeTab={activeTab}
-          onTabSelect={handleTabChange}
-          onOpenPaymentHistory={handleOpenPaymentHistory}
-          onOpenExpenseHistory={handleOpenExpenseHistory}
-          onOpenExport={handleOpenExport}
-        />
-
-        {/* Unified Tab Navigation for Desktop/Tablet */}
-        <Tabs value={activeTab} onValueChange={handleTabChange}>
-          <div className="hidden sm:block">
-            <div className="overflow-x-auto pb-1">
-              <TabsList className="h-9 inline-flex w-max min-w-full gap-0 p-1">
-                <TabsTrigger
-                  value="travellers"
-                  className="px-3 py-1.5 text-xs whitespace-nowrap flex items-center gap-1.5 data-[state=active]:bg-primary/15 data-[state=active]:text-primary data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none"
-                  data-ocid="nav.travellers.tab"
-                >
-                  <Users className="h-3.5 w-3.5 flex-shrink-0" />
-                  Travellers
-                </TabsTrigger>
-                <TabsTrigger
-                  value="grid"
-                  className="px-3 py-1.5 text-xs whitespace-nowrap flex items-center gap-1.5 data-[state=active]:bg-primary/15 data-[state=active]:text-primary data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none"
-                  data-ocid="nav.daily.tab"
-                >
-                  <Calendar className="h-3.5 w-3.5 flex-shrink-0" />
-                  Daily
-                </TabsTrigger>
-                <TabsTrigger
-                  value="summary"
-                  className="px-3 py-1.5 text-xs whitespace-nowrap flex items-center gap-1.5 data-[state=active]:bg-primary/15 data-[state=active]:text-primary data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none"
-                  data-ocid="nav.summary.tab"
-                >
-                  <Receipt className="h-3.5 w-3.5 flex-shrink-0" />
-                  Part. Payment
-                </TabsTrigger>
-                <TabsTrigger
-                  value="car"
-                  className="px-3 py-1.5 text-xs whitespace-nowrap flex items-center gap-1.5 data-[state=active]:bg-primary/15 data-[state=active]:text-primary data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none"
-                  data-ocid="nav.expense.tab"
-                >
-                  <Car className="h-3.5 w-3.5 flex-shrink-0" />
-                  Expense
-                </TabsTrigger>
-                <TabsTrigger
-                  value="overall"
-                  className="px-3 py-1.5 text-xs whitespace-nowrap flex items-center gap-1.5 data-[state=active]:bg-primary/15 data-[state=active]:text-primary data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none"
-                  data-ocid="nav.overall.tab"
-                >
-                  <TrendingUp className="h-3.5 w-3.5 flex-shrink-0" />
-                  Overall
-                </TabsTrigger>
-                <TabsTrigger
-                  value="tripHistory"
-                  className="px-3 py-1.5 text-xs whitespace-nowrap flex items-center gap-1.5 data-[state=active]:bg-primary/15 data-[state=active]:text-primary data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none"
-                  data-ocid="nav.triphistory.tab"
-                >
-                  <History className="h-3.5 w-3.5 flex-shrink-0" />
-                  Trip History
-                </TabsTrigger>
-                <TabsTrigger
-                  value="paymentSummary"
-                  className="px-3 py-1.5 text-xs whitespace-nowrap flex items-center gap-1.5 data-[state=active]:bg-primary/15 data-[state=active]:text-primary data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none"
-                  data-ocid="nav.payment.tab"
-                >
-                  <DollarSign className="h-3.5 w-3.5 flex-shrink-0" />
-                  Trips &amp; Payment
-                </TabsTrigger>
-                <TabsTrigger
-                  value="paymentHistory"
-                  className="px-3 py-1.5 text-xs whitespace-nowrap flex items-center gap-1.5 data-[state=active]:bg-primary/15 data-[state=active]:text-primary data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none"
-                  data-ocid="nav.paymenthistory.tab"
-                >
-                  <Receipt className="h-3.5 w-3.5 flex-shrink-0" />
-                  Pay. History
-                </TabsTrigger>
-                <TabsTrigger
-                  value="expenseHistory"
-                  className="px-3 py-1.5 text-xs whitespace-nowrap flex items-center gap-1.5 data-[state=active]:bg-primary/15 data-[state=active]:text-primary data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none"
-                  data-ocid="nav.expensehistory.tab"
-                >
-                  <Car className="h-3.5 w-3.5 flex-shrink-0" />
-                  Exp. History
-                </TabsTrigger>
-                <TabsTrigger
-                  value="export"
-                  className="px-3 py-1.5 text-xs whitespace-nowrap flex items-center gap-1.5 data-[state=active]:bg-primary/15 data-[state=active]:text-primary data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none"
-                  data-ocid="nav.export.tab"
-                >
-                  <FileText className="h-3.5 w-3.5 flex-shrink-0" />
-                  Export
-                </TabsTrigger>
-                <TabsTrigger
-                  value="backup"
-                  className="px-3 py-1.5 text-xs whitespace-nowrap flex items-center gap-1.5 data-[state=active]:bg-primary/15 data-[state=active]:text-primary data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none"
-                  data-ocid="nav.backup.tab"
-                >
-                  <Database className="h-3.5 w-3.5 flex-shrink-0" />
-                  Backup
-                </TabsTrigger>
-                <TabsTrigger
-                  value="clear"
-                  className="px-3 py-1.5 text-xs whitespace-nowrap flex items-center gap-1.5 data-[state=active]:bg-primary/15 data-[state=active]:text-primary data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none"
-                  data-ocid="nav.cleardata.tab"
-                >
-                  <Trash2 className="h-3.5 w-3.5 flex-shrink-0" />
-                  Clear Data
-                </TabsTrigger>
-              </TabsList>
+            <div className="flex justify-start">
+              <RatePerTripControl />
             </div>
           </div>
 
-          <TabsContent value="travellers" className="mt-4 sm:mt-6">
-            <TravellerManager />
-          </TabsContent>
-          <TabsContent value="grid" className="mt-4 sm:mt-6">
-            <DailyParticipationGrid
-              dateRange={currentDateRange}
-              onSaveAndNext={handleSaveAndNext}
-            />
-          </TabsContent>
-          <TabsContent value="summary" className="mt-4 sm:mt-6">
-            <SummaryPanel />
-          </TabsContent>
-          <TabsContent value="car" className="mt-4 sm:mt-6">
-            <CarExpensesPanel />
-          </TabsContent>
-          <TabsContent value="overall" className="mt-4 sm:mt-6">
-            <OverallSummaryPanel />
-          </TabsContent>
-          <TabsContent value="tripHistory" className="mt-4 sm:mt-6">
-            <TripHistoryPanel />
-          </TabsContent>
-          <TabsContent value="paymentSummary" className="mt-4 sm:mt-6">
-            <PaymentSummaryPanel />
-          </TabsContent>
-          <TabsContent value="backup" className="mt-4 sm:mt-6">
-            <BackupRestorePanel />
-          </TabsContent>
-          <TabsContent value="clear" className="mt-4 sm:mt-6">
-            <ClearDataPanel />
-          </TabsContent>
-        </Tabs>
-
-        {/* Dialogs */}
-        <PaymentHistoryDialog
-          open={isPaymentHistoryOpen}
-          onOpenChange={setIsPaymentHistoryOpen}
-        />
-        <ExpenseHistoryDialog
-          open={isExpenseHistoryOpen}
-          onOpenChange={setIsExpenseHistoryOpen}
-        />
-        <ExportReportDialog
-          open={isExportOpen}
-          onOpenChange={setIsExportOpen}
-        />
-        <CoTravellerIncomeDialog
-          open={isCoTravellerIncomeOpen}
-          onOpenChange={setIsCoTravellerIncomeOpen}
-        />
-
-        {/* Unsaved Changes Dialog */}
-        <AlertDialog
-          open={showUnsavedDialog}
-          onOpenChange={setShowUnsavedDialog}
-        >
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Unsaved Changes</AlertDialogTitle>
-              <AlertDialogDescription>
-                You have unsaved changes in the Daily Participation grid. Do you
-                want to discard them?
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel onClick={handleStay}>Stay</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={handleDiscardChanges}
-                className="bg-destructive hover:bg-destructive/90"
-              >
-                Discard Changes
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      </main>
-
-      {/* Footer */}
-      <footer className="border-t py-4 sm:py-6 px-3 sm:px-4 bg-muted/30">
-        <div className="container flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
-          <p>
-            © {new Date().getFullYear()} Carpool Ledger. All rights reserved.
-          </p>
-          <p className="flex items-center gap-1.5">
-            Built with <SiCaffeine className="h-4 w-4 text-primary" /> using{" "}
-            <a
-              href={`https://caffeine.ai/?utm_source=Caffeine-footer&utm_medium=referral&utm_content=${encodeURIComponent(
-                typeof window !== "undefined"
-                  ? window.location.hostname
-                  : "carpool-ledger",
-              )}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline hover:text-foreground transition-colors"
+          {/* Mobile Hamburger Button with active tab label */}
+          <div className="sm:hidden">
+            <Button
+              variant="outline"
+              size="default"
+              onClick={() => setIsSidebarOpen(true)}
+              className="w-full justify-start gap-2"
+              aria-expanded={isSidebarOpen}
+              aria-label="Open Carpool Menu"
+              data-ocid="nav.open_modal_button"
             >
-              caffeine.ai
-            </a>
-          </p>
-        </div>
-      </footer>
-    </div>
+              <Menu className="h-5 w-5" />
+              <span>{TAB_LABELS[activeTab] || "Carpool Menu"}</span>
+            </Button>
+          </div>
+
+          {/* Mobile Sidebar Navigation */}
+          <MobileLedgerSidebarNav
+            isOpen={isSidebarOpen}
+            onClose={() => setIsSidebarOpen(false)}
+            activeTab={activeTab}
+            onTabSelect={handleTabChange}
+            onOpenPaymentHistory={handleOpenPaymentHistory}
+            onOpenExpenseHistory={handleOpenExpenseHistory}
+            onOpenExport={handleOpenExport}
+            hiddenTabs={
+              sharedPermissions
+                ? ALL_TAB_KEYS.filter((k) => !isTabVisible(k))
+                : []
+            }
+          />
+
+          {/* Unified Tab Navigation for Desktop/Tablet */}
+          <Tabs value={activeTab} onValueChange={handleTabChange}>
+            <div className="hidden sm:block">
+              <div className="overflow-x-auto pb-1">
+                <TabsList className="h-9 inline-flex w-max min-w-full gap-0 p-1">
+                  {isTabVisible("travellers") && (
+                    <TabsTrigger
+                      value="travellers"
+                      className="px-3 py-1.5 text-xs whitespace-nowrap flex items-center gap-1.5 data-[state=active]:bg-primary/15 data-[state=active]:text-primary data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none"
+                      data-ocid="nav.travellers.tab"
+                    >
+                      <Users className="h-3.5 w-3.5 flex-shrink-0" />
+                      Travellers
+                    </TabsTrigger>
+                  )}
+                  {isTabVisible("grid") && (
+                    <TabsTrigger
+                      value="grid"
+                      className="px-3 py-1.5 text-xs whitespace-nowrap flex items-center gap-1.5 data-[state=active]:bg-primary/15 data-[state=active]:text-primary data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none"
+                      data-ocid="nav.daily.tab"
+                    >
+                      <Calendar className="h-3.5 w-3.5 flex-shrink-0" />
+                      Daily
+                    </TabsTrigger>
+                  )}
+                  {isTabVisible("summary") && (
+                    <TabsTrigger
+                      value="summary"
+                      className="px-3 py-1.5 text-xs whitespace-nowrap flex items-center gap-1.5 data-[state=active]:bg-primary/15 data-[state=active]:text-primary data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none"
+                      data-ocid="nav.summary.tab"
+                    >
+                      <Receipt className="h-3.5 w-3.5 flex-shrink-0" />
+                      Part. Payment
+                    </TabsTrigger>
+                  )}
+                  {isTabVisible("car") && (
+                    <TabsTrigger
+                      value="car"
+                      className="px-3 py-1.5 text-xs whitespace-nowrap flex items-center gap-1.5 data-[state=active]:bg-primary/15 data-[state=active]:text-primary data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none"
+                      data-ocid="nav.expense.tab"
+                    >
+                      <Car className="h-3.5 w-3.5 flex-shrink-0" />
+                      Expense
+                    </TabsTrigger>
+                  )}
+                  {isTabVisible("overall") && (
+                    <TabsTrigger
+                      value="overall"
+                      className="px-3 py-1.5 text-xs whitespace-nowrap flex items-center gap-1.5 data-[state=active]:bg-primary/15 data-[state=active]:text-primary data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none"
+                      data-ocid="nav.overall.tab"
+                    >
+                      <TrendingUp className="h-3.5 w-3.5 flex-shrink-0" />
+                      Overall
+                    </TabsTrigger>
+                  )}
+                  {isTabVisible("tripHistory") && (
+                    <TabsTrigger
+                      value="tripHistory"
+                      className="px-3 py-1.5 text-xs whitespace-nowrap flex items-center gap-1.5 data-[state=active]:bg-primary/15 data-[state=active]:text-primary data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none"
+                      data-ocid="nav.triphistory.tab"
+                    >
+                      <History className="h-3.5 w-3.5 flex-shrink-0" />
+                      Trip History
+                    </TabsTrigger>
+                  )}
+                  {isTabVisible("paymentSummary") && (
+                    <TabsTrigger
+                      value="paymentSummary"
+                      className="px-3 py-1.5 text-xs whitespace-nowrap flex items-center gap-1.5 data-[state=active]:bg-primary/15 data-[state=active]:text-primary data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none"
+                      data-ocid="nav.payment.tab"
+                    >
+                      <DollarSign className="h-3.5 w-3.5 flex-shrink-0" />
+                      Trips &amp; Payment
+                    </TabsTrigger>
+                  )}
+                  {isTabVisible("paymentHistory") && (
+                    <TabsTrigger
+                      value="paymentHistory"
+                      className="px-3 py-1.5 text-xs whitespace-nowrap flex items-center gap-1.5 data-[state=active]:bg-primary/15 data-[state=active]:text-primary data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none"
+                      data-ocid="nav.paymenthistory.tab"
+                    >
+                      <Receipt className="h-3.5 w-3.5 flex-shrink-0" />
+                      Pay. History
+                    </TabsTrigger>
+                  )}
+                  {isTabVisible("expenseHistory") && (
+                    <TabsTrigger
+                      value="expenseHistory"
+                      className="px-3 py-1.5 text-xs whitespace-nowrap flex items-center gap-1.5 data-[state=active]:bg-primary/15 data-[state=active]:text-primary data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none"
+                      data-ocid="nav.expensehistory.tab"
+                    >
+                      <Car className="h-3.5 w-3.5 flex-shrink-0" />
+                      Exp. History
+                    </TabsTrigger>
+                  )}
+                  {isTabVisible("export") && (
+                    <TabsTrigger
+                      value="export"
+                      className="px-3 py-1.5 text-xs whitespace-nowrap flex items-center gap-1.5 data-[state=active]:bg-primary/15 data-[state=active]:text-primary data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none"
+                      data-ocid="nav.export.tab"
+                    >
+                      <FileText className="h-3.5 w-3.5 flex-shrink-0" />
+                      Export
+                    </TabsTrigger>
+                  )}
+                  {isTabVisible("backup") && (
+                    <TabsTrigger
+                      value="backup"
+                      className="px-3 py-1.5 text-xs whitespace-nowrap flex items-center gap-1.5 data-[state=active]:bg-primary/15 data-[state=active]:text-primary data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none"
+                      data-ocid="nav.backup.tab"
+                    >
+                      <Database className="h-3.5 w-3.5 flex-shrink-0" />
+                      Backup
+                    </TabsTrigger>
+                  )}
+                  {isTabVisible("clear") && (
+                    <TabsTrigger
+                      value="clear"
+                      className="px-3 py-1.5 text-xs whitespace-nowrap flex items-center gap-1.5 data-[state=active]:bg-primary/15 data-[state=active]:text-primary data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none"
+                      data-ocid="nav.cleardata.tab"
+                    >
+                      <Trash2 className="h-3.5 w-3.5 flex-shrink-0" />
+                      Clear Data
+                    </TabsTrigger>
+                  )}
+                  {/* Share Access tab — admin only */}
+                  {!sharedPermissions && (
+                    <TabsTrigger
+                      value="shareAccess"
+                      className="px-3 py-1.5 text-xs whitespace-nowrap flex items-center gap-1.5 data-[state=active]:bg-primary/15 data-[state=active]:text-primary data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none"
+                      data-ocid="nav.shareaccess.tab"
+                    >
+                      <Share2 className="h-3.5 w-3.5 flex-shrink-0" />
+                      Share Access
+                    </TabsTrigger>
+                  )}
+                </TabsList>
+              </div>
+            </div>
+
+            <TabsContent value="travellers" className="mt-4 sm:mt-6">
+              <TravellerManager />
+            </TabsContent>
+            <TabsContent value="grid" className="mt-4 sm:mt-6">
+              <DailyParticipationGrid
+                dateRange={currentDateRange}
+                onSaveAndNext={handleSaveAndNext}
+              />
+            </TabsContent>
+            <TabsContent value="summary" className="mt-4 sm:mt-6">
+              <SummaryPanel />
+            </TabsContent>
+            <TabsContent value="car" className="mt-4 sm:mt-6">
+              <CarExpensesPanel />
+            </TabsContent>
+            <TabsContent value="overall" className="mt-4 sm:mt-6">
+              <OverallSummaryPanel />
+            </TabsContent>
+            <TabsContent value="tripHistory" className="mt-4 sm:mt-6">
+              <TripHistoryPanel />
+            </TabsContent>
+            <TabsContent value="paymentSummary" className="mt-4 sm:mt-6">
+              <PaymentSummaryPanel />
+            </TabsContent>
+            <TabsContent value="backup" className="mt-4 sm:mt-6">
+              <BackupRestorePanel />
+            </TabsContent>
+            <TabsContent value="clear" className="mt-4 sm:mt-6">
+              <ClearDataPanel />
+            </TabsContent>
+            <TabsContent value="shareAccess" className="mt-4 sm:mt-6">
+              <ShareAccessPanel />
+            </TabsContent>
+          </Tabs>
+
+          {/* Dialogs */}
+          <PaymentHistoryDialog
+            open={isPaymentHistoryOpen}
+            onOpenChange={setIsPaymentHistoryOpen}
+          />
+          <ExpenseHistoryDialog
+            open={isExpenseHistoryOpen}
+            onOpenChange={setIsExpenseHistoryOpen}
+          />
+          <ExportReportDialog
+            open={isExportOpen}
+            onOpenChange={setIsExportOpen}
+          />
+          {!isReadOnlyUser && (
+            <CoTravellerIncomeDialog
+              open={isCoTravellerIncomeOpen}
+              onOpenChange={setIsCoTravellerIncomeOpen}
+            />
+          )}
+
+          {/* Unsaved Changes Dialog */}
+          <AlertDialog
+            open={showUnsavedDialog}
+            onOpenChange={setShowUnsavedDialog}
+          >
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Unsaved Changes</AlertDialogTitle>
+                <AlertDialogDescription>
+                  You have unsaved changes in the Daily Participation grid. Do
+                  you want to discard them?
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel onClick={handleStay}>Stay</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleDiscardChanges}
+                  className="bg-destructive hover:bg-destructive/90"
+                >
+                  Discard Changes
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </main>
+
+        {/* Footer */}
+        <footer className="border-t py-4 sm:py-6 px-3 sm:px-4 bg-muted/30">
+          <div className="container flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
+            <p>
+              © {new Date().getFullYear()} Carpool Ledger. All rights reserved.
+            </p>
+            <p className="flex items-center gap-1.5">
+              Built with <SiCaffeine className="h-4 w-4 text-primary" /> using{" "}
+              <a
+                href={`https://caffeine.ai/?utm_source=Caffeine-footer&utm_medium=referral&utm_content=${encodeURIComponent(
+                  typeof window !== "undefined"
+                    ? window.location.hostname
+                    : "carpool-ledger",
+                )}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline hover:text-foreground transition-colors"
+              >
+                caffeine.ai
+              </a>
+            </p>
+          </div>
+        </footer>
+      </div>
+    </ReadOnlyProvider>
   );
 }
+
+// All tab keys for filtering
+const ALL_TAB_KEYS: TabKey[] = [
+  "travellers",
+  "grid",
+  "summary",
+  "car",
+  "overall",
+  "tripHistory",
+  "paymentSummary",
+  "paymentHistory",
+  "expenseHistory",
+  "export",
+  "backup",
+  "clear",
+  "shareAccess",
+];
 
 export default function LedgerPage({
   onOpenProfile,
   profilePicture,
+  userName,
+  sharedPermissions,
+  isReadOnlyUser,
 }: LedgerPageProps = {}) {
   return (
     <LedgerStateProvider>
       <LedgerPageContent
         onOpenProfile={onOpenProfile}
         profilePicture={profilePicture}
+        userName={userName}
+        sharedPermissions={sharedPermissions}
+        isReadOnlyUser={isReadOnlyUser}
       />
     </LedgerStateProvider>
   );

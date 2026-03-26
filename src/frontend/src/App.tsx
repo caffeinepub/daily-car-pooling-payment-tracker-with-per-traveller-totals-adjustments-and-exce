@@ -3,6 +3,7 @@ import { ThemeProvider } from "next-themes";
 import { useEffect, useState } from "react";
 import AuthGate from "./components/AuthGate";
 import ProfileSetupModal from "./components/ProfileSetupModal";
+import SharedUserGate from "./components/SharedUserGate";
 import UserProfileDialog from "./components/UserProfileDialog";
 import LedgerPage from "./features/ledger/LedgerPage";
 import { useAutoTollSettings } from "./hooks/useAutoTollSettings";
@@ -14,6 +15,11 @@ import {
 } from "./hooks/useQueries";
 import { useUserProfileExtended } from "./hooks/useUserProfileExtended";
 import { getTodayIST } from "./utils/dateRange";
+
+// Check for shared access URL param
+const sharedAccessParam = new URLSearchParams(window.location.search).get(
+  "access",
+);
 
 export default function App() {
   const { identity } = useInternetIdentity();
@@ -86,6 +92,30 @@ export default function App() {
   // Profile picture from localStorage-backed extended profile
   const profilePicture = userProfileExtended?.profilePicture ?? undefined;
 
+  // Compute display name from extended profile or fallback
+  const displayName =
+    [userProfileExtended?.firstName, userProfileExtended?.lastName]
+      .filter(Boolean)
+      .join(" ") ||
+    userProfile?.name ||
+    undefined;
+
+  // Shared user flow — render gate without the normal admin flow
+  if (sharedAccessParam) {
+    return (
+      <ThemeProvider
+        attribute="class"
+        defaultTheme="light"
+        enableSystem={false}
+      >
+        <div className="min-h-screen bg-background">
+          <SharedUserGate adminPrincipalStr={sharedAccessParam} />
+          <Toaster />
+        </div>
+      </ThemeProvider>
+    );
+  }
+
   return (
     <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
       <div className="min-h-screen bg-background">
@@ -100,6 +130,7 @@ export default function App() {
             <LedgerPage
               onOpenProfile={() => setProfileDialogOpen(true)}
               profilePicture={profilePicture}
+              userName={displayName}
             />
           )}
           <UserProfileDialog

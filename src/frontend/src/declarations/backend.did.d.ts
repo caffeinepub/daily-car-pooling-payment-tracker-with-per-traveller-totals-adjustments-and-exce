@@ -47,10 +47,27 @@ export interface OtherPendingAmount {
   'comment' : [] | [string],
   'amount' : bigint,
 }
+export interface ShareAccessEntry {
+  'permissions' : Array<TabPermission>,
+  'email' : string,
+}
+export interface SharedDataResult {
+  'permissions' : Array<TabPermission>,
+  'ledgerState' : [] | [string],
+}
+export interface TabPermission { 'access' : string, 'tabKey' : string }
 export type Time = bigint;
 export type TripTime = { 'morning' : null } |
   { 'evening' : null };
 export interface UserProfile { 'name' : string }
+export interface UserProfileExtended {
+  'sex' : [] | [string],
+  'vehicleNumber' : [] | [string],
+  'phone' : [] | [string],
+  'profilePicture' : [] | [string],
+  'lastName' : [] | [string],
+  'firstName' : [] | [string],
+}
 export type UserRole = { 'admin' : null } |
   { 'user' : null } |
   { 'guest' : null };
@@ -66,17 +83,26 @@ export interface _SERVICE {
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
   'deleteOtherPendingAmount' : ActorMethod<[string], undefined>,
   'fetchAppData' : ActorMethod<[], [] | [AppData]>,
+  'getAdminSharedData' : ActorMethod<[Principal], [] | [SharedDataResult]>,
   'getAllBalances' : ActorMethod<[], Array<[Principal, bigint]>>,
   'getBalance' : ActorMethod<[], bigint>,
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
+  'getCallerUserProfileExtended' : ActorMethod<[], [] | [UserProfileExtended]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
   'getCoTravellerIncomes' : ActorMethod<[Principal], Array<CoTravellerIncome>>,
   'getExpenses' : ActorMethod<[Principal], Array<Expense>>,
   'getOtherPendingAmounts' : ActorMethod<[], Array<OtherPendingAmount>>,
+  'getShareAccessConfig' : ActorMethod<[], Array<ShareAccessEntry>>,
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
+  'registerSharedUserEmail' : ActorMethod<[string], undefined>,
   'saveAppData' : ActorMethod<[AppData], undefined>,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
+  'saveCallerUserProfileExtended' : ActorMethod<
+    [UserProfileExtended],
+    undefined
+  >,
+  'saveShareAccessConfig' : ActorMethod<[Array<ShareAccessEntry>], undefined>,
   'startCharge' : ActorMethod<[string, bigint, Array<Principal>], undefined>,
 }
 export declare const idlService: IDL.ServiceClass;

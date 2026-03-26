@@ -62,6 +62,26 @@ export const AppData = IDL.Record({
   'ledgerState' : IDL.Opt(IDL.Text),
   'userProfile' : IDL.Opt(UserProfile),
 });
+export const TabPermission = IDL.Record({
+  'access' : IDL.Text,
+  'tabKey' : IDL.Text,
+});
+export const SharedDataResult = IDL.Record({
+  'permissions' : IDL.Vec(TabPermission),
+  'ledgerState' : IDL.Opt(IDL.Text),
+});
+export const UserProfileExtended = IDL.Record({
+  'sex' : IDL.Opt(IDL.Text),
+  'vehicleNumber' : IDL.Opt(IDL.Text),
+  'phone' : IDL.Opt(IDL.Text),
+  'profilePicture' : IDL.Opt(IDL.Text),
+  'lastName' : IDL.Opt(IDL.Text),
+  'firstName' : IDL.Opt(IDL.Text),
+});
+export const ShareAccessEntry = IDL.Record({
+  'permissions' : IDL.Vec(TabPermission),
+  'email' : IDL.Text,
+});
 
 export const idlService = IDL.Service({
   '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
@@ -72,6 +92,11 @@ export const idlService = IDL.Service({
   'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
   'deleteOtherPendingAmount' : IDL.Func([IDL.Text], [], []),
   'fetchAppData' : IDL.Func([], [IDL.Opt(AppData)], ['query']),
+  'getAdminSharedData' : IDL.Func(
+      [IDL.Principal],
+      [IDL.Opt(SharedDataResult)],
+      ['query'],
+    ),
   'getAllBalances' : IDL.Func(
       [],
       [IDL.Vec(IDL.Tuple(IDL.Principal, IDL.Nat))],
@@ -79,6 +104,11 @@ export const idlService = IDL.Service({
     ),
   'getBalance' : IDL.Func([], [IDL.Nat], ['query']),
   'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
+  'getCallerUserProfileExtended' : IDL.Func(
+      [],
+      [IDL.Opt(UserProfileExtended)],
+      ['query'],
+    ),
   'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
   'getCoTravellerIncomes' : IDL.Func(
       [IDL.Principal],
@@ -91,14 +121,18 @@ export const idlService = IDL.Service({
       [IDL.Vec(OtherPendingAmount)],
       ['query'],
     ),
+  'getShareAccessConfig' : IDL.Func([], [IDL.Vec(ShareAccessEntry)], ['query']),
   'getUserProfile' : IDL.Func(
       [IDL.Principal],
       [IDL.Opt(UserProfile)],
       ['query'],
     ),
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
+  'registerSharedUserEmail' : IDL.Func([IDL.Text], [], []),
   'saveAppData' : IDL.Func([AppData], [], []),
   'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
+  'saveCallerUserProfileExtended' : IDL.Func([UserProfileExtended], [], []),
+  'saveShareAccessConfig' : IDL.Func([IDL.Vec(ShareAccessEntry)], [], []),
   'startCharge' : IDL.Func([IDL.Text, IDL.Nat, IDL.Vec(IDL.Principal)], [], []),
 });
 
@@ -156,6 +190,26 @@ export const idlFactory = ({ IDL }) => {
     'ledgerState' : IDL.Opt(IDL.Text),
     'userProfile' : IDL.Opt(UserProfile),
   });
+  const TabPermission = IDL.Record({
+    'access' : IDL.Text,
+    'tabKey' : IDL.Text,
+  });
+  const SharedDataResult = IDL.Record({
+    'permissions' : IDL.Vec(TabPermission),
+    'ledgerState' : IDL.Opt(IDL.Text),
+  });
+  const UserProfileExtended = IDL.Record({
+    'sex' : IDL.Opt(IDL.Text),
+    'vehicleNumber' : IDL.Opt(IDL.Text),
+    'phone' : IDL.Opt(IDL.Text),
+    'profilePicture' : IDL.Opt(IDL.Text),
+    'lastName' : IDL.Opt(IDL.Text),
+    'firstName' : IDL.Opt(IDL.Text),
+  });
+  const ShareAccessEntry = IDL.Record({
+    'permissions' : IDL.Vec(TabPermission),
+    'email' : IDL.Text,
+  });
   
   return IDL.Service({
     '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
@@ -166,6 +220,11 @@ export const idlFactory = ({ IDL }) => {
     'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
     'deleteOtherPendingAmount' : IDL.Func([IDL.Text], [], []),
     'fetchAppData' : IDL.Func([], [IDL.Opt(AppData)], ['query']),
+    'getAdminSharedData' : IDL.Func(
+        [IDL.Principal],
+        [IDL.Opt(SharedDataResult)],
+        ['query'],
+      ),
     'getAllBalances' : IDL.Func(
         [],
         [IDL.Vec(IDL.Tuple(IDL.Principal, IDL.Nat))],
@@ -173,6 +232,11 @@ export const idlFactory = ({ IDL }) => {
       ),
     'getBalance' : IDL.Func([], [IDL.Nat], ['query']),
     'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
+    'getCallerUserProfileExtended' : IDL.Func(
+        [],
+        [IDL.Opt(UserProfileExtended)],
+        ['query'],
+      ),
     'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
     'getCoTravellerIncomes' : IDL.Func(
         [IDL.Principal],
@@ -185,14 +249,22 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Vec(OtherPendingAmount)],
         ['query'],
       ),
+    'getShareAccessConfig' : IDL.Func(
+        [],
+        [IDL.Vec(ShareAccessEntry)],
+        ['query'],
+      ),
     'getUserProfile' : IDL.Func(
         [IDL.Principal],
         [IDL.Opt(UserProfile)],
         ['query'],
       ),
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
+    'registerSharedUserEmail' : IDL.Func([IDL.Text], [], []),
     'saveAppData' : IDL.Func([AppData], [], []),
     'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
+    'saveCallerUserProfileExtended' : IDL.Func([UserProfileExtended], [], []),
+    'saveShareAccessConfig' : IDL.Func([IDL.Vec(ShareAccessEntry)], [], []),
     'startCharge' : IDL.Func(
         [IDL.Text, IDL.Nat, IDL.Vec(IDL.Principal)],
         [],

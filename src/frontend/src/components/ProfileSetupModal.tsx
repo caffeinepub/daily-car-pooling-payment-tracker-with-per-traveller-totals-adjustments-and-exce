@@ -10,7 +10,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { User } from "lucide-react";
-import React, { useState } from "react";
+import { useState } from "react";
+import {
+  useSaveCallerUserProfile,
+  useSaveCallerUserProfileExtended,
+} from "../hooks/useQueries";
 
 export interface ProfileSetupModalProps {
   open: boolean;
@@ -23,15 +27,29 @@ export default function ProfileSetupModal({
   onSave,
   isLoading,
 }: ProfileSetupModalProps) {
-  const [name, setName] = useState("");
-  const [nameError, setNameError] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [firstNameError, setFirstNameError] = useState("");
+  const { mutate: saveExtended } = useSaveCallerUserProfileExtended();
 
   const handleSave = () => {
-    if (!name.trim()) {
-      setNameError("Please enter your name");
+    if (!firstName.trim()) {
+      setFirstNameError("Please enter your first name");
       return;
     }
-    onSave(name.trim());
+    const name = [firstName.trim(), lastName.trim()].filter(Boolean).join(" ");
+
+    // Save extended profile fields alongside the base name
+    saveExtended({
+      firstName: firstName.trim() || undefined,
+      lastName: lastName.trim() || undefined,
+      phone: undefined,
+      sex: undefined,
+      vehicleNumber: undefined,
+      profilePicture: undefined,
+    });
+
+    onSave(name);
   };
 
   return (
@@ -54,26 +72,48 @@ export default function ProfileSetupModal({
         </DialogHeader>
 
         <div className="space-y-3 py-2">
-          <div className="space-y-1">
-            <Label htmlFor="profile-name" className="text-xs sm:text-sm">
-              Your Name
-            </Label>
-            <Input
-              id="profile-name"
-              type="text"
-              placeholder="Enter your name..."
-              value={name}
-              onChange={(e) => {
-                setName(e.target.value);
-                setNameError("");
-              }}
-              onKeyDown={(e) => e.key === "Enter" && handleSave()}
-              className="h-11 text-sm"
-              autoFocus
-            />
-            {nameError && (
-              <p className="text-destructive text-xs">{nameError}</p>
-            )}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label htmlFor="setup-first-name" className="text-xs sm:text-sm">
+                First Name <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="setup-first-name"
+                type="text"
+                placeholder="First name"
+                value={firstName}
+                onChange={(e) => {
+                  setFirstName(e.target.value);
+                  setFirstNameError("");
+                }}
+                onKeyDown={(e) => e.key === "Enter" && handleSave()}
+                className="h-11 text-sm"
+                autoFocus
+                data-ocid="profile.input"
+              />
+              {firstNameError && (
+                <p
+                  className="text-destructive text-xs"
+                  data-ocid="profile.error_state"
+                >
+                  {firstNameError}
+                </p>
+              )}
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="setup-last-name" className="text-xs sm:text-sm">
+                Last Name
+              </Label>
+              <Input
+                id="setup-last-name"
+                type="text"
+                placeholder="Last name"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleSave()}
+                className="h-11 text-sm"
+              />
+            </div>
           </div>
         </div>
 
@@ -82,6 +122,7 @@ export default function ProfileSetupModal({
             onClick={handleSave}
             disabled={isLoading}
             className="w-full h-11 text-sm font-semibold"
+            data-ocid="profile.submit_button"
           >
             {isLoading ? "Saving..." : "Get Started"}
           </Button>

@@ -1,4 +1,4 @@
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -22,6 +22,8 @@ export interface AppHeaderProps {
   syncStatus?: SyncStatus;
   lastSyncTime?: Date | null;
   syncError?: string | null;
+  onOpenProfile?: () => void;
+  profilePicture?: string;
 }
 
 export default function AppHeader({
@@ -29,6 +31,8 @@ export default function AppHeader({
   onLogout,
   syncStatus,
   lastSyncTime,
+  onOpenProfile,
+  profilePicture,
 }: AppHeaderProps) {
   const { clear, identity } = useInternetIdentity();
   const queryClient = useQueryClient();
@@ -93,8 +97,15 @@ export default function AppHeader({
                 <Button
                   variant="ghost"
                   className="flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2 h-8 sm:h-9 rounded-lg hover:bg-accent"
+                  data-ocid="profile.open_modal_button"
                 >
                   <Avatar className="h-6 w-6 sm:h-7 sm:w-7">
+                    {profilePicture ? (
+                      <AvatarImage
+                        src={profilePicture}
+                        alt={userName || "User"}
+                      />
+                    ) : null}
                     <AvatarFallback className="text-xs font-semibold bg-primary text-primary-foreground">
                       {initials}
                     </AvatarFallback>
@@ -120,7 +131,11 @@ export default function AppHeader({
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem className="text-xs sm:text-sm">
+                <DropdownMenuItem
+                  className="text-xs sm:text-sm"
+                  onClick={onOpenProfile}
+                  data-ocid="profile.button"
+                >
                   <User className="mr-2 h-3.5 w-3.5" />
                   Profile
                 </DropdownMenuItem>
@@ -128,6 +143,7 @@ export default function AppHeader({
                 <DropdownMenuItem
                   onClick={handleLogout}
                   className="text-destructive focus:text-destructive text-xs sm:text-sm"
+                  data-ocid="nav.logout.button"
                 >
                   <LogOut className="mr-2 h-3.5 w-3.5" />
                   Logout

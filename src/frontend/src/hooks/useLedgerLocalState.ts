@@ -2,6 +2,11 @@ import { useEffect, useRef, useState } from "react";
 import type { LocalLedgerState } from "../utils/backupRestore";
 import { mergeLocalStates } from "../utils/backupRestore";
 import { getCurrentMonthRange } from "../utils/dateRange";
+import {
+  type UserProfileExtended,
+  loadProfileExtended,
+  saveProfileExtended,
+} from "./useUserProfileExtended";
 
 export interface Traveller {
   id: string;
@@ -74,6 +79,7 @@ interface StoredState {
   includeSunday: boolean;
   coTravellerIncomes: CoTravellerIncome[];
   perDayAutoTollSelection?: PerDayAutoTollSelection;
+  userProfileExtended?: UserProfileExtended;
 }
 
 // Simple UUID generator
@@ -111,6 +117,7 @@ function loadState(): StoredState {
         includeSunday: parsed.includeSunday ?? false,
         coTravellerIncomes: parsed.coTravellerIncomes ?? [],
         perDayAutoTollSelection: parsed.perDayAutoTollSelection ?? {},
+        userProfileExtended: parsed.userProfileExtended ?? undefined,
       };
     }
   } catch (error) {
@@ -174,6 +181,8 @@ export function useLedgerLocalState() {
   >([]);
   const [perDayAutoTollSelection, setPerDayAutoTollSelection] =
     useState<PerDayAutoTollSelection>({});
+  const [userProfileExtended, setUserProfileExtended] =
+    useState<UserProfileExtended | null>(null);
   const [stateRevision, setStateRevision] = useState(0);
 
   // Track if we should skip the next save (used for clearAllLedgerData)
@@ -192,6 +201,7 @@ export function useLedgerLocalState() {
   const includeSundayRef = useRef(includeSunday);
   const coTravellerIncomesRef = useRef(coTravellerIncomes);
   const perDayAutoTollSelectionRef = useRef(perDayAutoTollSelection);
+  const userProfileExtendedRef = useRef(userProfileExtended);
 
   // Keep refs in sync with state
   useEffect(() => {
@@ -227,6 +237,9 @@ export function useLedgerLocalState() {
   useEffect(() => {
     perDayAutoTollSelectionRef.current = perDayAutoTollSelection;
   }, [perDayAutoTollSelection]);
+  useEffect(() => {
+    userProfileExtendedRef.current = userProfileExtended;
+  }, [userProfileExtended]);
 
   // Build a snapshot of the current state for immediate persistence
   const buildSnapshot = (
@@ -246,6 +259,7 @@ export function useLedgerLocalState() {
     includeSunday: includeSundayRef.current,
     coTravellerIncomes: coTravellerIncomesRef.current,
     perDayAutoTollSelection: perDayAutoTollSelectionRef.current,
+    userProfileExtended: userProfileExtendedRef.current ?? undefined,
     ...overrides,
   });
 
@@ -269,6 +283,16 @@ export function useLedgerLocalState() {
     setIncludeSunday(loaded.includeSunday);
     setCoTravellerIncomes(loaded.coTravellerIncomes);
     setPerDayAutoTollSelection(loaded.perDayAutoTollSelection ?? {});
+    // Load extended profile from both ledger state and dedicated localStorage key
+    const storedProfile = loadProfileExtended();
+    const ledgerProfile = loaded.userProfileExtended;
+    // Prefer dedicated key if available, otherwise use ledger state
+    if (storedProfile) {
+      setUserProfileExtended(storedProfile);
+    } else if (ledgerProfile) {
+      setUserProfileExtended(ledgerProfile);
+      saveProfileExtended(ledgerProfile);
+    }
   }, []);
 
   // Save state whenever it changes (reactive effect-based persistence)
@@ -293,6 +317,7 @@ export function useLedgerLocalState() {
       includeSunday,
       coTravellerIncomes,
       perDayAutoTollSelection,
+      userProfileExtended: userProfileExtended ?? undefined,
     });
 
     if (!skipRevisionIncrement.current) {
@@ -312,6 +337,7 @@ export function useLedgerLocalState() {
     includeSunday,
     coTravellerIncomes,
     perDayAutoTollSelection,
+    userProfileExtended,
   ]);
 
   const addTraveller = (name: string) => {
@@ -567,6 +593,7 @@ export function useLedgerLocalState() {
       includeSunday,
       coTravellerIncomes,
       perDayAutoTollSelection,
+      userProfileExtended: userProfileExtended ?? undefined,
     };
   };
 
@@ -593,6 +620,16 @@ export function useLedgerLocalState() {
     setPerDayAutoTollSelection(
       (merged.perDayAutoTollSelection as PerDayAutoTollSelection) ?? {},
     );
+    // Sync extended profile from merged state
+    if (merged.userProfileExtended) {
+      setUserProfileExtended(merged.userProfileExtended);
+      saveProfileExtended(merged.userProfileExtended);
+    }
+  };
+
+  const updateUserProfileExtended = (profile: UserProfileExtended) => {
+    setUserProfileExtended(profile);
+    saveProfileExtended(profile);
   };
 
   const restoreFromBackup = (backupState: LocalLedgerState) => {
@@ -647,5 +684,7 @@ export function useLedgerLocalState() {
     getPersistedState,
     mergeRestoreFromBackup,
     restoreFromBackup,
+    userProfileExtended,
+    updateUserProfileExtended,
   };
 }

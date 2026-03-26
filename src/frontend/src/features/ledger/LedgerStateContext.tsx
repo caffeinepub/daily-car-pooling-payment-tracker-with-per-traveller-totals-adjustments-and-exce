@@ -10,6 +10,7 @@ import type {
   PerDayAutoTollSelection,
   Traveller,
 } from "../../hooks/useLedgerLocalState";
+import type { UserProfileExtended } from "../../hooks/useUserProfileExtended";
 import type { LocalLedgerState } from "../../utils/backupRestore";
 
 interface LedgerStateContextValue {
@@ -26,6 +27,8 @@ interface LedgerStateContextValue {
   coTravellerIncomes: CoTravellerIncome[];
   perDayAutoTollSelection: PerDayAutoTollSelection;
   stateRevision: number;
+  userProfileExtended: UserProfileExtended | null;
+  updateUserProfileExtended: (profile: UserProfileExtended) => void;
   addTraveller: (name: string) => void;
   renameTraveller: (id: string, newName: string) => void;
   removeTraveller: (id: string) => void;

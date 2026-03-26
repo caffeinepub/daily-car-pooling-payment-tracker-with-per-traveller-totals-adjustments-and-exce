@@ -32,10 +32,19 @@ actor {
     };
   };
 
-  // User profiles.
+  // Core user profile (kept stable — do NOT add fields here).
   public type UserProfile = {
     name : Text;
-    // Expandable fields.
+  };
+
+  // Extended profile stored separately to avoid stable-variable compatibility issues.
+  public type UserProfileExtended = {
+    firstName : ?Text;
+    lastName : ?Text;
+    phone : ?Text;
+    sex : ?Text;
+    vehicleNumber : ?Text;
+    profilePicture : ?Text;
   };
 
   // Payments.
@@ -140,6 +149,8 @@ actor {
   let userAppData = Map.empty<Principal, AppData>();
   let coTravellerIncomes = Map.empty<Principal, List.List<CoTravellerIncome.CoTravellerIncome>>();
   let expenseLists = Map.empty<Principal, List.List<Expense.Expense>>();
+  // Separate map for extended profile fields — new, never stored before.
+  let userProfileExtendedMap = Map.empty<Principal, UserProfileExtended>();
 
   //---------------------- Helper Functions ----------------------
   // Compare balances by amount.
@@ -197,6 +208,22 @@ actor {
       case (?appData) { appData.userProfile };
       case (null) { null };
     };
+  };
+
+  // Save extended profile fields.
+  public shared ({ caller }) func saveCallerUserProfileExtended(profile : UserProfileExtended) : async () {
+    if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
+      Runtime.trap("Unauthorized: Only users can save profiles");
+    };
+    userProfileExtendedMap.add(caller, profile);
+  };
+
+  // Get extended profile fields.
+  public query ({ caller }) func getCallerUserProfileExtended() : async ?UserProfileExtended {
+    if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
+      Runtime.trap("Unauthorized: Only users can view their profiles");
+    };
+    userProfileExtendedMap.get(caller);
   };
 
   //---------------------- App Data Management ----------------------

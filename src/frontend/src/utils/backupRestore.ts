@@ -7,6 +7,7 @@ import type {
   PerDayAutoTollSelection,
   Traveller,
 } from "../hooks/useLedgerLocalState";
+import type { UserProfileExtended } from "../hooks/useUserProfileExtended";
 
 export interface LocalLedgerState {
   travellers: Traveller[];
@@ -20,6 +21,7 @@ export interface LocalLedgerState {
   includeSunday: boolean;
   coTravellerIncomes?: CoTravellerIncome[];
   perDayAutoTollSelection?: PerDayAutoTollSelection;
+  userProfileExtended?: UserProfileExtended;
 }
 
 export interface BackupData {
@@ -191,6 +193,10 @@ export function mergeLocalStates(
       localSelection[dateKey] || remoteSelection[dateKey] || false;
   }
 
+  // Merge userProfileExtended — remote wins if present, otherwise keep local
+  const mergedProfileExtended =
+    remote.userProfileExtended || local.userProfileExtended;
+
   return {
     travellers: Array.from(travellerMap.values()),
     dailyData: mergedDailyData,
@@ -203,5 +209,6 @@ export function mergeLocalStates(
     includeSunday: remote.includeSunday,
     coTravellerIncomes: Array.from(coTravellerIncomeMap.values()),
     perDayAutoTollSelection: mergedPerDayAutoTollSelection,
+    userProfileExtended: mergedProfileExtended,
   };
 }

@@ -83,7 +83,12 @@ type TabKey =
   | "expenseHistory"
   | "export";
 
-function LedgerPageContent() {
+export interface LedgerPageProps {
+  onOpenProfile?: () => void;
+  profilePicture?: string;
+}
+
+function LedgerPageContent({ onOpenProfile, profilePicture }: LedgerPageProps) {
   const [activeTab, setActiveTab] = useState<TabKey>("grid"); // Default to Daily Participation
   const [pendingTab, setPendingTab] = useState<string | null>(null);
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
@@ -244,6 +249,8 @@ function LedgerPageContent() {
         lastSyncTime={lastSyncTime}
         syncError={syncError}
         onLogout={handleLogout}
+        onOpenProfile={onOpenProfile}
+        profilePicture={profilePicture}
       />
 
       <main className="flex-1 container py-3 sm:py-6 px-3 sm:px-4 space-y-3 sm:space-y-6">
@@ -514,10 +521,16 @@ function LedgerPageContent() {
   );
 }
 
-export default function LedgerPage() {
+export default function LedgerPage({
+  onOpenProfile,
+  profilePicture,
+}: LedgerPageProps = {}) {
   return (
     <LedgerStateProvider>
-      <LedgerPageContent />
+      <LedgerPageContent
+        onOpenProfile={onOpenProfile}
+        profilePicture={profilePicture}
+      />
     </LedgerStateProvider>
   );
 }

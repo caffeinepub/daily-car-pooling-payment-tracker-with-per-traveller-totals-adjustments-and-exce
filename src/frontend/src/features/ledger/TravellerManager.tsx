@@ -12,6 +12,7 @@ import { Users } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import EmptyState from "../../components/EmptyState";
+import { useReadOnly } from "../../context/ReadOnlyContext";
 import { calculateTravellerBalance } from "../../utils/ledgerBalances";
 import { useLedgerState } from "./LedgerStateContext";
 
@@ -29,6 +30,7 @@ export default function TravellerManager() {
     includeSaturday,
     includeSunday,
   } = useLedgerState();
+  const { isReadOnly } = useReadOnly();
   const [newName, setNewName] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
@@ -92,17 +94,19 @@ export default function TravellerManager() {
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Add new traveller */}
-        <div className="flex gap-2">
-          <Input
-            placeholder="Enter name"
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleAdd()}
-          />
-          <Button onClick={handleAdd} size="icon" disabled={!newName.trim()}>
-            <Plus className="h-4 w-4" />
-          </Button>
-        </div>
+        {!isReadOnly && (
+          <div className="flex gap-2">
+            <Input
+              placeholder="Enter name"
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleAdd()}
+            />
+            <Button onClick={handleAdd} size="icon" disabled={!newName.trim()}>
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
 
         {/* Traveller list */}
         {travellers.length === 0 ? (
@@ -140,22 +144,26 @@ export default function TravellerManager() {
                 ) : (
                   <>
                     <span className="flex-1 text-sm font-medium">{t.name}</span>
-                    <Button
-                      onClick={() => startEdit(t.id, t.name)}
-                      size="icon"
-                      variant="ghost"
-                      className="h-8 w-8"
-                    >
-                      <Edit2 className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      onClick={() => handleRemove(t.id, t.name)}
-                      size="icon"
-                      variant="ghost"
-                      className="h-8 w-8 text-destructive hover:text-destructive"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    {!isReadOnly && (
+                      <>
+                        <Button
+                          onClick={() => startEdit(t.id, t.name)}
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8"
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          onClick={() => handleRemove(t.id, t.name)}
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8 text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </>
+                    )}
                   </>
                 )}
               </div>

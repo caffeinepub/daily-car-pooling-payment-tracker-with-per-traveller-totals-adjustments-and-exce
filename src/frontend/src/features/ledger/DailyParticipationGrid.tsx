@@ -14,6 +14,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import EmptyState from "../../components/EmptyState";
 import ResponsiveTableShell from "../../components/ResponsiveTableShell";
+import { useReadOnly } from "../../context/ReadOnlyContext";
 import {
   formatDateKey,
   formatDisplayDate,
@@ -57,6 +58,7 @@ export default function DailyParticipationGrid({
     setIncludeSunday,
   } = useLedgerState();
 
+  const { isReadOnly } = useReadOnly();
   // Local state for participation edit toggle
   const [allowParticipationEdit, setAllowParticipationEdit] = useState(false);
 
@@ -188,7 +190,10 @@ export default function DailyParticipationGrid({
             <Switch
               id="allow-edit"
               checked={allowParticipationEdit}
-              onCheckedChange={setAllowParticipationEdit}
+              onCheckedChange={
+                isReadOnly ? undefined : setAllowParticipationEdit
+              }
+              disabled={isReadOnly}
             />
             <Label htmlFor="allow-edit" className="cursor-pointer">
               Allow Participation Edit
@@ -197,7 +202,7 @@ export default function DailyParticipationGrid({
         </div>
 
         {/* Mark All — Yesterday, Today, Tomorrow */}
-        {isTodayEditable && (
+        {isTodayEditable && !isReadOnly && (
           <div className="flex flex-col sm:flex-row gap-2 p-3 bg-primary/5 rounded-lg border border-primary/20">
             {/* Yesterday */}
             <div className="flex items-center gap-2 flex-1">

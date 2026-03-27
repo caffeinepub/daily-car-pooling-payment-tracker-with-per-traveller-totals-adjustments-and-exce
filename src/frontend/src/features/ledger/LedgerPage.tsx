@@ -31,6 +31,7 @@ import type { TabPermission } from "../../backend";
 import AppHeader from "../../components/AppHeader";
 import { ReadOnlyProvider } from "../../context/ReadOnlyContext";
 import { useAppDataSync } from "../../hooks/useAppDataSync";
+import { useSharedDataSync } from "../../hooks/useSharedDataSync";
 import {
   getCurrentMonthRange,
   getCurrentWeekMondayToFriday,
@@ -95,14 +96,18 @@ export interface LedgerPageProps {
   userName?: string;
   sharedPermissions?: TabPermission[];
   isReadOnlyUser?: boolean;
+  adminPrincipalStr?: string;
+  sharedUserEmail?: string;
 }
 
-function LedgerPageContent({
+export function LedgerPageContent({
   onOpenProfile,
   profilePicture,
   userName,
   sharedPermissions,
   isReadOnlyUser,
+  adminPrincipalStr,
+  sharedUserEmail: _sharedUserEmail,
 }: LedgerPageProps) {
   const [activeTab, setActiveTab] = useState<TabKey>("grid"); // Default to Daily Participation
   const [pendingTab, setPendingTab] = useState<string | null>(null);
@@ -174,16 +179,21 @@ function LedgerPageContent({
     return weekRange;
   });
 
-  // Initialize sync
-  const {
-    syncStatus,
-    lastSyncTime,
-    error: syncError,
-  } = useAppDataSync({
+  // Initialize sync — use shared sync for shared users, regular sync for admin
+  const adminSyncResult = useAppDataSync({
     getLocalState: getPersistedState,
     applyMergedState: mergeRestoreFromBackup,
     stateRevision,
   });
+  const sharedSyncResult = useSharedDataSync({
+    adminPrincipalStr: adminPrincipalStr ?? "",
+    applyMergedState: mergeRestoreFromBackup,
+  });
+  const {
+    syncStatus,
+    lastSyncTime,
+    error: syncError,
+  } = adminPrincipalStr ? sharedSyncResult : adminSyncResult;
 
   // Sync context date range on mount
   // biome-ignore lint/correctness/useExhaustiveDependencies: intentional - run once on mount only

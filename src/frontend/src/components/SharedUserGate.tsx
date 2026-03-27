@@ -13,7 +13,7 @@ import { AlertCircle, Car, Loader2, LogIn, Mail } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import type { TabPermission } from "../backend";
-import LedgerPage from "../features/ledger/LedgerPage";
+import { LedgerPageContent } from "../features/ledger/LedgerPage";
 import {
   LedgerStateProvider,
   useLedgerState,
@@ -201,9 +201,16 @@ function SharedUserGateInner({ adminPrincipalStr }: SharedUserGateInnerProps) {
     );
   }
 
-  // Logged in, have permissions → show LedgerPage
+  // Logged in, have permissions → show LedgerPageContent (uses outer LedgerStateProvider)
   if (permissions) {
-    return <LedgerPage sharedPermissions={permissions} isReadOnlyUser={true} />;
+    return (
+      <LedgerPageContent
+        sharedPermissions={permissions}
+        isReadOnlyUser={true}
+        adminPrincipalStr={adminPrincipalStr}
+        sharedUserEmail={submittedEmail}
+      />
+    );
   }
 
   // Loading shared data after email submit

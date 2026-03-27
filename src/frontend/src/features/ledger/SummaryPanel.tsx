@@ -9,6 +9,7 @@ import {
 import { parseISO } from "date-fns";
 import { Receipt } from "lucide-react";
 import EmptyState from "../../components/EmptyState";
+import { useReadOnly } from "../../context/ReadOnlyContext";
 import { formatDateKey, getDaysInRange } from "../../utils/dateRange";
 import { formatCurrency } from "../../utils/money";
 import {
@@ -32,6 +33,7 @@ export default function SummaryPanel() {
     includeSaturday,
     includeSunday,
   } = useLedgerState();
+  const { isReadOnly } = useReadOnly();
 
   const days = getDaysInRange(dateRange.start, dateRange.end);
 
@@ -207,18 +209,20 @@ export default function SummaryPanel() {
               </div>
 
               {/* Action Buttons */}
-              <div className="flex flex-wrap gap-2 pt-2">
-                <CashPaymentForm
-                  travellerId={summary.traveller.id}
-                  travellerName={summary.traveller.name}
-                  onSubmit={addCashPayment}
-                />
-                <OtherPendingAmountForm
-                  travellerId={summary.traveller.id}
-                  travellerName={summary.traveller.name}
-                  onSubmit={addOtherPending}
-                />
-              </div>
+              {!isReadOnly && (
+                <div className="flex flex-wrap gap-2 pt-2">
+                  <CashPaymentForm
+                    travellerId={summary.traveller.id}
+                    travellerName={summary.traveller.name}
+                    onSubmit={addCashPayment}
+                  />
+                  <OtherPendingAmountForm
+                    travellerId={summary.traveller.id}
+                    travellerName={summary.traveller.name}
+                    onSubmit={addOtherPending}
+                  />
+                </div>
+              )}
             </div>
           );
         })}

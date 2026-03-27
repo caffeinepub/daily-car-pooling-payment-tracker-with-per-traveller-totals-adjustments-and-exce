@@ -21,6 +21,7 @@ import { Clock, Edit, History, Moon, Sun, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import EmptyState from "../../components/EmptyState";
+import { useReadOnly } from "../../context/ReadOnlyContext";
 import type { OtherPending } from "../../hooks/useLedgerLocalState";
 import {
   formatDateKey,
@@ -67,6 +68,7 @@ export default function TripHistoryPanel() {
     removeCoTravellerIncome,
   } = useLedgerState();
 
+  const { isReadOnly } = useReadOnly();
   const [editTravellerDialogOpen, setEditTravellerDialogOpen] = useState(false);
   const [editCoTravellerDialogOpen, setEditCoTravellerDialogOpen] =
     useState(false);
@@ -384,26 +386,28 @@ export default function TripHistoryPanel() {
                           {formatCurrency(entry.amount)}
                         </TableCell>
                         <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() =>
-                                entry.type === "traveller"
-                                  ? handleEditTraveller(entry)
-                                  : handleEditCoTraveller(entry)
-                              }
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleDeleteEntry(entry)}
-                            >
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                          </div>
+                          {!isReadOnly && (
+                            <div className="flex justify-end gap-2">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() =>
+                                  entry.type === "traveller"
+                                    ? handleEditTraveller(entry)
+                                    : handleEditCoTraveller(entry)
+                                }
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleDeleteEntry(entry)}
+                              >
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </div>
+                          )}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -476,22 +480,24 @@ export default function TripHistoryPanel() {
                             )}
                           </TableCell>
                           <TableCell className="text-right">
-                            <div className="flex justify-end gap-2">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleEditPending(pending)}
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleDeletePending(pending)}
-                              >
-                                <Trash2 className="h-4 w-4 text-destructive" />
-                              </Button>
-                            </div>
+                            {!isReadOnly && (
+                              <div className="flex justify-end gap-2">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleEditPending(pending)}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleDeletePending(pending)}
+                                >
+                                  <Trash2 className="h-4 w-4 text-destructive" />
+                                </Button>
+                              </div>
+                            )}
                           </TableCell>
                         </TableRow>
                       );

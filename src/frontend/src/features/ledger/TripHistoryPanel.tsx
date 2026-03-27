@@ -7,6 +7,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import {
   Table,
@@ -17,7 +24,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { parseISO } from "date-fns";
-import { Clock, Edit, History, Moon, Sun, Trash2 } from "lucide-react";
+import { Clock, Edit, Filter, History, Moon, Sun, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import EmptyState from "../../components/EmptyState";
@@ -74,6 +81,7 @@ export default function TripHistoryPanel() {
     useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState<TripEntry | null>(null);
+  const [selectedTravellerId, setSelectedTravellerId] = useState<string>("all");
 
   // Other Pending Amount dialog state
   const [editPendingDialogOpen, setEditPendingDialogOpen] = useState(false);
@@ -84,7 +92,7 @@ export default function TripHistoryPanel() {
   const days = getDaysInRange(dateRange.start, dateRange.end);
 
   // Build trip entries
-  const tripEntries: TripEntry[] = [];
+  const allTripEntries: TripEntry[] = [];
 
   // Add traveller trips
   for (const day of days) {
@@ -103,7 +111,7 @@ export default function TripHistoryPanel() {
       if (tripData) {
         const count = (tripData.morning ? 1 : 0) + (tripData.evening ? 1 : 0);
         if (count > 0) {
-          tripEntries.push({
+          allTripEntries.push({
             date: dateKey,
             displayDate: formatDisplayDate(day),
             name: traveller.name,
@@ -124,7 +132,7 @@ export default function TripHistoryPanel() {
     try {
       const incomeDate = parseISO(income.date);
       if (incomeDate >= dateRange.start && incomeDate <= dateRange.end) {
-        tripEntries.push({
+        allTripEntries.push({
           date: income.date,
           displayDate: formatDisplayDate(incomeDate),
           name: "Other Co-Traveller",
@@ -141,7 +149,7 @@ export default function TripHistoryPanel() {
   }
 
   // Sort by date
-  tripEntries.sort((a, b) => a.date.localeCompare(b.date));
+  allTripEntries.sort((a, b) => a.date.localeCompare(b.date));
 
   // Filter other pending amounts within the date range
   const pendingInRange = otherPending.filter((p) => {
@@ -154,9 +162,25 @@ export default function TripHistoryPanel() {
   });
 
   // Sort pending by date
-  const sortedPendingInRange = [...pendingInRange].sort((a, b) =>
+  const allSortedPending = [...pendingInRange].sort((a, b) =>
     a.date.localeCompare(b.date),
   );
+
+  // Apply traveller filter
+  const tripEntries =
+    selectedTravellerId === "all"
+      ? allTripEntries
+      : allTripEntries.filter(
+          (entry) =>
+            entry.travellerId === selectedTravellerId ||
+            (entry.type === "coTraveller" &&
+              selectedTravellerId === "coTraveller"),
+        );
+
+  const sortedPendingInRange =
+    selectedTravellerId === "all"
+      ? allSortedPending
+      : allSortedPending.filter((p) => p.travellerId === selectedTravellerId);
 
   const totalTrips = tripEntries.reduce((sum, entry) => sum + entry.count, 0);
   const totalAmount = tripEntries.reduce((sum, entry) => sum + entry.amount, 0);
@@ -283,8 +307,9 @@ export default function TripHistoryPanel() {
 
   const hasTrips = tripEntries.length > 0;
   const hasPending = sortedPendingInRange.length > 0;
+  const hasAnyData = allTripEntries.length > 0 || allSortedPending.length > 0;
 
-  if (!hasTrips && !hasPending) {
+  if (!hasAnyData) {
     return (
       <Card className="shadow-md">
         <CardHeader>
@@ -320,6 +345,41 @@ export default function TripHistoryPanel() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
+          {/* Traveller Filter */}
+          <div className="flex items-center gap-2">
+            <Filter className="h-4 w-4 text-muted-foreground shrink-0" />
+            <span className="text-sm font-medium text-muted-foreground whitespace-nowrap">
+              Filter by:
+            </span>
+            <Select
+              value={selectedTravellerId}
+              onValueChange={setSelectedTravellerId}
+            >
+              <SelectTrigger
+                className="w-52 h-9"
+                data-ocid="trip_history.select"
+              >
+                <SelectValue placeholder="All Travellers" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Travellers</SelectItem>
+                {travellers.map((t) => (
+                  <SelectItem key={t.id} value={t.id}>
+                    {t.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {!hasTrips && !hasPending && (
+            <EmptyState
+              icon={History}
+              title="No trips for this traveller"
+              description="No trip data found for the selected traveller in this date range"
+            />
+          )}
+
           {/* Trip Entries Table */}
           {hasTrips && (
             <div className="space-y-3">

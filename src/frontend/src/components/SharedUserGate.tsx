@@ -9,8 +9,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Principal } from "@dfinity/principal";
-import { AlertCircle, Car, Loader2, LogIn, Mail } from "lucide-react";
-import { useEffect, useState } from "react";
+import { AlertCircle, Car, Loader2, Mail } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import type { TabPermission } from "../backend";
 import { LedgerPageContent } from "../features/ledger/LedgerPage";
@@ -19,9 +19,9 @@ import {
   useLedgerState,
 } from "../features/ledger/LedgerStateContext";
 import { useActor } from "../hooks/useActor";
-import { useInternetIdentity } from "../hooks/useInternetIdentity";
 
 const SHARED_ACCESS_KEY = "carpool-shared-access";
+const VISIT_COUNT_KEY = "carpool-visit-counts";
 
 interface SharedAccessCache {
   adminPrincipal: string;
@@ -40,6 +40,16 @@ function saveCache(cache: SharedAccessCache) {
   localStorage.setItem(SHARED_ACCESS_KEY, JSON.stringify(cache));
 }
 
+function incrementVisitCount(adminPrincipal: string, email: string) {
+  try {
+    const raw = localStorage.getItem(VISIT_COUNT_KEY);
+    const counts: Record<string, number> = raw ? JSON.parse(raw) : {};
+    const key = `${adminPrincipal}:${email}`;
+    counts[key] = (counts[key] ?? 0) + 1;
+    localStorage.setItem(VISIT_COUNT_KEY, JSON.stringify(counts));
+  } catch {}
+}
+
 interface SharedDataLoaderProps {
   adminPrincipalStr: string;
   email: string;
@@ -56,43 +66,51 @@ function SharedDataLoader({
   const { actor } = useActor();
   const { mergeRestoreFromBackup } = useLedgerState();
   const [status, setStatus] = useState<"loading" | "done" | "error">("loading");
+  const attempted = useRef(false);
 
   useEffect(() => {
-    if (!actor) return;
+    if (!actor || attempted.current) return;
+    attempted.current = true;
 
-    let cancelled = false;
     (async () => {
       try {
-        await actor.registerSharedUserEmail(email);
+        // Register email (no-op if already registered; works anonymously)
+        try {
+          await actor.registerSharedUserEmail(email);
+        } catch {}
+
         const adminPrincipal = Principal.fromText(adminPrincipalStr);
         const result = await actor.getAdminSharedData(adminPrincipal);
-        if (cancelled) return;
+
         if (!result) {
           onError("Access denied. Your email is not in the access list.");
           setStatus("error");
           return;
         }
+
+        // Verify this email is actually in the permissions list
+        const hasAccess = result.permissions && result.permissions.length > 0;
+        if (!hasAccess) {
+          onError("Access denied. Your email is not in the access list.");
+          setStatus("error");
+          return;
+        }
+
         if (result.ledgerState) {
           try {
             mergeRestoreFromBackup(JSON.parse(result.ledgerState));
-          } catch {
-            // ignore parse errors
-          }
+          } catch {}
         }
+
         saveCache({ adminPrincipal: adminPrincipalStr, email });
+        incrementVisitCount(adminPrincipalStr, email);
         onPermissions(result.permissions);
         setStatus("done");
       } catch {
-        if (!cancelled) {
-          onError("Failed to load shared data. Please try again.");
-          setStatus("error");
-        }
+        onError("Failed to load shared data. Please try again.");
+        setStatus("error");
       }
     })();
-
-    return () => {
-      cancelled = true;
-    };
   }, [
     actor,
     adminPrincipalStr,
@@ -124,21 +142,20 @@ interface SharedUserGateInnerProps {
 }
 
 function SharedUserGateInner({ adminPrincipalStr }: SharedUserGateInnerProps) {
-  const { identity, login, loginStatus } = useInternetIdentity();
+  const { actor } = useActor();
   const [email, setEmail] = useState("");
   const [submittedEmail, setSubmittedEmail] = useState("");
   const [permissions, setPermissions] = useState<TabPermission[] | null>(null);
   const [accessError, setAccessError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Auto-load from cache
+  // Auto-load from cache on mount — no login needed
   useEffect(() => {
-    if (!identity) return;
     const cache = loadCache();
     if (cache && cache.adminPrincipal === adminPrincipalStr) {
       setSubmittedEmail(cache.email);
     }
-  }, [identity, adminPrincipalStr]);
+  }, [adminPrincipalStr]);
 
   const handleSubmitEmail = () => {
     const trimmed = email.trim().toLowerCase();
@@ -159,49 +176,12 @@ function SharedUserGateInner({ adminPrincipalStr }: SharedUserGateInnerProps) {
   const handleAccessError = (msg: string) => {
     setIsSubmitting(false);
     setSubmittedEmail("");
+    // Clear cache so user can try a different email
+    localStorage.removeItem(SHARED_ACCESS_KEY);
     setAccessError(msg);
   };
 
-  // Not logged in → show login screen
-  if (!identity) {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-background via-muted/20 to-background">
-        <Card className="w-full max-w-md shadow-lg">
-          <CardHeader className="text-center space-y-4">
-            <div className="mx-auto w-20 h-20 rounded-2xl bg-primary/10 flex items-center justify-center">
-              <Car className="w-10 h-10 text-primary" />
-            </div>
-            <div>
-              <CardTitle className="text-2xl">Carpool Ledger</CardTitle>
-              <CardDescription className="mt-2">
-                You've been invited to view a shared carpool. Log in to
-                continue.
-              </CardDescription>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Button
-              onClick={login}
-              disabled={loginStatus === "logging-in"}
-              className="w-full h-12 text-base"
-              size="lg"
-              data-ocid="shared_gate.primary_button"
-            >
-              <LogIn className="mr-2 h-5 w-5" />
-              {loginStatus === "logging-in"
-                ? "Connecting…"
-                : "Login to Continue"}
-            </Button>
-            <p className="text-xs text-center text-muted-foreground">
-              Secure authentication powered by Internet Identity
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  // Logged in, have permissions → show LedgerPageContent (uses outer LedgerStateProvider)
+  // Have permissions → show the app
   if (permissions) {
     return (
       <LedgerPageContent
@@ -213,41 +193,42 @@ function SharedUserGateInner({ adminPrincipalStr }: SharedUserGateInnerProps) {
     );
   }
 
-  // Loading shared data after email submit
+  // Loading shared data after email submit — wait for anonymous actor
   if (submittedEmail) {
+    if (!actor) {
+      // Actor still initialising
+      return (
+        <div
+          className="min-h-screen flex items-center justify-center"
+          data-ocid="shared_gate.loading_state"
+        >
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      );
+    }
     return (
-      <>
-        <SharedDataLoader
-          adminPrincipalStr={adminPrincipalStr}
-          email={submittedEmail}
-          onPermissions={handlePermissionsLoaded}
-          onError={handleAccessError}
-        />
-        {!isSubmitting && (
-          <div
-            className="min-h-screen flex items-center justify-center"
-            data-ocid="shared_gate.loading_state"
-          >
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-          </div>
-        )}
-      </>
+      <SharedDataLoader
+        adminPrincipalStr={adminPrincipalStr}
+        email={submittedEmail}
+        onPermissions={handlePermissionsLoaded}
+        onError={handleAccessError}
+      />
     );
   }
 
-  // Logged in, needs email
+  // Default: email entry form (no login required)
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-background via-muted/20 to-background">
       <Card className="w-full max-w-md shadow-lg" data-ocid="shared_gate.card">
         <CardHeader className="text-center space-y-4">
           <div className="mx-auto w-20 h-20 rounded-2xl bg-primary/10 flex items-center justify-center">
-            <Mail className="w-10 h-10 text-primary" />
+            <Car className="w-10 h-10 text-primary" />
           </div>
           <div>
-            <CardTitle className="text-2xl">Enter Your Email</CardTitle>
+            <CardTitle className="text-2xl">Carpool Ledger</CardTitle>
             <CardDescription className="mt-2">
-              Enter the email address the admin used to grant you access to this
-              carpool.
+              You've been invited to view a shared carpool. Enter the email
+              address the admin used to grant you access.
             </CardDescription>
           </div>
         </CardHeader>
@@ -275,19 +256,24 @@ function SharedUserGateInner({ adminPrincipalStr }: SharedUserGateInnerProps) {
           </div>
           <Button
             onClick={handleSubmitEmail}
-            disabled={isSubmitting}
+            disabled={isSubmitting || !actor}
             className="w-full h-12 text-base"
             size="lg"
             data-ocid="shared_gate.submit_button"
           >
-            {isSubmitting ? (
+            {isSubmitting || !actor ? (
               <>
                 <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Loading…
               </>
             ) : (
-              "Access Carpool"
+              <>
+                <Mail className="mr-2 h-5 w-5" /> Access Carpool
+              </>
             )}
           </Button>
+          <p className="text-xs text-center text-muted-foreground">
+            No account or login required — just enter your email.
+          </p>
         </CardContent>
       </Card>
     </div>

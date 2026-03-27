@@ -18,7 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { Copy, Link, Loader2, Plus, Trash2, Users } from "lucide-react";
+import { Copy, Loader2, Plus, Trash2, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import type { ShareAccessEntry, TabPermission } from "../../backend";
@@ -71,6 +71,31 @@ function emailEntryToShareEntry(entry: EmailEntry): ShareAccessEntry {
   return { email: entry.email, permissions };
 }
 
+function copyToClipboard(text: string, successMsg: string) {
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard
+      .writeText(text)
+      .then(() => toast.success(successMsg))
+      .catch(() => fallbackCopy(text, successMsg));
+  } else {
+    fallbackCopy(text, successMsg);
+  }
+}
+
+function fallbackCopy(text: string, successMsg: string) {
+  const el = document.createElement("textarea");
+  el.value = text;
+  document.body.appendChild(el);
+  el.select();
+  try {
+    document.execCommand("copy");
+    toast.success(successMsg);
+  } catch {
+    toast.error(`Failed to copy. Value: ${text}`);
+  }
+  document.body.removeChild(el);
+}
+
 export default function ShareAccessPanel() {
   const { actor } = useActor();
   const { identity } = useInternetIdentity();
@@ -84,9 +109,7 @@ export default function ShareAccessPanel() {
     setIsLoading(true);
     actor
       .getShareAccessConfig()
-      .then((configs) => {
-        setEntries(configs.map(entryToEmailEntry));
-      })
+      .then((configs) => setEntries(configs.map(entryToEmailEntry)))
       .catch(() => toast.error("Failed to load share access config"))
       .finally(() => setIsLoading(false));
   }, [actor]);
@@ -162,34 +185,10 @@ export default function ShareAccessPanel() {
       return;
     }
     const link = `${window.location.origin}${window.location.pathname}?access=${principal}`;
-    if (navigator.clipboard && window.isSecureContext) {
-      navigator.clipboard
-        .writeText(link)
-        .then(() => toast.success("Share link copied to clipboard!"))
-        .catch(() => {
-          // Fallback
-          const el = document.createElement("textarea");
-          el.value = link;
-          document.body.appendChild(el);
-          el.select();
-          document.execCommand("copy");
-          document.body.removeChild(el);
-          toast.success("Share link copied to clipboard!");
-        });
-    } else {
-      // Fallback for non-secure contexts
-      const el = document.createElement("textarea");
-      el.value = link;
-      document.body.appendChild(el);
-      el.select();
-      try {
-        document.execCommand("copy");
-        toast.success("Share link copied to clipboard!");
-      } catch {
-        toast.error(`Failed to copy link. URL: ${link}`);
-      }
-      document.body.removeChild(el);
-    }
+    copyToClipboard(
+      link,
+      "Share link copied! Recipients only need to enter their email — no login required.",
+    );
   };
 
   return (
@@ -205,8 +204,8 @@ export default function ShareAccessPanel() {
                 Share Access
               </CardTitle>
               <CardDescription className="text-xs sm:text-sm">
-                Invite others to view or edit selected tabs. They log in with
-                Internet Identity and enter their email.
+                Invite others to view or edit selected tabs. They open the link
+                and enter their email — no login required.
               </CardDescription>
             </div>
           </div>
@@ -220,11 +219,11 @@ export default function ShareAccessPanel() {
               onClick={handleCopyShareLink}
               data-ocid="share_access.primary_button"
             >
-              <Link className="h-4 w-4" />
+              <Copy className="h-4 w-4" />
               Copy Share Link
             </Button>
             <p className="text-xs text-muted-foreground self-center">
-              Send this link to users you want to grant access.
+              Send this link to users. They enter their email to access.
             </p>
           </div>
 
@@ -276,14 +275,12 @@ export default function ShareAccessPanel() {
                 >
                   <CardHeader className="pb-2 pt-4 px-4">
                     <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <Badge
-                          variant="secondary"
-                          className="text-xs font-mono shrink-0"
-                        >
-                          {entry.email}
-                        </Badge>
-                      </div>
+                      <Badge
+                        variant="secondary"
+                        className="text-xs font-mono shrink-0"
+                      >
+                        {entry.email}
+                      </Badge>
                       <Button
                         variant="ghost"
                         size="icon"

@@ -2,7 +2,6 @@ import { Principal } from "@dfinity/principal";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { LocalLedgerState } from "../utils/backupRestore";
 import { useActor } from "./useActor";
-import { useInternetIdentity } from "./useInternetIdentity";
 
 export type SyncStatus = "idle" | "syncing" | "synced" | "failed";
 
@@ -34,7 +33,6 @@ export function useSharedDataSync({
   applyMergedState,
 }: UseSharedDataSyncProps) {
   const { actor, isFetching: actorFetching } = useActor();
-  const { identity } = useInternetIdentity();
   const [syncState, setSyncState] = useState<SyncState>({
     status: "idle",
     lastSyncTime: null,
@@ -50,10 +48,11 @@ export function useSharedDataSync({
   const lastLedgerHashRef = useRef<string | null>(null);
   const isPollingActiveRef = useRef(false);
 
-  const isAuthenticated = !!identity && !!actor && !actorFetching;
+  // Works with both authenticated and anonymous actor
+  const isReady = !!actor && !actorFetching;
 
   const fetchAdminData = useCallback(async () => {
-    if (!actor || !isAuthenticated) return;
+    if (!actor) return;
     try {
       setSyncState((prev) => ({ ...prev, status: "syncing", error: null }));
 
@@ -85,10 +84,10 @@ export function useSharedDataSync({
         error: error instanceof Error ? error.message : "Sync failed",
       }));
     }
-  }, [actor, isAuthenticated, adminPrincipalStr]);
+  }, [actor, adminPrincipalStr]);
 
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (!isReady) {
       if (pollIntervalRef.current) {
         clearInterval(pollIntervalRef.current);
         pollIntervalRef.current = null;
@@ -114,7 +113,7 @@ export function useSharedDataSync({
       }
       isPollingActiveRef.current = false;
     };
-  }, [isAuthenticated, fetchAdminData]);
+  }, [isReady, fetchAdminData]);
 
   useEffect(() => {
     return () => {

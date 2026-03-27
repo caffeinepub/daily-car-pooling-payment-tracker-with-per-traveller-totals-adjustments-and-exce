@@ -19,6 +19,7 @@ import { format, parseISO } from "date-fns";
 import { IndianRupee, Pencil, Receipt, Trash2 } from "lucide-react";
 import { useState } from "react";
 import EmptyState from "../../components/EmptyState";
+import { useReadOnly } from "../../context/ReadOnlyContext";
 import type { CashPayment } from "../../hooks/useLedgerLocalState";
 import { formatCurrency } from "../../utils/money";
 import DeleteCashPaymentAlertDialog from "./DeleteCashPaymentAlertDialog";
@@ -33,6 +34,7 @@ export default function PaymentHistoryView() {
     updateCashPayment,
     removeCashPayment,
   } = useLedgerState();
+  const { isReadOnly } = useReadOnly();
   const [selectedTravellerId, setSelectedTravellerId] = useState<string>("all");
   const [editingPayment, setEditingPayment] = useState<CashPayment | null>(
     null,
@@ -113,7 +115,9 @@ export default function PaymentHistoryView() {
                 <TableHead>Traveller</TableHead>
                 <TableHead className="text-right">Amount</TableHead>
                 <TableHead>Note</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                {!isReadOnly && (
+                  <TableHead className="text-right">Actions</TableHead>
+                )}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -132,26 +136,28 @@ export default function PaymentHistoryView() {
                   <TableCell className="text-muted-foreground">
                     {payment.note || "—"}
                   </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setEditingPayment(payment)}
-                        className="h-8 w-8"
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setDeletingPayment(payment)}
-                        className="h-8 w-8 text-destructive hover:text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
+                  {!isReadOnly && (
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setEditingPayment(payment)}
+                          className="h-8 w-8"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setDeletingPayment(payment)}
+                          className="h-8 w-8 text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  )}
                 </TableRow>
               ))}
             </TableBody>

@@ -21,7 +21,6 @@ import {
 import { useActor } from "../hooks/useActor";
 
 const SHARED_ACCESS_KEY = "carpool-shared-access";
-const VISIT_COUNT_KEY = "carpool-visit-counts";
 
 interface SharedAccessCache {
   adminPrincipal: string;
@@ -38,16 +37,6 @@ function loadCache(): SharedAccessCache | null {
 
 function saveCache(cache: SharedAccessCache) {
   localStorage.setItem(SHARED_ACCESS_KEY, JSON.stringify(cache));
-}
-
-function incrementVisitCount(adminPrincipal: string, email: string) {
-  try {
-    const raw = localStorage.getItem(VISIT_COUNT_KEY);
-    const counts: Record<string, number> = raw ? JSON.parse(raw) : {};
-    const key = `${adminPrincipal}:${email}`;
-    counts[key] = (counts[key] ?? 0) + 1;
-    localStorage.setItem(VISIT_COUNT_KEY, JSON.stringify(counts));
-  } catch {}
 }
 
 interface SharedDataLoaderProps {
@@ -74,13 +63,12 @@ function SharedDataLoader({
 
     (async () => {
       try {
-        // Register email (no-op if already registered; works anonymously)
-        try {
-          await actor.registerSharedUserEmail(email);
-        } catch {}
-
         const adminPrincipal = Principal.fromText(adminPrincipalStr);
-        const result = await actor.getAdminSharedData(adminPrincipal);
+        // Use the anonymous-accessible method — no login required
+        const result = await actor.getAdminSharedDataByEmail(
+          adminPrincipal,
+          email.trim().toLowerCase(),
+        );
 
         if (!result) {
           onError("Access denied. Your email is not in the access list.");
@@ -88,7 +76,6 @@ function SharedDataLoader({
           return;
         }
 
-        // Verify this email is actually in the permissions list
         const hasAccess = result.permissions && result.permissions.length > 0;
         if (!hasAccess) {
           onError("Access denied. Your email is not in the access list.");
@@ -102,8 +89,15 @@ function SharedDataLoader({
           } catch {}
         }
 
+        // Record the visit in the backend (no auth required)
+        try {
+          await actor.recordSharedUserVisit(
+            adminPrincipal,
+            email.trim().toLowerCase(),
+          );
+        } catch {}
+
         saveCache({ adminPrincipal: adminPrincipalStr, email });
-        incrementVisitCount(adminPrincipalStr, email);
         onPermissions(result.permissions);
         setStatus("done");
       } catch {
@@ -196,7 +190,6 @@ function SharedUserGateInner({ adminPrincipalStr }: SharedUserGateInnerProps) {
   // Loading shared data after email submit — wait for anonymous actor
   if (submittedEmail) {
     if (!actor) {
-      // Actor still initialising
       return (
         <div
           className="min-h-screen flex items-center justify-center"

@@ -175,6 +175,9 @@ export interface backendInterface {
     deleteOtherPendingAmount(id: string): Promise<void>;
     fetchAppData(): Promise<AppData | null>;
     getAdminSharedData(admin: Principal): Promise<SharedDataResult | null>;
+    getAdminSharedDataByEmail(admin: Principal, email: string): Promise<SharedDataResult | null>;
+    recordSharedUserVisit(admin: Principal, email: string): Promise<void>;
+    getShareAccessVisitCounts(): Promise<Array<[string, bigint]>>;
     getAllBalances(): Promise<Array<[Principal, bigint]>>;
     getBalance(): Promise<bigint>;
     getCallerUserProfile(): Promise<UserProfile | null>;
@@ -320,6 +323,48 @@ export class Backend implements backendInterface {
         } else {
             const result = await this.actor.getAdminSharedData(arg0);
             return from_candid_opt_n22(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async getAdminSharedDataByEmail(arg0: Principal, arg1: string): Promise<SharedDataResult | null> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getAdminSharedDataByEmail(arg0, arg1);
+                return from_candid_opt_n22(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getAdminSharedDataByEmail(arg0, arg1);
+            return from_candid_opt_n22(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async recordSharedUserVisit(arg0: Principal, arg1: string): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.recordSharedUserVisit(arg0, arg1);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.recordSharedUserVisit(arg0, arg1);
+            return result;
+        }
+    }
+    async getShareAccessVisitCounts(): Promise<Array<[string, bigint]>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getShareAccessVisitCounts();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getShareAccessVisitCounts();
+            return result;
         }
     }
     async getAllBalances(): Promise<Array<[Principal, bigint]>> {

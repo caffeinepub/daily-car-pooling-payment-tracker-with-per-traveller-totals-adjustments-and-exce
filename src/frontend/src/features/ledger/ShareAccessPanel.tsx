@@ -18,7 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { Copy, Loader2, Plus, Trash2, Users } from "lucide-react";
+import { Copy, Eye, Loader2, Plus, Trash2, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import type { ShareAccessEntry, TabPermission } from "../../backend";
@@ -45,6 +45,7 @@ type AccessLevel = "hidden" | "read" | "edit";
 interface EmailEntry {
   email: string;
   permissions: Record<string, AccessLevel>;
+  visitCount?: number;
 }
 
 function defaultPermissions(): Record<string, AccessLevel> {
@@ -107,11 +108,34 @@ export default function ShareAccessPanel() {
   useEffect(() => {
     if (!actor) return;
     setIsLoading(true);
-    actor
-      .getShareAccessConfig()
-      .then((configs) => setEntries(configs.map(entryToEmailEntry)))
-      .catch(() => toast.error("Failed to load share access config"))
-      .finally(() => setIsLoading(false));
+
+    const loadAll = async () => {
+      try {
+        const [configs, visitCounts] = await Promise.all([
+          actor.getShareAccessConfig(),
+          actor
+            .getShareAccessVisitCounts()
+            .catch(() => [] as [string, bigint][]),
+        ]);
+
+        const visitMap: Record<string, number> = {};
+        for (const [email, count] of visitCounts) {
+          visitMap[email] = Number(count);
+        }
+
+        const mapped = configs.map((c) => ({
+          ...entryToEmailEntry(c),
+          visitCount: visitMap[c.email] ?? 0,
+        }));
+        setEntries(mapped);
+      } catch {
+        toast.error("Failed to load share access config");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadAll();
   }, [actor]);
 
   const handleAddEmail = () => {
@@ -126,7 +150,7 @@ export default function ShareAccessPanel() {
     }
     setEntries((prev) => [
       ...prev,
-      { email, permissions: defaultPermissions() },
+      { email, permissions: defaultPermissions(), visitCount: 0 },
     ]);
     setNewEmail("");
   };
@@ -275,16 +299,25 @@ export default function ShareAccessPanel() {
                 >
                   <CardHeader className="pb-2 pt-4 px-4">
                     <div className="flex items-center justify-between gap-2">
-                      <Badge
-                        variant="secondary"
-                        className="text-xs font-mono shrink-0"
-                      >
-                        {entry.email}
-                      </Badge>
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Badge
+                          variant="secondary"
+                          className="text-xs font-mono shrink-0 max-w-[180px] truncate"
+                        >
+                          {entry.email}
+                        </Badge>
+                        {entry.visitCount !== undefined && (
+                          <span className="flex items-center gap-1 text-xs text-muted-foreground whitespace-nowrap">
+                            <Eye className="h-3 w-3" />
+                            {entry.visitCount}{" "}
+                            {entry.visitCount === 1 ? "visit" : "visits"}
+                          </span>
+                        )}
+                      </div>
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-7 w-7 text-destructive hover:text-destructive"
+                        className="h-7 w-7 text-destructive hover:text-destructive shrink-0"
                         onClick={() => handleRemoveEmail(entry.email)}
                         data-ocid={`share_access.delete_button.${idx + 1}`}
                       >

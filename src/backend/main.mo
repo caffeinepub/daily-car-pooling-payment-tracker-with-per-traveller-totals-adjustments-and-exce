@@ -167,10 +167,28 @@ actor {
   // Map from principal -> email for shared users
   let sharedUserEmails = Map.empty<Principal, Text>();
 
+  // Visit counts: key is "adminPrincipalText|email"
+  let sharedVisitCounts = Map.empty<Text, Nat>();
+
   //---------------------- Helper Functions ----------------------
   // Compare balances by amount.
   func compareByAmount(a : (Principal, Nat), b : (Principal, Nat)) : Order.Order {
     Nat.compare(a.1, b.1);
+  };
+
+  // Check if text starts with a given prefix.
+  func textStartsWith(t : Text, prefix : Text) : Bool {
+    if (prefix.size() > t.size()) { return false };
+    let ti = t.chars();
+    let pi = prefix.chars();
+    var matches = true;
+    label checkPrefix for (pc in pi) {
+      switch (ti.next()) {
+        case (null) { matches := false; break checkPrefix };
+        case (?tc) { if (tc != pc) { matches := false; break checkPrefix } };
+      };
+    };
+    matches;
   };
 
   //---------------------- User Profiles ----------------------
@@ -487,7 +505,7 @@ actor {
     };
   };
 
-  // Register shared user email mapping
+  // Register shared user email mapping (legacy — kept for compatibility)
   public shared ({ caller }) func registerSharedUserEmail(email : Text) : async () {
     if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
       Runtime.trap("Unauthorized: Only users can register email addresses");
@@ -505,7 +523,7 @@ actor {
     permissions : [TabPermission];
   };
 
-  // Get admin's shared data if email is in config
+  // Get admin's shared data if email is in config (legacy — requires auth)
   public query ({ caller }) func getAdminSharedData(admin : Principal) : async ?SharedDataResult {
     if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
       Runtime.trap("Unauthorized: Only users can access shared data");
@@ -540,5 +558,70 @@ actor {
       ledgerState = adminAppData.ledgerState;
       permissions;
     };
+  };
+
+  // ---- Anonymous-accessible share methods ----
+
+  // Get admin's shared data by email — no auth required (works for anonymous callers)
+  public query func getAdminSharedDataByEmail(admin : Principal, email : Text) : async ?SharedDataResult {
+    let shareConfigs = switch (adminShareConfigs.get(admin)) {
+      case (null) { return null };
+      case (?configs) { configs };
+    };
+
+    var permissions : [TabPermission] = [];
+    var found = false;
+    for (config in shareConfigs.values()) {
+      if (config.email == email) {
+        permissions := config.permissions;
+        found := true;
+      };
+    };
+    if (not found) { return null };
+
+    let adminAppData = switch (userAppData.get(admin)) {
+      case (null) { return null };
+      case (?appData) { appData };
+    };
+
+    ?{
+      ledgerState = adminAppData.ledgerState;
+      permissions;
+    };
+  };
+
+  // Record a visit for a shared user — no auth required
+  public shared func recordSharedUserVisit(admin : Principal, email : Text) : async () {
+    let key = admin.toText() # "|" # email;
+    let current = switch (sharedVisitCounts.get(key)) {
+      case (null) { 0 };
+      case (?n) { n };
+    };
+    sharedVisitCounts.add(key, current + 1);
+  };
+
+  // Get visit counts for the calling admin's shared users
+  public query ({ caller }) func getShareAccessVisitCounts() : async [(Text, Nat)] {
+    if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
+      Runtime.trap("Unauthorized");
+    };
+    let prefix = caller.toText() # "|";
+    let prefixLen = prefix.size();
+    var result : [(Text, Nat)] = [];
+    for ((key, count) in sharedVisitCounts.entries()) {
+      if (textStartsWith(key, prefix) and key.size() > prefixLen) {
+        // Extract just the email part after the prefix
+        var i = 0;
+        var email = "";
+        for (c in key.chars()) {
+          if (i >= prefixLen) {
+            email := email # Text.fromChar(c);
+          };
+          i += 1;
+        };
+        result := result.concat([(email, count)]);
+      };
+    };
+    result;
   };
 };

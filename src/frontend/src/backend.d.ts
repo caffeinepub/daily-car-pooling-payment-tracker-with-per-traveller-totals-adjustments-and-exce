@@ -92,6 +92,7 @@ export interface backendInterface {
     deleteOtherPendingAmount(id: string): Promise<void>;
     fetchAppData(): Promise<AppData | null>;
     getAdminSharedData(admin: Principal): Promise<SharedDataResult | null>;
+    getAdminSharedDataByEmail(admin: Principal, email: string): Promise<SharedDataResult | null>;
     getAllBalances(): Promise<Array<[Principal, bigint]>>;
     getBalance(): Promise<bigint>;
     getCallerUserProfile(): Promise<UserProfile | null>;
@@ -101,8 +102,10 @@ export interface backendInterface {
     getExpenses(user: Principal): Promise<Array<Expense>>;
     getOtherPendingAmounts(): Promise<Array<OtherPendingAmount>>;
     getShareAccessConfig(): Promise<Array<ShareAccessEntry>>;
+    getShareAccessVisitCounts(): Promise<Array<[string, bigint]>>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     isCallerAdmin(): Promise<boolean>;
+    recordSharedUserVisit(admin: Principal, email: string): Promise<void>;
     registerSharedUserEmail(email: string): Promise<void>;
     saveAppData(newAppData: AppData): Promise<void>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;

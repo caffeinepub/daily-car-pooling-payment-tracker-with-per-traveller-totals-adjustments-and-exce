@@ -97,6 +97,17 @@ export const idlService = IDL.Service({
       [IDL.Opt(SharedDataResult)],
       ['query'],
     ),
+  'getAdminSharedDataByEmail' : IDL.Func(
+      [IDL.Principal, IDL.Text],
+      [IDL.Opt(SharedDataResult)],
+      ['query'],
+    ),
+  'getShareAccessVisitCounts' : IDL.Func(
+      [],
+      [IDL.Vec(IDL.Tuple(IDL.Text, IDL.Nat))],
+      ['query'],
+    ),
+  'recordSharedUserVisit' : IDL.Func([IDL.Principal, IDL.Text], [], []),
   'getAllBalances' : IDL.Func(
       [],
       [IDL.Vec(IDL.Tuple(IDL.Principal, IDL.Nat))],
@@ -225,6 +236,17 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Opt(SharedDataResult)],
         ['query'],
       ),
+    'getAdminSharedDataByEmail' : IDL.Func(
+        [IDL.Principal, IDL.Text],
+        [IDL.Opt(SharedDataResult)],
+        ['query'],
+      ),
+    'getShareAccessVisitCounts' : IDL.Func(
+        [],
+        [IDL.Vec(IDL.Tuple(IDL.Text, IDL.Nat))],
+        ['query'],
+      ),
+    'recordSharedUserVisit' : IDL.Func([IDL.Principal, IDL.Text], [], []),
     'getAllBalances' : IDL.Func(
         [],
         [IDL.Vec(IDL.Tuple(IDL.Principal, IDL.Nat))],

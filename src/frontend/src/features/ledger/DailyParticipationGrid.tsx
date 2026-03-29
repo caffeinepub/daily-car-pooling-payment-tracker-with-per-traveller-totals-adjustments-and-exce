@@ -84,6 +84,7 @@ export default function DailyParticipationGrid({
 
   // Generic bulk toggle: check all if not all checked, uncheck all if all checked
   const handleBulkToggleForDate = (dateKey: string) => {
+    if (isReadOnly) return;
     const allMarked =
       travellers.length > 0 &&
       travellers.every((t) => {
@@ -106,6 +107,7 @@ export default function DailyParticipationGrid({
 
   // Per-date bulk checkbox handler (table header)
   const handlePerDateBulkToggle = (dateKey: string) => {
+    if (isReadOnly || !allowParticipationEdit) return;
     handleBulkToggleForDate(dateKey);
   };
 
@@ -140,25 +142,28 @@ export default function DailyParticipationGrid({
               Track morning and evening trips for each traveller
             </CardDescription>
           </div>
-          <div className="flex flex-col sm:flex-row gap-3">
-            <Button
-              onClick={handleSave}
-              disabled={!hasUnsavedChanges}
-              className="gap-2"
-            >
-              <Save className="h-4 w-4" />
-              Save
-            </Button>
-            <Button
-              onClick={handleSaveAndNext}
-              disabled={!hasUnsavedChanges}
-              variant="default"
-              className="gap-2"
-            >
-              Save & Next
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
+          {/* Save buttons hidden for read-only users */}
+          {!isReadOnly && (
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Button
+                onClick={handleSave}
+                disabled={!hasUnsavedChanges}
+                className="gap-2"
+              >
+                <Save className="h-4 w-4" />
+                Save
+              </Button>
+              <Button
+                onClick={handleSaveAndNext}
+                disabled={!hasUnsavedChanges}
+                variant="default"
+                className="gap-2"
+              >
+                Save & Next
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -169,7 +174,10 @@ export default function DailyParticipationGrid({
               <Checkbox
                 id="include-saturday"
                 checked={includeSaturday}
-                onCheckedChange={(checked) => setIncludeSaturday(!!checked)}
+                onCheckedChange={(checked) =>
+                  !isReadOnly && setIncludeSaturday(!!checked)
+                }
+                disabled={isReadOnly}
               />
               <Label htmlFor="include-saturday" className="cursor-pointer">
                 Include Saturday
@@ -179,7 +187,10 @@ export default function DailyParticipationGrid({
               <Checkbox
                 id="include-sunday"
                 checked={includeSunday}
-                onCheckedChange={(checked) => setIncludeSunday(!!checked)}
+                onCheckedChange={(checked) =>
+                  !isReadOnly && setIncludeSunday(!!checked)
+                }
+                disabled={isReadOnly}
               />
               <Label htmlFor="include-sunday" className="cursor-pointer">
                 Include Sunday
@@ -201,7 +212,7 @@ export default function DailyParticipationGrid({
           </div>
         </div>
 
-        {/* Mark All — Yesterday, Today, Tomorrow */}
+        {/* Mark All — Yesterday, Today, Tomorrow — hidden for read-only users */}
         {isTodayEditable && !isReadOnly && (
           <div className="flex flex-col sm:flex-row gap-2 p-3 bg-primary/5 rounded-lg border border-primary/20">
             {/* Yesterday */}
@@ -314,6 +325,7 @@ export default function DailyParticipationGrid({
                           })}
                         </div>
                         <div className="text-sm">{formatDisplayDate(day)}</div>
+                        {/* Per-date bulk checkbox — disabled for read-only users and when edit toggle is off */}
                         {editable && (
                           <div className="flex items-center justify-center gap-1 mt-1">
                             <Checkbox
@@ -321,6 +333,7 @@ export default function DailyParticipationGrid({
                               onCheckedChange={() =>
                                 handlePerDateBulkToggle(dateKey)
                               }
+                              disabled={isReadOnly || !allowParticipationEdit}
                               className="h-3 w-3"
                             />
                             <span className="text-xs text-muted-foreground">
@@ -354,7 +367,9 @@ export default function DailyParticipationGrid({
                       includeSaturday,
                       includeSunday,
                     );
-                    const canEdit = editable && allowParticipationEdit;
+                    // Read-only users can never edit individual checkboxes
+                    const canEdit =
+                      !isReadOnly && editable && allowParticipationEdit;
 
                     const tripCount =
                       (tripData.morning ? 1 : 0) + (tripData.evening ? 1 : 0);

@@ -113,8 +113,8 @@ export async function exportToCSV(
               morning: false,
               evening: false,
             };
-            row.push(tripData.morning ? "Yes" : "No");
-            row.push(tripData.evening ? "Yes" : "No");
+            row.push(tripData.morning ? "✓" : "");
+            row.push(tripData.evening ? "✓" : "");
           }
           lines.push(row.map(escapeCSV).join(","));
         }

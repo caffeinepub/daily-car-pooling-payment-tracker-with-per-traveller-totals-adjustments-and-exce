@@ -124,7 +124,7 @@ function generateStandardReportPDF(
               morning: false,
               evening: false,
             };
-            html += `<td>${tripData.morning ? "Yes" : "No"}</td><td>${tripData.evening ? "Yes" : "No"}</td>`;
+            html += `<td>${tripData.morning ? "✓" : ""}</td><td>${tripData.evening ? "✓" : ""}</td>`;
           }
           html += "</tr>";
         }

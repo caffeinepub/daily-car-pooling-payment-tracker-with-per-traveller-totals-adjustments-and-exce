@@ -21,6 +21,7 @@ import { Separator } from "@/components/ui/separator";
 import { Download, FileText, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import type { TabPermission } from "../../backend";
 import { getCurrentMonthRange } from "../../utils/dateRange";
 import { exportToCSV, exportToPDF } from "../../utils/exportReport";
 import DateRangePicker from "./DateRangePicker";
@@ -30,6 +31,8 @@ import MonthYearRangeSelector from "./MonthYearRangeSelector";
 interface ExportReportDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Permissions for the shared user; undefined = admin (see all) */
+  sharedPermissions?: TabPermission[];
 }
 
 export type ReportType =
@@ -39,14 +42,41 @@ export type ReportType =
   | "income"
   | "expense";
 
+/** Map from export section key → required tab key */
+const SECTION_TAB_MAP: Record<string, string> = {
+  dailyGrid: "grid",
+  summary: "summary",
+  payments: "paymentHistory",
+  carExpenses: "car",
+  overallSummary: "overall",
+};
+
 export default function ExportReportDialog({
   open,
   onOpenChange,
+  sharedPermissions,
 }: ExportReportDialogProps) {
   const ledgerState = useLedgerState();
   const [isExporting, setIsExporting] = useState(false);
   const [exportFormat, setExportFormat] = useState<"csv" | "pdf">("pdf");
   const [reportType, setReportType] = useState<ReportType>("standard");
+
+  // Build permission map for shared users
+  const permissionMap = new Map<string, string>();
+  if (sharedPermissions) {
+    for (const p of sharedPermissions) {
+      permissionMap.set(p.tabKey, p.access);
+    }
+  }
+
+  /** Returns true if this section is accessible to the current user */
+  const isSectionAccessible = (sectionKey: string): boolean => {
+    if (!sharedPermissions) return true; // admin sees all
+    const tabKey = SECTION_TAB_MAP[sectionKey];
+    if (!tabKey) return true;
+    const access = permissionMap.get(tabKey);
+    return access === "read" || access === "edit";
+  };
 
   // Export-specific date range (independent from page tabs)
   const [exportDateRange, setExportDateRange] = useState<{
@@ -62,7 +92,7 @@ export default function ExportReportDialog({
     }
   }, [open]);
 
-  // Section filters (only for standard report)
+  // Section filters (only for standard report) — default to accessible sections only
   const [includeDailyGrid, setIncludeDailyGrid] = useState(true);
   const [includeSummary, setIncludeSummary] = useState(true);
   const [includePayments, setIncludePayments] = useState(true);
@@ -121,13 +151,16 @@ export default function ExportReportDialog({
     setIsExporting(true);
 
     try {
+      // For shared users, only export accessible sections
       const filters = {
         reportType,
-        includeDailyGrid,
-        includeSummary,
-        includePayments,
-        includeCarExpenses,
-        includeOverallSummary,
+        includeDailyGrid: includeDailyGrid && isSectionAccessible("dailyGrid"),
+        includeSummary: includeSummary && isSectionAccessible("summary"),
+        includePayments: includePayments && isSectionAccessible("payments"),
+        includeCarExpenses:
+          includeCarExpenses && isSectionAccessible("carExpenses"),
+        includeOverallSummary:
+          includeOverallSummary && isSectionAccessible("overallSummary"),
         travellerFilterMode,
         selectedTravellerIds: Array.from(selectedTravellers),
         expenseCategory,
@@ -254,70 +287,91 @@ export default function ExportReportDialog({
                 <Label className="text-base font-semibold">
                   Include Sections
                 </Label>
+                {sharedPermissions && (
+                  <p className="text-xs text-muted-foreground">
+                    Only sections from your permitted tabs are available.
+                  </p>
+                )}
                 <div className="space-y-2">
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="section-daily"
-                      checked={includeDailyGrid}
-                      onCheckedChange={(checked) =>
-                        setIncludeDailyGrid(checked === true)
-                      }
-                    />
-                    <Label htmlFor="section-daily" className="cursor-pointer">
-                      Daily Participation Grid
-                    </Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="section-summary"
-                      checked={includeSummary}
-                      onCheckedChange={(checked) =>
-                        setIncludeSummary(checked === true)
-                      }
-                    />
-                    <Label htmlFor="section-summary" className="cursor-pointer">
-                      Per-Traveller Summary
-                    </Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="section-payments"
-                      checked={includePayments}
-                      onCheckedChange={(checked) =>
-                        setIncludePayments(checked === true)
-                      }
-                    />
-                    <Label
-                      htmlFor="section-payments"
-                      className="cursor-pointer"
-                    >
-                      Payment History
-                    </Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="section-car"
-                      checked={includeCarExpenses}
-                      onCheckedChange={(checked) =>
-                        setIncludeCarExpenses(checked === true)
-                      }
-                    />
-                    <Label htmlFor="section-car" className="cursor-pointer">
-                      Car Expenses
-                    </Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="section-overall"
-                      checked={includeOverallSummary}
-                      onCheckedChange={(checked) =>
-                        setIncludeOverallSummary(checked === true)
-                      }
-                    />
-                    <Label htmlFor="section-overall" className="cursor-pointer">
-                      Overall Summary
-                    </Label>
-                  </div>
+                  {isSectionAccessible("dailyGrid") && (
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="section-daily"
+                        checked={includeDailyGrid}
+                        onCheckedChange={(checked) =>
+                          setIncludeDailyGrid(checked === true)
+                        }
+                      />
+                      <Label htmlFor="section-daily" className="cursor-pointer">
+                        Daily Participation Grid
+                      </Label>
+                    </div>
+                  )}
+                  {isSectionAccessible("summary") && (
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="section-summary"
+                        checked={includeSummary}
+                        onCheckedChange={(checked) =>
+                          setIncludeSummary(checked === true)
+                        }
+                      />
+                      <Label
+                        htmlFor="section-summary"
+                        className="cursor-pointer"
+                      >
+                        Per-Traveller Summary
+                      </Label>
+                    </div>
+                  )}
+                  {isSectionAccessible("payments") && (
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="section-payments"
+                        checked={includePayments}
+                        onCheckedChange={(checked) =>
+                          setIncludePayments(checked === true)
+                        }
+                      />
+                      <Label
+                        htmlFor="section-payments"
+                        className="cursor-pointer"
+                      >
+                        Payment History
+                      </Label>
+                    </div>
+                  )}
+                  {isSectionAccessible("carExpenses") && (
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="section-car"
+                        checked={includeCarExpenses}
+                        onCheckedChange={(checked) =>
+                          setIncludeCarExpenses(checked === true)
+                        }
+                      />
+                      <Label htmlFor="section-car" className="cursor-pointer">
+                        Car Expenses
+                      </Label>
+                    </div>
+                  )}
+                  {isSectionAccessible("overallSummary") && (
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="section-overall"
+                        checked={includeOverallSummary}
+                        onCheckedChange={(checked) =>
+                          setIncludeOverallSummary(checked === true)
+                        }
+                      />
+                      <Label
+                        htmlFor="section-overall"
+                        className="cursor-pointer"
+                      >
+                        Overall Summary
+                      </Label>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -399,95 +453,105 @@ export default function ExportReportDialog({
                 </p>
               </div>
 
-              <Separator />
+              {isSectionAccessible("payments") && (
+                <>
+                  <Separator />
 
-              {/* Payment History Filters */}
-              <div className="space-y-3">
-                <Label className="text-base font-semibold">
-                  Payment History Filter
-                </Label>
-                <div className="space-y-2">
-                  <Label
-                    htmlFor="payment-traveller-filter"
-                    className="text-sm text-muted-foreground"
-                  >
-                    Filter by Traveller
-                  </Label>
-                  <Select
-                    value={paymentTravellerId}
-                    onValueChange={setPaymentTravellerId}
-                  >
-                    <SelectTrigger id="payment-traveller-filter">
-                      <SelectValue placeholder="Select traveller" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All travellers</SelectItem>
-                      {ledgerState.travellers.map((t) => (
-                        <SelectItem key={t.id} value={t.id}>
-                          {t.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Applies to: Payment History section only
-                </p>
-              </div>
-
-              <Separator />
-
-              {/* Car Expenses Filters */}
-              <div className="space-y-3">
-                <Label className="text-base font-semibold">
-                  Car Expenses Filters
-                </Label>
-                <div className="space-y-3">
-                  <div className="space-y-2">
-                    <Label
-                      htmlFor="expense-category-filter"
-                      className="text-sm text-muted-foreground"
-                    >
-                      Filter by Category
+                  {/* Payment History Filters */}
+                  <div className="space-y-3">
+                    <Label className="text-base font-semibold">
+                      Payment History Filter
                     </Label>
-                    <Select
-                      value={expenseCategory}
-                      onValueChange={setExpenseCategory}
-                    >
-                      <SelectTrigger id="expense-category-filter">
-                        <SelectValue placeholder="Select category" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All categories</SelectItem>
-                        {expenseCategories.map((category) => (
-                          <SelectItem key={category} value={category}>
-                            {category}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <div className="space-y-2">
+                      <Label
+                        htmlFor="payment-traveller-filter"
+                        className="text-sm text-muted-foreground"
+                      >
+                        Filter by Traveller
+                      </Label>
+                      <Select
+                        value={paymentTravellerId}
+                        onValueChange={setPaymentTravellerId}
+                      >
+                        <SelectTrigger id="payment-traveller-filter">
+                          <SelectValue placeholder="Select traveller" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All travellers</SelectItem>
+                          {ledgerState.travellers.map((t) => (
+                            <SelectItem key={t.id} value={t.id}>
+                              {t.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Applies to: Payment History section only
+                    </p>
                   </div>
+                </>
+              )}
 
-                  <div className="space-y-2">
-                    <Label
-                      htmlFor="expense-search"
-                      className="text-sm text-muted-foreground"
-                    >
-                      Search Category or Note
+              {isSectionAccessible("carExpenses") && (
+                <>
+                  <Separator />
+
+                  {/* Car Expenses Filters */}
+                  <div className="space-y-3">
+                    <Label className="text-base font-semibold">
+                      Car Expenses Filters
                     </Label>
-                    <Input
-                      id="expense-search"
-                      type="text"
-                      placeholder="Search expenses..."
-                      value={expenseSearchQuery}
-                      onChange={(e) => setExpenseSearchQuery(e.target.value)}
-                    />
+                    <div className="space-y-3">
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="expense-category-filter"
+                          className="text-sm text-muted-foreground"
+                        >
+                          Filter by Category
+                        </Label>
+                        <Select
+                          value={expenseCategory}
+                          onValueChange={setExpenseCategory}
+                        >
+                          <SelectTrigger id="expense-category-filter">
+                            <SelectValue placeholder="Select category" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All categories</SelectItem>
+                            {expenseCategories.map((category) => (
+                              <SelectItem key={category} value={category}>
+                                {category}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="expense-search"
+                          className="text-sm text-muted-foreground"
+                        >
+                          Search Category or Note
+                        </Label>
+                        <Input
+                          id="expense-search"
+                          type="text"
+                          placeholder="Search expenses..."
+                          value={expenseSearchQuery}
+                          onChange={(e) =>
+                            setExpenseSearchQuery(e.target.value)
+                          }
+                        />
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Applies to: Car Expenses section only
+                    </p>
                   </div>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Applies to: Car Expenses section only
-                </p>
-              </div>
+                </>
+              )}
             </>
           )}
         </div>

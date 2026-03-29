@@ -554,6 +554,7 @@ export function LedgerPageContent({
           <ExportReportDialog
             open={isExportOpen}
             onOpenChange={setIsExportOpen}
+            sharedPermissions={sharedPermissions}
           />
           {!isReadOnlyUser && (
             <CoTravellerIncomeDialog

@@ -51,6 +51,15 @@ const SECTION_TAB_MAP: Record<string, string> = {
   overallSummary: "overall",
 };
 
+/** Map from report type → required tab key(s) for shared user access */
+const REPORT_TYPE_TAB_MAP: Record<string, string[]> = {
+  standard: [], // governed by section-level checks
+  monthly: ["overall", "summary"],
+  profitLoss: ["car", "overall"],
+  income: ["overall", "summary"],
+  expense: ["car"],
+};
+
 export default function ExportReportDialog({
   open,
   onOpenChange,
@@ -73,9 +82,21 @@ export default function ExportReportDialog({
   const isSectionAccessible = (sectionKey: string): boolean => {
     if (!sharedPermissions) return true; // admin sees all
     const tabKey = SECTION_TAB_MAP[sectionKey];
-    if (!tabKey) return true;
+    if (!tabKey) return false; // unknown section key → deny for shared users
     const access = permissionMap.get(tabKey);
     return access === "read" || access === "edit";
+  };
+
+  /** Returns true if this report type is accessible to the current user */
+  const isReportTypeAccessible = (type: string): boolean => {
+    if (!sharedPermissions) return true; // admin sees all
+    const requiredTabs = REPORT_TYPE_TAB_MAP[type];
+    if (!requiredTabs || requiredTabs.length === 0) return true;
+    // At least one of the required tabs must be accessible
+    return requiredTabs.some((tabKey) => {
+      const access = permissionMap.get(tabKey);
+      return access === "read" || access === "edit";
+    });
   };
 
   // Export-specific date range (independent from page tabs)
@@ -246,12 +267,20 @@ export default function ExportReportDialog({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="standard">Standard Report</SelectItem>
-                <SelectItem value="monthly">Monthly Report</SelectItem>
-                <SelectItem value="profitLoss">
-                  Profit & Loss Statement
-                </SelectItem>
-                <SelectItem value="income">Income Statement</SelectItem>
-                <SelectItem value="expense">Expense Statement</SelectItem>
+                {isReportTypeAccessible("monthly") && (
+                  <SelectItem value="monthly">Monthly Report</SelectItem>
+                )}
+                {isReportTypeAccessible("profitLoss") && (
+                  <SelectItem value="profitLoss">
+                    Profit & Loss Statement
+                  </SelectItem>
+                )}
+                {isReportTypeAccessible("income") && (
+                  <SelectItem value="income">Income Statement</SelectItem>
+                )}
+                {isReportTypeAccessible("expense") && (
+                  <SelectItem value="expense">Expense Statement</SelectItem>
+                )}
               </SelectContent>
             </Select>
           </div>

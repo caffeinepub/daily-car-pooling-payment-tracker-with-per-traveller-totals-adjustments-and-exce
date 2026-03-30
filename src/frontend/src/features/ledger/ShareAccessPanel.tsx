@@ -24,6 +24,7 @@ import { toast } from "sonner";
 import type { ShareAccessEntry, TabPermission } from "../../backend";
 import { useActor } from "../../hooks/useActor";
 import { useInternetIdentity } from "../../hooks/useInternetIdentity";
+import { useLedgerState } from "./LedgerStateContext";
 
 const ALL_TABS: { key: string; label: string }[] = [
   { key: "travellers", label: "Travellers" },
@@ -40,12 +41,15 @@ const ALL_TABS: { key: string; label: string }[] = [
   { key: "clear", label: "Clear Data" },
 ];
 
+const FILTER_TRAVELLER_KEY = "_filteredTraveller";
+
 type AccessLevel = "hidden" | "read" | "edit";
 
 interface EmailEntry {
   email: string;
   permissions: Record<string, AccessLevel>;
   visitCount?: number;
+  filteredTravellerId: string; // empty string = all travellers
 }
 
 function defaultPermissions(): Record<string, AccessLevel> {
@@ -58,10 +62,15 @@ function defaultPermissions(): Record<string, AccessLevel> {
 
 function entryToEmailEntry(entry: ShareAccessEntry): EmailEntry {
   const permissions = defaultPermissions();
+  let filteredTravellerId = "";
   for (const perm of entry.permissions) {
-    permissions[perm.tabKey] = perm.access as AccessLevel;
+    if (perm.tabKey === FILTER_TRAVELLER_KEY) {
+      filteredTravellerId = perm.access;
+    } else {
+      permissions[perm.tabKey] = perm.access as AccessLevel;
+    }
   }
-  return { email: entry.email, permissions };
+  return { email: entry.email, permissions, filteredTravellerId };
 }
 
 function emailEntryToShareEntry(entry: EmailEntry): ShareAccessEntry {
@@ -69,6 +78,13 @@ function emailEntryToShareEntry(entry: EmailEntry): ShareAccessEntry {
     tabKey: tab.key,
     access: entry.permissions[tab.key] ?? "hidden",
   }));
+  // Encode the traveller filter as a special permission
+  if (entry.filteredTravellerId) {
+    permissions.push({
+      tabKey: FILTER_TRAVELLER_KEY,
+      access: entry.filteredTravellerId,
+    });
+  }
   return { email: entry.email, permissions };
 }
 
@@ -100,6 +116,7 @@ function fallbackCopy(text: string, successMsg: string) {
 export default function ShareAccessPanel() {
   const { actor } = useActor();
   const { identity } = useInternetIdentity();
+  const { allTravellers } = useLedgerState();
   const [entries, setEntries] = useState<EmailEntry[]>([]);
   const [newEmail, setNewEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -150,7 +167,12 @@ export default function ShareAccessPanel() {
     }
     setEntries((prev) => [
       ...prev,
-      { email, permissions: defaultPermissions(), visitCount: 0 },
+      {
+        email,
+        permissions: defaultPermissions(),
+        visitCount: 0,
+        filteredTravellerId: "",
+      },
     ]);
     setNewEmail("");
   };
@@ -185,6 +207,14 @@ export default function ShareAccessPanel() {
         e.email === email
           ? { ...e, permissions: { ...e.permissions, [tabKey]: access } }
           : e,
+      ),
+    );
+  };
+
+  const handleTravellerFilterChange = (email: string, travellerId: string) => {
+    setEntries((prev) =>
+      prev.map((e) =>
+        e.email === email ? { ...e, filteredTravellerId: travellerId } : e,
       ),
     );
   };
@@ -325,7 +355,43 @@ export default function ShareAccessPanel() {
                       </Button>
                     </div>
                   </CardHeader>
-                  <CardContent className="px-4 pb-4">
+                  <CardContent className="px-4 pb-4 space-y-3">
+                    {/* Traveller Filter */}
+                    <div className="flex items-center gap-2">
+                      <Label className="text-xs text-muted-foreground w-32 shrink-0">
+                        Filter by Traveller
+                      </Label>
+                      <Select
+                        value={entry.filteredTravellerId || "__all__"}
+                        onValueChange={(val) =>
+                          handleTravellerFilterChange(
+                            entry.email,
+                            val === "__all__" ? "" : val,
+                          )
+                        }
+                      >
+                        <SelectTrigger
+                          className="h-8 text-xs flex-1"
+                          data-ocid="share_access.traveller_filter"
+                        >
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__all__">
+                            All Travellers
+                          </SelectItem>
+                          {allTravellers.map((t) => (
+                            <SelectItem key={t.id} value={t.id}>
+                              {t.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <Separator className="my-1" />
+
+                    {/* Tab Permissions */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       {ALL_TABS.map((tab) => {
                         const access = entry.permissions[tab.key] ?? "hidden";

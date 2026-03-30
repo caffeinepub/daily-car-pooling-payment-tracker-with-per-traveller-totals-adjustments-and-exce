@@ -290,7 +290,10 @@ export function LedgerPageContent({
   const isReadOnlyTab = isReadOnlyUser && currentTabAccess === "read";
 
   return (
-    <ReadOnlyProvider isReadOnly={!!isReadOnlyTab}>
+    <ReadOnlyProvider
+      isReadOnly={!!isReadOnlyTab}
+      isSharedUser={!!isReadOnlyUser}
+    >
       <div className="min-h-screen flex flex-col">
         <AppHeader
           syncStatus={syncStatus}

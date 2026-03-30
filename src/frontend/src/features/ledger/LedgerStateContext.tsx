@@ -1,4 +1,4 @@
-import { type ReactNode, createContext, useContext } from "react";
+import { type ReactNode, createContext, useContext, useState } from "react";
 import { useLedgerLocalState } from "../../hooks/useLedgerLocalState";
 import type {
   CarExpense,
@@ -15,6 +15,7 @@ import type { LocalLedgerState } from "../../utils/backupRestore";
 
 interface LedgerStateContextValue {
   travellers: Traveller[];
+  allTravellers: Traveller[]; // unfiltered, for admin use
   dailyData: DailyData;
   draftDailyData: DailyData;
   dateRange: DateRange;
@@ -28,6 +29,8 @@ interface LedgerStateContextValue {
   perDayAutoTollSelection: PerDayAutoTollSelection;
   stateRevision: number;
   userProfileExtended: UserProfileExtended | null;
+  travellerFilter: string | null;
+  setTravellerFilter: (id: string | null) => void;
   updateUserProfileExtended: (profile: UserProfileExtended) => void;
   addTraveller: (name: string) => void;
   renameTraveller: (id: string, newName: string) => void;
@@ -93,9 +96,22 @@ const LedgerStateContext = createContext<LedgerStateContextValue | null>(null);
 
 export function LedgerStateProvider({ children }: { children: ReactNode }) {
   const ledgerState = useLedgerLocalState();
+  const [travellerFilter, setTravellerFilter] = useState<string | null>(null);
+
+  const filteredTravellers = travellerFilter
+    ? ledgerState.travellers.filter((t) => t.id === travellerFilter)
+    : ledgerState.travellers;
+
+  const value: LedgerStateContextValue = {
+    ...ledgerState,
+    travellers: filteredTravellers,
+    allTravellers: ledgerState.travellers,
+    travellerFilter,
+    setTravellerFilter,
+  };
 
   return (
-    <LedgerStateContext.Provider value={ledgerState}>
+    <LedgerStateContext.Provider value={value}>
       {children}
     </LedgerStateContext.Provider>
   );

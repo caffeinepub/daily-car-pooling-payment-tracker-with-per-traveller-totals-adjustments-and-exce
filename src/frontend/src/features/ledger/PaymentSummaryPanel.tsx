@@ -18,6 +18,7 @@ import {
 import { parseISO } from "date-fns";
 import { DollarSign } from "lucide-react";
 import EmptyState from "../../components/EmptyState";
+import { useReadOnly } from "../../context/ReadOnlyContext";
 import { formatDateKey, getDaysInRange } from "../../utils/dateRange";
 import { formatCurrency } from "../../utils/money";
 import { isDateIncludedForCalculation } from "../../utils/weekendInclusion";
@@ -35,6 +36,8 @@ export default function PaymentSummaryPanel() {
     includeSaturday,
     includeSunday,
   } = useLedgerState();
+
+  const { isSharedUser } = useReadOnly();
 
   const days = getDaysInRange(dateRange.start, dateRange.end);
 
@@ -76,18 +79,22 @@ export default function PaymentSummaryPanel() {
       })
       .reduce((sum, p) => sum + p.amount, 0);
 
-    // Calculate other pending in range
-    const otherPendingInRange = otherPending
-      .filter((p) => {
-        if (p.travellerId !== traveller.id) return false;
-        try {
-          const pendingDate = parseISO(p.date);
-          return pendingDate >= dateRange.start && pendingDate <= dateRange.end;
-        } catch {
-          return false;
-        }
-      })
-      .reduce((sum, p) => sum + p.amount, 0);
+    // Calculate other pending in range (excluded for shared users)
+    const otherPendingInRange = isSharedUser
+      ? 0
+      : otherPending
+          .filter((p) => {
+            if (p.travellerId !== traveller.id) return false;
+            try {
+              const pendingDate = parseISO(p.date);
+              return (
+                pendingDate >= dateRange.start && pendingDate <= dateRange.end
+              );
+            } catch {
+              return false;
+            }
+          })
+          .reduce((sum, p) => sum + p.amount, 0);
 
     const totalDue = totalCharge + otherPendingInRange;
     const balance = totalDue - paymentsInRange;
@@ -102,17 +109,19 @@ export default function PaymentSummaryPanel() {
     };
   });
 
-  // Calculate Other Co-Travellers total in range
-  const otherCoTravellersTotal = coTravellerIncomes
-    .filter((income) => {
-      try {
-        const incomeDate = parseISO(income.date);
-        return incomeDate >= dateRange.start && incomeDate <= dateRange.end;
-      } catch {
-        return false;
-      }
-    })
-    .reduce((sum, income) => sum + income.amount, 0);
+  // Calculate Other Co-Travellers total in range (excluded for shared users)
+  const otherCoTravellersTotal = isSharedUser
+    ? 0
+    : coTravellerIncomes
+        .filter((income) => {
+          try {
+            const incomeDate = parseISO(income.date);
+            return incomeDate >= dateRange.start && incomeDate <= dateRange.end;
+          } catch {
+            return false;
+          }
+        })
+        .reduce((sum, income) => sum + income.amount, 0);
 
   // Calculate overall totals
   const overallTotalPaymentsReceived =
@@ -236,14 +245,16 @@ export default function PaymentSummaryPanel() {
                   )}
                 </span>
               </div>
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-muted-foreground">
-                  Other Co-Travellers
-                </span>
-                <span className="font-medium">
-                  {formatCurrency(otherCoTravellersTotal)}
-                </span>
-              </div>
+              {!isSharedUser && (
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-muted-foreground">
+                    Other Co-Travellers
+                  </span>
+                  <span className="font-medium">
+                    {formatCurrency(otherCoTravellersTotal)}
+                  </span>
+                </div>
+              )}
             </div>
 
             <Separator />

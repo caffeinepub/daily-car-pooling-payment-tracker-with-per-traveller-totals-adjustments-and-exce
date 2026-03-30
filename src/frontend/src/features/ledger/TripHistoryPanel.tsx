@@ -75,7 +75,7 @@ export default function TripHistoryPanel() {
     removeCoTravellerIncome,
   } = useLedgerState();
 
-  const { isReadOnly } = useReadOnly();
+  const { isReadOnly, isSharedUser } = useReadOnly();
   const [editTravellerDialogOpen, setEditTravellerDialogOpen] = useState(false);
   const [editCoTravellerDialogOpen, setEditCoTravellerDialogOpen] =
     useState(false);
@@ -127,39 +127,43 @@ export default function TripHistoryPanel() {
     }
   }
 
-  // Add co-traveller income entries
-  for (const income of coTravellerIncomes) {
-    try {
-      const incomeDate = parseISO(income.date);
-      if (incomeDate >= dateRange.start && incomeDate <= dateRange.end) {
-        allTripEntries.push({
-          date: income.date,
-          displayDate: formatDisplayDate(incomeDate),
-          name: "Other Co-Traveller",
-          count: 1,
-          amount: income.amount,
-          type: "coTraveller",
-          coTravellerIncomeId: income.id,
-          tripTime: income.tripTime,
-        });
+  // Add co-traveller income entries (hidden for shared users)
+  if (!isSharedUser) {
+    for (const income of coTravellerIncomes) {
+      try {
+        const incomeDate = parseISO(income.date);
+        if (incomeDate >= dateRange.start && incomeDate <= dateRange.end) {
+          allTripEntries.push({
+            date: income.date,
+            displayDate: formatDisplayDate(incomeDate),
+            name: "Other Co-Traveller",
+            count: 1,
+            amount: income.amount,
+            type: "coTraveller",
+            coTravellerIncomeId: income.id,
+            tripTime: income.tripTime,
+          });
+        }
+      } catch {
+        // Skip invalid dates
       }
-    } catch {
-      // Skip invalid dates
     }
   }
 
   // Sort by date
   allTripEntries.sort((a, b) => a.date.localeCompare(b.date));
 
-  // Filter other pending amounts within the date range
-  const pendingInRange = otherPending.filter((p) => {
-    try {
-      const pendingDate = parseISO(p.date);
-      return pendingDate >= dateRange.start && pendingDate <= dateRange.end;
-    } catch {
-      return false;
-    }
-  });
+  // Filter other pending amounts within the date range (hidden for shared users)
+  const pendingInRange = isSharedUser
+    ? []
+    : otherPending.filter((p) => {
+        try {
+          const pendingDate = parseISO(p.date);
+          return pendingDate >= dateRange.start && pendingDate <= dateRange.end;
+        } catch {
+          return false;
+        }
+      });
 
   // Sort pending by date
   const allSortedPending = [...pendingInRange].sort((a, b) =>
@@ -325,7 +329,7 @@ export default function TripHistoryPanel() {
           <EmptyState
             icon={History}
             title="No trips recorded"
-            description="Trip data will appear here once you mark trips in the Daily Participation grid or add Other Co-Traveller income"
+            description="Trip data will appear here once you mark trips in the Daily Participation grid"
           />
         </CardContent>
       </Card>

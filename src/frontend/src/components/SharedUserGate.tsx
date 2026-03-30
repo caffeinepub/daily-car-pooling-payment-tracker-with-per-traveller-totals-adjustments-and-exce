@@ -135,8 +135,11 @@ interface SharedUserGateInnerProps {
   adminPrincipalStr: string;
 }
 
+const FILTER_TRAVELLER_KEY = "_filteredTraveller";
+
 function SharedUserGateInner({ adminPrincipalStr }: SharedUserGateInnerProps) {
   const { actor } = useActor();
+  const { setTravellerFilter } = useLedgerState();
   const [email, setEmail] = useState("");
   const [submittedEmail, setSubmittedEmail] = useState("");
   const [permissions, setPermissions] = useState<TabPermission[] | null>(null);
@@ -164,7 +167,16 @@ function SharedUserGateInner({ adminPrincipalStr }: SharedUserGateInnerProps) {
 
   const handlePermissionsLoaded = (perms: TabPermission[]) => {
     setIsSubmitting(false);
-    setPermissions(perms);
+    // Extract traveller filter from special permission
+    const filterPerm = perms.find((p) => p.tabKey === FILTER_TRAVELLER_KEY);
+    if (filterPerm?.access) {
+      setTravellerFilter(filterPerm?.access ?? null);
+    }
+    // Remove the special permission before passing to LedgerPageContent
+    const filteredPerms = perms.filter(
+      (p) => p.tabKey !== FILTER_TRAVELLER_KEY,
+    );
+    setPermissions(filteredPerms);
   };
 
   const handleAccessError = (msg: string) => {

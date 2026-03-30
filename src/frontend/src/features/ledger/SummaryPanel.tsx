@@ -33,7 +33,7 @@ export default function SummaryPanel() {
     includeSaturday,
     includeSunday,
   } = useLedgerState();
-  const { isReadOnly } = useReadOnly();
+  const { isReadOnly, isSharedUser } = useReadOnly();
 
   const days = getDaysInRange(dateRange.start, dateRange.end);
 
@@ -82,18 +82,22 @@ export default function SummaryPanel() {
       })
       .reduce((sum, p) => sum + p.amount, 0);
 
-    // Calculate other pending in range
-    const otherPendingInRange = otherPending
-      .filter((p) => {
-        if (p.travellerId !== traveller.id) return false;
-        try {
-          const pendingDate = parseISO(p.date);
-          return pendingDate >= dateRange.start && pendingDate <= dateRange.end;
-        } catch {
-          return false;
-        }
-      })
-      .reduce((sum, p) => sum + p.amount, 0);
+    // Calculate other pending in range (excluded for shared users)
+    const otherPendingInRange = isSharedUser
+      ? 0
+      : otherPending
+          .filter((p) => {
+            if (p.travellerId !== traveller.id) return false;
+            try {
+              const pendingDate = parseISO(p.date);
+              return (
+                pendingDate >= dateRange.start && pendingDate <= dateRange.end
+              );
+            } catch {
+              return false;
+            }
+          })
+          .reduce((sum, p) => sum + p.amount, 0);
 
     const balance = totalCharge + otherPendingInRange - paymentsInRange;
 
@@ -173,19 +177,23 @@ export default function SummaryPanel() {
               </div>
 
               {/* Stats Grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+              <div
+                className={`grid gap-3 text-sm ${isSharedUser ? "grid-cols-2 sm:grid-cols-3" : "grid-cols-2 sm:grid-cols-4"}`}
+              >
                 <div>
                   <p className="text-muted-foreground">Total Charge</p>
                   <p className="font-semibold text-red-600 dark:text-red-400">
                     {formatCurrency(summary.totalCharge)}
                   </p>
                 </div>
-                <div>
-                  <p className="text-muted-foreground">Other Pending</p>
-                  <p className="font-semibold text-red-600 dark:text-red-400">
-                    {formatCurrency(summary.otherPendingInRange)}
-                  </p>
-                </div>
+                {!isSharedUser && (
+                  <div>
+                    <p className="text-muted-foreground">Other Pending</p>
+                    <p className="font-semibold text-red-600 dark:text-red-400">
+                      {formatCurrency(summary.otherPendingInRange)}
+                    </p>
+                  </div>
+                )}
                 <div>
                   <p className="text-muted-foreground">Payments</p>
                   <p className="font-semibold text-green-600 dark:text-green-400">

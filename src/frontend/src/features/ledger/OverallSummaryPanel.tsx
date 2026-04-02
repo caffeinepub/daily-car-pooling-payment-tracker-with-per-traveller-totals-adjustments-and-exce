@@ -5,8 +5,12 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { parseISO } from "date-fns";
 import { Car, IndianRupee } from "lucide-react";
+import { useState } from "react";
+import { getTodayIST } from "../../utils/dateRange";
 import { formatINR } from "../../utils/money";
 import {
   calculateIncomeFromDailyData,
@@ -24,6 +28,8 @@ export default function OverallSummaryPanel() {
     includeSunday,
     coTravellerIncomes,
   } = useLedgerState();
+
+  const [selectedDay, setSelectedDay] = useState<string>(getTodayIST());
 
   // Calculate total income using dailyData-driven calculation
   const totalIncome = calculateIncomeFromDailyData(
@@ -82,8 +88,87 @@ export default function OverallSummaryPanel() {
   ]);
   const sortedMonths = Array.from(allMonths).sort();
 
+  // Daily summary calculation
+  const dailyIncome = calculateIncomeFromDailyData(
+    dailyData,
+    {
+      start: new Date(`${selectedDay}T00:00:00`),
+      end: new Date(`${selectedDay}T23:59:59`),
+    },
+    ratePerTrip,
+    includeSaturday,
+    includeSunday,
+    coTravellerIncomes,
+  );
+  const dailyExpense = carExpenses
+    .filter((e) => e.date === selectedDay)
+    .reduce((sum, e) => sum + e.amount, 0);
+  const dailyProfitLoss = dailyIncome - dailyExpense;
+
   return (
     <div className="space-y-6">
+      {/* Daily Summary */}
+      <Card>
+        <CardHeader>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <div>
+              <CardTitle>Daily Summary</CardTitle>
+              <CardDescription>
+                Income & expense for a specific day
+              </CardDescription>
+            </div>
+            <div className="flex items-center gap-2">
+              <Label
+                htmlFor="daily-date"
+                className="text-xs text-muted-foreground whitespace-nowrap"
+              >
+                Select Date
+              </Label>
+              <Input
+                id="daily-date"
+                type="date"
+                value={selectedDay}
+                onChange={(e) => setSelectedDay(e.target.value)}
+                className="w-40 h-8 text-sm"
+              />
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="p-4 border rounded-lg bg-accent/50">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+                <IndianRupee className="h-4 w-4" />
+                <span>Day Income</span>
+              </div>
+              <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+                {formatINR(dailyIncome)}
+              </div>
+            </div>
+            <div className="p-4 border rounded-lg bg-accent/50">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+                <Car className="h-4 w-4" />
+                <span>Day Expense</span>
+              </div>
+              <div className="text-2xl font-bold text-red-600 dark:text-red-400">
+                {formatINR(dailyExpense)}
+              </div>
+            </div>
+            <div className="p-4 border rounded-lg bg-accent/50">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+                <IndianRupee className="h-4 w-4" />
+                <span>Day Profit/Loss</span>
+              </div>
+              <div
+                className={`text-2xl font-bold ${dailyProfitLoss > 0 ? "text-green-600 dark:text-green-400" : dailyProfitLoss < 0 ? "text-red-600 dark:text-red-400" : "text-foreground"}`}
+              >
+                {formatINR(dailyProfitLoss)}
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <CardTitle>Overall Summary</CardTitle>

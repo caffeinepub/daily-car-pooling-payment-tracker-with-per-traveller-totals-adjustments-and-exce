@@ -24,6 +24,7 @@ export interface AppHeaderProps {
   syncError?: string | null;
   onOpenProfile?: () => void;
   profilePicture?: string;
+  isSharedUser?: boolean;
 }
 
 export default function AppHeader({
@@ -33,6 +34,7 @@ export default function AppHeader({
   lastSyncTime,
   onOpenProfile,
   profilePicture,
+  isSharedUser,
 }: AppHeaderProps) {
   const { clear, identity } = useInternetIdentity();
   const queryClient = useQueryClient();
@@ -89,6 +91,20 @@ export default function AppHeader({
                 lastSyncTime={syncProps.lastSyncTime}
               />
             </div>
+          )}
+
+          {/* Shared user logout button */}
+          {isSharedUser && !isAuthenticated && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onLogout}
+              className="gap-1.5 h-8 text-xs"
+              data-ocid="nav.shared_logout.button"
+            >
+              <LogOut className="h-3.5 w-3.5" />
+              Logout
+            </Button>
           )}
 
           {isAuthenticated && (

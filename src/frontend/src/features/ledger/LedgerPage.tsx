@@ -278,6 +278,11 @@ export function LedgerPageContent({
   const handleLogout = () => {
     // Reset local ledger state on logout
     clearAllLedgerData();
+    if (isReadOnlyUser) {
+      // Clear shared access session so user must re-enter email
+      localStorage.removeItem("carpool-shared-access");
+      window.location.reload();
+    }
   };
 
   // Show Month/Year selector for non-Daily tabs
@@ -303,6 +308,7 @@ export function LedgerPageContent({
           onOpenProfile={isReadOnlyUser ? undefined : onOpenProfile}
           profilePicture={profilePicture}
           userName={userName}
+          isSharedUser={!!isReadOnlyUser}
         />
 
         <main className="flex-1 container py-3 sm:py-6 px-3 sm:px-4 space-y-3 sm:space-y-6">

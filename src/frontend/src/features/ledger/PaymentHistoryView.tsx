@@ -43,9 +43,16 @@ export default function PaymentHistoryView() {
     null,
   );
 
+  // For shared users, only show payments for travellers in their filtered list
+  const visibleTravellerIds = new Set(travellers.map((t) => t.id));
+
   // Filter payments by date range and selected traveller
   const filteredPayments = cashPayments
     .filter((payment) => {
+      // Shared user: hide payments for travellers not in their permitted list
+      if (!visibleTravellerIds.has(payment.travellerId)) {
+        return false;
+      }
       if (
         selectedTravellerId !== "all" &&
         payment.travellerId !== selectedTravellerId

@@ -190,8 +190,11 @@ export default function ExportReportDialog({
       };
 
       // Create a modified ledger state with export date range
+      // Use allTravellers for name lookups so shared users with a traveller filter
+      // don't see 'Unknown' for other travellers' payments in the export.
       const exportLedgerState = {
         ...ledgerState,
+        travellers: ledgerState.allTravellers ?? ledgerState.travellers,
         dateRange: exportDateRange,
       };
 

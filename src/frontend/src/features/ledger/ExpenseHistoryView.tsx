@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/table";
 import { format, parseISO } from "date-fns";
 import { Car, IndianRupee, Pencil, Trash2 } from "lucide-react";
+import type React from "react";
 import { useState } from "react";
 import EmptyState from "../../components/EmptyState";
 import type { CarExpense } from "../../hooks/useLedgerLocalState";
@@ -129,58 +130,120 @@ export default function ExpenseHistoryView() {
           description="Try adjusting your filters or search query."
         />
       ) : (
-        <div className="rounded-md border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead className="text-right">Amount</TableHead>
-                <TableHead>Note</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {sortedExpenses.map((expense) => (
-                <TableRow key={expense.id}>
-                  <TableCell>
-                    {format(parseISO(expense.date), "MMM dd, yyyy")}
-                  </TableCell>
-                  <TableCell>{expense.category}</TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      <IndianRupee className="h-3 w-3" />
-                      <span>{formatCurrency(expense.amount)}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {expense.note || "—"}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setEditingExpense(expense)}
-                        aria-label="Edit expense"
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setDeletingExpense(expense)}
-                        aria-label="Delete expense"
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </div>
-                  </TableCell>
+        <>
+          {/* Grand total */}
+          <div className="flex items-center justify-between px-4 py-2 bg-muted/60 rounded-lg border text-sm font-medium">
+            <span>Total ({sortedExpenses.length} entries)</span>
+            <div className="flex items-center gap-1 text-foreground font-bold">
+              <IndianRupee className="h-3.5 w-3.5" />
+              <span>
+                {formatCurrency(
+                  sortedExpenses.reduce((sum, e) => sum + e.amount, 0),
+                )}
+              </span>
+            </div>
+          </div>
+
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead className="text-right">Amount</TableHead>
+                  <TableHead>Note</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+              </TableHeader>
+              <TableBody>
+                {(() => {
+                  // Group by date for daily subtotals
+                  const rows: React.ReactNode[] = [];
+                  let lastDate = "";
+                  let dateTotal = 0;
+                  let dateTotalRows: React.ReactNode[] = [];
+
+                  const flushDate = () => {
+                    if (lastDate && dateTotalRows.length > 0) {
+                      rows.push(...dateTotalRows);
+                      rows.push(
+                        <TableRow
+                          key={`total-${lastDate}`}
+                          className="bg-muted/40 font-medium text-xs"
+                        >
+                          <TableCell
+                            colSpan={2}
+                            className="text-muted-foreground italic"
+                          >
+                            Daily Total — {lastDate}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex items-center justify-end gap-1 text-foreground">
+                              <IndianRupee className="h-3 w-3" />
+                              <span>{formatCurrency(dateTotal)}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell colSpan={2} />
+                        </TableRow>,
+                      );
+                      dateTotalRows = [];
+                      dateTotal = 0;
+                    }
+                  };
+
+                  for (const expense of sortedExpenses) {
+                    const dateStr = format(
+                      parseISO(expense.date),
+                      "MMM dd, yyyy",
+                    );
+                    if (dateStr !== lastDate) {
+                      flushDate();
+                      lastDate = dateStr;
+                    }
+                    dateTotal += expense.amount;
+                    dateTotalRows.push(
+                      <TableRow key={expense.id}>
+                        <TableCell>{dateStr}</TableCell>
+                        <TableCell>{expense.category}</TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            <IndianRupee className="h-3 w-3" />
+                            <span>{formatCurrency(expense.amount)}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {expense.note || "—"}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => setEditingExpense(expense)}
+                              aria-label="Edit expense"
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => setDeletingExpense(expense)}
+                              aria-label="Delete expense"
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>,
+                    );
+                  }
+                  flushDate();
+                  return rows;
+                })()}
+              </TableBody>
+            </Table>
+          </div>
+        </>
       )}
 
       {/* Edit Dialog */}

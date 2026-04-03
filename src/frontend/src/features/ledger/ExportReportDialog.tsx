@@ -215,11 +215,34 @@ export default function ExportReportDialog({
       // Create a modified ledger state with export date range.
       // travellers = filtered list (shared user sees only their traveller).
       // allTravellers = full list for name lookups only (so payments resolve names correctly).
+      // When a traveller filter is active (shared user), strip co-traveller incomes, car
+      // expenses, and other travellers' daily data so no unrelated data leaks into any report.
+      const buildExportDailyData = () => {
+        if (!activeTravellerFilter) return ledgerState.dailyData;
+        const filtered: Record<string, Record<string, unknown>> = {};
+        for (const dateKey of Object.keys(ledgerState.dailyData)) {
+          const dayData = ledgerState.dailyData[dateKey];
+          if (dayData && dayData[activeTravellerFilter] !== undefined) {
+            filtered[dateKey] = {
+              [activeTravellerFilter]: dayData[activeTravellerFilter],
+            };
+          }
+        }
+        return filtered as typeof ledgerState.dailyData;
+      };
       const exportLedgerState = {
         ...ledgerState,
         travellers: ledgerState.travellers,
         allTravellers: ledgerState.allTravellers ?? ledgerState.travellers,
         dateRange: exportDateRange,
+        // For shared users: hide other co-traveller incomes and car expenses entirely
+        coTravellerIncomes: activeTravellerFilter
+          ? []
+          : (ledgerState.coTravellerIncomes ?? []),
+        carExpenses: activeTravellerFilter
+          ? []
+          : (ledgerState.carExpenses ?? []),
+        dailyData: buildExportDailyData(),
       };
 
       if (exportFormat === "pdf") {

@@ -30,6 +30,7 @@ export interface ExportFilters {
 
 interface LedgerState {
   travellers: Traveller[];
+  allTravellers?: Traveller[]; // unfiltered — used for name lookups in payment history
   dailyData: DailyData;
   dateRange: DateRange;
   ratePerTrip: number;
@@ -217,7 +218,8 @@ export async function exportToCSV(
       for (const p of filteredPayments.sort((a, b) =>
         a.date.localeCompare(b.date),
       )) {
-        const traveller = state.travellers.find((t) => t.id === p.travellerId);
+        const nameList = state.allTravellers ?? state.travellers;
+        const traveller = nameList.find((t) => t.id === p.travellerId);
         lines.push(
           [
             format(new Date(p.date), "MMM dd, yyyy"),

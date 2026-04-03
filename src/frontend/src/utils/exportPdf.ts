@@ -21,6 +21,7 @@ import { isDateIncludedForCalculation } from "./weekendInclusion";
 
 interface LedgerState {
   travellers: Traveller[];
+  allTravellers?: Traveller[]; // unfiltered — used for name lookups in payment history
   dailyData: DailyData;
   dateRange: DateRange;
   ratePerTrip: number;
@@ -188,7 +189,8 @@ function generateStandardReportPDF(
       for (const p of filteredPayments.sort((a, b) =>
         a.date.localeCompare(b.date),
       )) {
-        const traveller = state.travellers.find((t) => t.id === p.travellerId);
+        const nameList = state.allTravellers ?? state.travellers;
+        const traveller = nameList.find((t) => t.id === p.travellerId);
         html += `<tr><td>${format(new Date(p.date), "MMM dd, yyyy")}</td><td>${traveller?.name || "Unknown"}</td><td>${formatCurrency(p.amount)}</td><td>${p.note || ""}</td></tr>`;
       }
       html += "</tbody></table>";

@@ -66,6 +66,8 @@ export default function ExportReportDialog({
   sharedPermissions,
 }: ExportReportDialogProps) {
   const ledgerState = useLedgerState();
+  // For shared users, this is set to the permitted traveller ID
+  const activeTravellerFilter = ledgerState.travellerFilter;
   const [isExporting, setIsExporting] = useState(false);
   const [exportFormat, setExportFormat] = useState<"csv" | "pdf">("pdf");
   const [reportType, setReportType] = useState<ReportType>("standard");
@@ -189,17 +191,39 @@ export default function ExportReportDialog({
         paymentTravellerId,
       };
 
-      // Create a modified ledger state with export date range
-      // Use allTravellers for name lookups so shared users with a traveller filter
-      // don't see 'Unknown' for other travellers' payments in the export.
+      // Enforce traveller restriction for shared users with a traveller filter.
+      // Keep travellers as the filtered list (only the shared traveller).
+      // Pass allTravellers separately so name lookups in payment history still resolve correctly.
+      const effectiveTravellerFilterMode = activeTravellerFilter
+        ? "selected"
+        : travellerFilterMode;
+      const effectiveSelectedTravellerIds = activeTravellerFilter
+        ? [activeTravellerFilter]
+        : Array.from(selectedTravellers);
+      const effectivePaymentTravellerId = activeTravellerFilter
+        ? activeTravellerFilter
+        : paymentTravellerId;
+
+      // Rebuild filters with enforced traveller restriction
+      const enforcedFilters = {
+        ...filters,
+        travellerFilterMode: effectiveTravellerFilterMode,
+        selectedTravellerIds: effectiveSelectedTravellerIds,
+        paymentTravellerId: effectivePaymentTravellerId,
+      };
+
+      // Create a modified ledger state with export date range.
+      // travellers = filtered list (shared user sees only their traveller).
+      // allTravellers = full list for name lookups only (so payments resolve names correctly).
       const exportLedgerState = {
         ...ledgerState,
-        travellers: ledgerState.allTravellers ?? ledgerState.travellers,
+        travellers: ledgerState.travellers,
+        allTravellers: ledgerState.allTravellers ?? ledgerState.travellers,
         dateRange: exportDateRange,
       };
 
       if (exportFormat === "pdf") {
-        await exportToPDF(exportLedgerState, filters);
+        await exportToPDF(exportLedgerState, enforcedFilters);
         toast.success("Report exported successfully as PDF");
       } else {
         // CSV only supports standard report
@@ -210,7 +234,7 @@ export default function ExportReportDialog({
           setIsExporting(false);
           return;
         }
-        await exportToCSV(exportLedgerState, filters);
+        await exportToCSV(exportLedgerState, enforcedFilters);
         toast.success("Report exported successfully as CSV");
       }
 
@@ -414,75 +438,87 @@ export default function ExportReportDialog({
                 <Label className="text-base font-semibold">
                   Traveller Filter
                 </Label>
-                <div className="space-y-3">
-                  <Select
-                    value={travellerFilterMode}
-                    onValueChange={(value: "all" | "selected") =>
-                      setTravellerFilterMode(value)
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All travellers</SelectItem>
-                      <SelectItem value="selected">
-                        Selected travellers only
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
+                {activeTravellerFilter ? (
+                  <p className="text-sm text-muted-foreground">
+                    Report is restricted to:{" "}
+                    <strong>
+                      {ledgerState.travellers.find(
+                        (t) => t.id === activeTravellerFilter,
+                      )?.name ?? activeTravellerFilter}
+                    </strong>
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    <Select
+                      value={travellerFilterMode}
+                      onValueChange={(value: "all" | "selected") =>
+                        setTravellerFilterMode(value)
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All travellers</SelectItem>
+                        <SelectItem value="selected">
+                          Selected travellers only
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
 
-                  {travellerFilterMode === "selected" && (
-                    <>
-                      <div className="flex items-center justify-between">
-                        <Label className="text-sm text-muted-foreground">
-                          Select Travellers
-                        </Label>
-                        <div className="flex gap-2">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={selectAllTravellers}
-                          >
-                            Select All
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={deselectAllTravellers}
-                          >
-                            Deselect All
-                          </Button>
-                        </div>
-                      </div>
-                      <div className="space-y-2 max-h-48 overflow-y-auto border rounded-md p-3">
-                        {ledgerState.travellers.map((t) => (
-                          <div
-                            key={t.id}
-                            className="flex items-center space-x-2"
-                          >
-                            <Checkbox
-                              id={`traveller-${t.id}`}
-                              checked={selectedTravellers.has(t.id)}
-                              onCheckedChange={() => toggleTraveller(t.id)}
-                            />
-                            <Label
-                              htmlFor={`traveller-${t.id}`}
-                              className="cursor-pointer"
+                    {travellerFilterMode === "selected" && (
+                      <>
+                        <div className="flex items-center justify-between">
+                          <Label className="text-sm text-muted-foreground">
+                            Select Travellers
+                          </Label>
+                          <div className="flex gap-2">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={selectAllTravellers}
                             >
-                              {t.name}
-                            </Label>
+                              Select All
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={deselectAllTravellers}
+                            >
+                              Deselect All
+                            </Button>
                           </div>
-                        ))}
-                      </div>
-                    </>
-                  )}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Applies to: Daily Grid, Summary, and Payment History sections
-                </p>
+                        </div>
+                        <div className="space-y-2 max-h-48 overflow-y-auto border rounded-md p-3">
+                          {ledgerState.travellers.map((t) => (
+                            <div
+                              key={t.id}
+                              className="flex items-center space-x-2"
+                            >
+                              <Checkbox
+                                id={`traveller-${t.id}`}
+                                checked={selectedTravellers.has(t.id)}
+                                onCheckedChange={() => toggleTraveller(t.id)}
+                              />
+                              <Label
+                                htmlFor={`traveller-${t.id}`}
+                                className="cursor-pointer"
+                              >
+                                {t.name}
+                              </Label>
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                      Applies to: Daily Grid, Summary, and Payment History
+                      sections
+                    </p>
+                  </div>
+                )}
               </div>
 
               {isSectionAccessible("payments") && (
@@ -494,30 +530,32 @@ export default function ExportReportDialog({
                     <Label className="text-base font-semibold">
                       Payment History Filter
                     </Label>
-                    <div className="space-y-2">
-                      <Label
-                        htmlFor="payment-traveller-filter"
-                        className="text-sm text-muted-foreground"
-                      >
-                        Filter by Traveller
-                      </Label>
-                      <Select
-                        value={paymentTravellerId}
-                        onValueChange={setPaymentTravellerId}
-                      >
-                        <SelectTrigger id="payment-traveller-filter">
-                          <SelectValue placeholder="Select traveller" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All travellers</SelectItem>
-                          {ledgerState.travellers.map((t) => (
-                            <SelectItem key={t.id} value={t.id}>
-                              {t.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
+                    {!activeTravellerFilter && (
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="payment-traveller-filter"
+                          className="text-sm text-muted-foreground"
+                        >
+                          Filter by Traveller
+                        </Label>
+                        <Select
+                          value={paymentTravellerId}
+                          onValueChange={setPaymentTravellerId}
+                        >
+                          <SelectTrigger id="payment-traveller-filter">
+                            <SelectValue placeholder="Select traveller" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All travellers</SelectItem>
+                            {ledgerState.travellers.map((t) => (
+                              <SelectItem key={t.id} value={t.id}>
+                                {t.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
                     <p className="text-xs text-muted-foreground">
                       Applies to: Payment History section only
                     </p>

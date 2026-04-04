@@ -17,6 +17,7 @@ import {
   DollarSign,
   FileText,
   History,
+  Info,
   Menu,
   Receipt,
   Share2,
@@ -98,6 +99,42 @@ export interface LedgerPageProps {
   isReadOnlyUser?: boolean;
   adminPrincipalStr?: string;
   sharedUserEmail?: string;
+}
+
+// Shared data info banner — shown only to shared/read-only users
+function SharedDataInfoBanner({
+  dateRange,
+}: { dateRange: { start: Date; end: Date } }) {
+  const formatDate = (d: Date) =>
+    d.toLocaleDateString(undefined, {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+
+  const start = formatDate(dateRange.start);
+  const end = formatDate(dateRange.end);
+  const isSameDate =
+    dateRange.start.toDateString() === dateRange.end.toDateString();
+
+  const rangeText = isSameDate ? `${start}` : `${start} – ${end}`;
+
+  return (
+    <div
+      className="flex items-start gap-2 rounded-lg border border-blue-300 bg-blue-50 px-4 py-3 text-blue-800 dark:border-blue-700 dark:bg-blue-950/40 dark:text-blue-300"
+      data-ocid="shared_data_info_banner"
+    >
+      <Info className="h-4 w-4 mt-0.5 flex-shrink-0 text-blue-600 dark:text-blue-400" />
+      <p className="text-sm leading-snug">
+        <strong>
+          The data displayed is for{" "}
+          <span className="underline decoration-dotted">{rangeText}</span>.
+        </strong>{" "}
+        To view data for a different period, select a date or month from the
+        controls above.
+      </p>
+    </div>
+  );
 }
 
 export function LedgerPageContent({
@@ -342,6 +379,9 @@ export function LedgerPageContent({
             <div className="flex justify-start">
               <RatePerTripControl />
             </div>
+            {isReadOnlyUser && (
+              <SharedDataInfoBanner dateRange={currentDateRange} />
+            )}
           </div>
 
           {/* Mobile Hamburger Button with active tab label */}

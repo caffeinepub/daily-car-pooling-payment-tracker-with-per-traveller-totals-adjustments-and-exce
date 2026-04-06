@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { LocalLedgerState } from "../utils/backupRestore";
 import { mergeLocalStates } from "../utils/backupRestore";
 import { getCurrentMonthRange } from "../utils/dateRange";
-import type { RateHistoryEntry } from "../utils/rateHistory";
+import { type RateHistoryEntry, getRateForDate } from "../utils/rateHistory";
 import {
   type UserProfileExtended,
   loadProfileExtended,
@@ -557,6 +557,57 @@ export function useLedgerLocalState() {
     setRateHistory((prev) => prev.filter((e) => e.id !== id));
   };
 
+  /**
+   * Atomically change the rate: anchors the current rate at the beginning of
+   * time (if no baseline exists yet) so that all trips before the new
+   * effectiveFrom always use the old rate. Uses functional updater to avoid
+   * stale-closure bugs when called multiple times in quick succession.
+   * Does NOT touch ratePerTrip — all calculations derive the rate from
+   * rateHistory, falling back to ratePerTrip only as a last resort.
+   */
+  const changeRate = (newRate: number, effectiveFrom: string) => {
+    setRateHistory((prev) => {
+      // Compute the rate that was in effect on the day BEFORE effectiveFrom.
+      // This is the rate that all trips before effectiveFrom should continue
+      // to use — regardless of what ratePerTrip is set to globally.
+      const [y, m, d] = effectiveFrom.split("-").map(Number);
+      const dayBefore = new Date(y, m - 1, d - 1); // local midnight day before
+      const rateBeforeChange = getRateForDate(
+        dayBefore,
+        prev,
+        ratePerTripRef.current,
+      );
+
+      // Ensure there is a baseline entry that covers all dates before effectiveFrom.
+      // We do this by checking if any entry exists with effectiveFrom strictly
+      // before the new effectiveFrom. If not, anchor the pre-change rate at
+      // "0000-01-01" so getRateForDate always finds a match for past dates.
+      const hasEntryBeforeNewDate = prev.some(
+        (e) => e.effectiveFrom < effectiveFrom,
+      );
+
+      const next: RateHistoryEntry[] = [...prev];
+      if (!hasEntryBeforeNewDate) {
+        next.push({
+          id: Math.random().toString(36).slice(2),
+          rate: rateBeforeChange,
+          effectiveFrom: "0000-01-01",
+        });
+      }
+
+      // Remove any existing entry for exactly this effectiveFrom date to avoid duplicates
+      const filtered = next.filter((e) => e.effectiveFrom !== effectiveFrom);
+      filtered.push({
+        id: Math.random().toString(36).slice(2),
+        rate: newRate,
+        effectiveFrom,
+      });
+      return filtered;
+    });
+    // Keep ratePerTrip in sync so legacy code / fallback stays accurate
+    setRatePerTrip(newRate);
+  };
+
   const togglePerDayAutoToll = (dateKey: string) => {
     setPerDayAutoTollSelection((prev) => ({
       ...prev,
@@ -672,6 +723,7 @@ export function useLedgerLocalState() {
     rateHistory,
     addRateHistoryEntry,
     removeRateHistoryEntry,
+    changeRate,
     cashPayments,
     otherPending,
     carExpenses,

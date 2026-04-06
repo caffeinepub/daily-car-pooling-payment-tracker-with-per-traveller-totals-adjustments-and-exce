@@ -60,6 +60,7 @@ interface LedgerStateContextValue {
   setRatePerTrip: (rate: number) => void;
   addRateHistoryEntry: (entry: Omit<RateHistoryEntry, "id">) => void;
   removeRateHistoryEntry: (id: string) => void;
+  changeRate: (newRate: number, effectiveFrom: string) => void;
   addCashPayment: (payment: Omit<CashPayment, "id">) => void;
   updateCashPayment: (
     id: string,

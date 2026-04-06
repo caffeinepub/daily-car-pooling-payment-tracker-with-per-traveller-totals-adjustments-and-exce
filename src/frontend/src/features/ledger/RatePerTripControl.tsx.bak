@@ -16,20 +16,13 @@ import { formatCurrency } from "../../utils/money";
 import { useLedgerState } from "./LedgerStateContext";
 
 export default function RatePerTripControl() {
-  const { ratePerTrip, rateHistory, changeRate, removeRateHistoryEntry } =
-    useLedgerState();
-
-  // Derive the currently active rate from history (the entry with the latest
-  // effectiveFrom that is <= today). Falls back to ratePerTrip if no history.
-  const todayKey = getTodayIST();
-  const sortedForCurrent = [...rateHistory].sort((a, b) =>
-    b.effectiveFrom.localeCompare(a.effectiveFrom),
-  );
-  const currentRate =
-    sortedForCurrent.find((e) => e.effectiveFrom <= todayKey)?.rate ??
-    (sortedForCurrent.length > 0
-      ? sortedForCurrent[sortedForCurrent.length - 1].rate
-      : ratePerTrip);
+  const {
+    ratePerTrip,
+    setRatePerTrip,
+    rateHistory,
+    addRateHistoryEntry,
+    removeRateHistoryEntry,
+  } = useLedgerState();
   const { isReadOnly } = useReadOnly();
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -41,11 +34,11 @@ export default function RatePerTripControl() {
   // Reset dialog fields when opened
   useEffect(() => {
     if (isDialogOpen) {
-      setNewRate(currentRate.toString());
+      setNewRate(ratePerTrip.toString());
       setEffectiveFrom(getTodayIST());
       setRateError("");
     }
-  }, [isDialogOpen, currentRate]);
+  }, [isDialogOpen, ratePerTrip]);
 
   const handleSave = () => {
     const parsed = Number.parseFloat(newRate);
@@ -57,7 +50,8 @@ export default function RatePerTripControl() {
       setRateError("Please select an effective from date.");
       return;
     }
-    changeRate(parsed, effectiveFrom);
+    addRateHistoryEntry({ rate: parsed, effectiveFrom });
+    setRatePerTrip(parsed);
     setIsDialogOpen(false);
   };
 
@@ -89,7 +83,7 @@ export default function RatePerTripControl() {
         </Label>
         <div className="flex items-center gap-2">
           <span className="text-sm font-semibold">
-            {formatCurrency(currentRate)}
+            {formatCurrency(ratePerTrip)}
           </span>
           {!isReadOnly && (
             <Button

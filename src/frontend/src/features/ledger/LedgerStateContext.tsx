@@ -12,6 +12,7 @@ import type {
 } from "../../hooks/useLedgerLocalState";
 import type { UserProfileExtended } from "../../hooks/useUserProfileExtended";
 import type { LocalLedgerState } from "../../utils/backupRestore";
+import type { RateHistoryEntry } from "../../utils/rateHistory";
 
 interface LedgerStateContextValue {
   travellers: Traveller[];
@@ -20,6 +21,7 @@ interface LedgerStateContextValue {
   draftDailyData: DailyData;
   dateRange: DateRange;
   ratePerTrip: number;
+  rateHistory: RateHistoryEntry[];
   cashPayments: CashPayment[];
   otherPending: OtherPending[];
   carExpenses: CarExpense[];
@@ -56,6 +58,8 @@ interface LedgerStateContextValue {
   hasDraftChanges: () => boolean;
   setDateRange: (range: DateRange) => void;
   setRatePerTrip: (rate: number) => void;
+  addRateHistoryEntry: (entry: Omit<RateHistoryEntry, "id">) => void;
+  removeRateHistoryEntry: (id: string) => void;
   addCashPayment: (payment: Omit<CashPayment, "id">) => void;
   updateCashPayment: (
     id: string,

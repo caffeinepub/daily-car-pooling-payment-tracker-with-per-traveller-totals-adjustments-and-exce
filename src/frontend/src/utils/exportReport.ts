@@ -12,6 +12,8 @@ import { formatDateKey, formatDisplayDate, getDaysInRange } from "./dateRange";
 import { generatePDFReport } from "./exportPdf";
 import { calculateTravellerBalance } from "./ledgerBalances";
 import { formatCurrency } from "./money";
+import type { RateHistoryEntry } from "./rateHistory";
+import { getRateForDate } from "./rateHistory";
 import { isDateIncludedForCalculation } from "./weekendInclusion";
 
 export interface ExportFilters {
@@ -34,6 +36,7 @@ interface LedgerState {
   dailyData: DailyData;
   dateRange: DateRange;
   ratePerTrip: number;
+  rateHistory?: RateHistoryEntry[];
   cashPayments: CashPayment[];
   carExpenses: CarExpense[];
   includeSaturday: boolean;
@@ -55,6 +58,7 @@ export async function exportToCSV(
   filters: ExportFilters,
 ): Promise<void> {
   const lines: string[] = [];
+  const rateHistory = state.rateHistory ?? [];
 
   // Header
   lines.push("Carpool Ledger Report");
@@ -156,6 +160,7 @@ export async function exportToCSV(
           state.includeSaturday,
           state.includeSunday,
           state.otherPending,
+          rateHistory,
         );
 
         const stateStatus =
@@ -307,12 +312,13 @@ export async function exportToCSV(
       );
 
       if (isIncluded) {
+        const rateForDay = getRateForDate(day, rateHistory, state.ratePerTrip);
         for (const t of filteredTravellers) {
           const tripData = state.dailyData[dateKey]?.[t.id];
           if (tripData) {
             const count =
               (tripData.morning ? 1 : 0) + (tripData.evening ? 1 : 0);
-            totalIncome += count * state.ratePerTrip;
+            totalIncome += count * rateForDay;
           }
         }
       }

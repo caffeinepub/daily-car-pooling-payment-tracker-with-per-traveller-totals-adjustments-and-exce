@@ -23,6 +23,7 @@ export default function OverallSummaryPanel() {
     dailyData,
     dateRange,
     ratePerTrip,
+    rateHistory,
     carExpenses,
     includeSaturday,
     includeSunday,
@@ -39,6 +40,7 @@ export default function OverallSummaryPanel() {
     includeSaturday,
     includeSunday,
     coTravellerIncomes,
+    rateHistory,
   );
 
   // Calculate total car expenses within date range
@@ -63,6 +65,7 @@ export default function OverallSummaryPanel() {
     includeSaturday,
     includeSunday,
     coTravellerIncomes,
+    rateHistory,
   );
 
   const monthlyExpenses = new Map<string, number>();
@@ -99,6 +102,7 @@ export default function OverallSummaryPanel() {
     includeSaturday,
     includeSunday,
     coTravellerIncomes,
+    rateHistory,
   );
   const dailyExpense = carExpenses
     .filter((e) => e.date === selectedDay)

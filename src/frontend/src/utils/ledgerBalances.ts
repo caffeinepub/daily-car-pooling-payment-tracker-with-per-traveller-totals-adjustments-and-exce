@@ -7,6 +7,7 @@ import type {
   Traveller,
 } from "../hooks/useLedgerLocalState";
 import { formatDateKey, getDaysInRange } from "./dateRange";
+import { type RateHistoryEntry, getRateForDate } from "./rateHistory";
 import { isDateIncludedForCalculation } from "./weekendInclusion";
 
 export interface TravellerBalanceResult {
@@ -25,10 +26,12 @@ export function calculateTravellerBalance(
   includeSaturday: boolean,
   includeSunday: boolean,
   otherPending?: OtherPending[],
+  rateHistory?: RateHistoryEntry[],
 ): TravellerBalanceResult {
   const days = getDaysInRange(dateRange.start, dateRange.end);
 
   let totalTrips = 0;
+  let totalCharge = 0;
   for (const day of days) {
     const dateKey = formatDateKey(day);
     const isIncluded = isDateIncludedForCalculation(
@@ -44,10 +47,10 @@ export function calculateTravellerBalance(
     if (tripData) {
       const tripCount = (tripData.morning ? 1 : 0) + (tripData.evening ? 1 : 0);
       totalTrips += tripCount;
+      const rateForDay = getRateForDate(day, rateHistory ?? [], ratePerTrip);
+      totalCharge += tripCount * rateForDay;
     }
   }
-
-  const totalCharge = totalTrips * ratePerTrip;
 
   const paymentsInRange = cashPayments
     .filter((p) => {

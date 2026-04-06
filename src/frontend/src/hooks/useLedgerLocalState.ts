@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { LocalLedgerState } from "../utils/backupRestore";
 import { mergeLocalStates } from "../utils/backupRestore";
 import { getCurrentMonthRange } from "../utils/dateRange";
+import type { RateHistoryEntry } from "../utils/rateHistory";
 import {
   type UserProfileExtended,
   loadProfileExtended,
@@ -72,6 +73,7 @@ interface StoredState {
   dailyData: DailyData;
   dateRange: { start: string; end: string };
   ratePerTrip: number;
+  rateHistory: RateHistoryEntry[];
   cashPayments: CashPayment[];
   otherPending: OtherPending[];
   carExpenses: CarExpense[];
@@ -113,6 +115,7 @@ function loadState(): StoredState {
       const parsed = JSON.parse(stored);
       return {
         ...parsed,
+        rateHistory: parsed.rateHistory ?? [],
         includeSaturday: parsed.includeSaturday ?? false,
         includeSunday: parsed.includeSunday ?? false,
         coTravellerIncomes: parsed.coTravellerIncomes ?? [],
@@ -133,6 +136,7 @@ function loadState(): StoredState {
       end: defaultRange.end.toISOString(),
     },
     ratePerTrip: 50,
+    rateHistory: [],
     cashPayments: [],
     otherPending: [],
     carExpenses: [],
@@ -171,6 +175,7 @@ export function useLedgerLocalState() {
   const [draftDailyData, setDraftDailyData] = useState<DailyData>({});
   const [dateRange, setDateRange] = useState<DateRange>(getDefaultDateRange());
   const [ratePerTrip, setRatePerTrip] = useState(50);
+  const [rateHistory, setRateHistory] = useState<RateHistoryEntry[]>([]);
   const [cashPayments, setCashPayments] = useState<CashPayment[]>([]);
   const [otherPending, setOtherPending] = useState<OtherPending[]>([]);
   const [carExpenses, setCarExpenses] = useState<CarExpense[]>([]);
@@ -194,6 +199,7 @@ export function useLedgerLocalState() {
   const dailyDataRef = useRef(dailyData);
   const dateRangeRef = useRef(dateRange);
   const ratePerTripRef = useRef(ratePerTrip);
+  const rateHistoryRef = useRef(rateHistory);
   const cashPaymentsRef = useRef(cashPayments);
   const otherPendingRef = useRef(otherPending);
   const carExpensesRef = useRef(carExpenses);
@@ -216,6 +222,9 @@ export function useLedgerLocalState() {
   useEffect(() => {
     ratePerTripRef.current = ratePerTrip;
   }, [ratePerTrip]);
+  useEffect(() => {
+    rateHistoryRef.current = rateHistory;
+  }, [rateHistory]);
   useEffect(() => {
     cashPaymentsRef.current = cashPayments;
   }, [cashPayments]);
@@ -252,6 +261,7 @@ export function useLedgerLocalState() {
       end: dateRangeRef.current.end.toISOString(),
     },
     ratePerTrip: ratePerTripRef.current,
+    rateHistory: rateHistoryRef.current,
     cashPayments: cashPaymentsRef.current,
     otherPending: otherPendingRef.current,
     carExpenses: carExpensesRef.current,
@@ -276,6 +286,7 @@ export function useLedgerLocalState() {
       end: new Date(loaded.dateRange.end),
     });
     setRatePerTrip(loaded.ratePerTrip);
+    setRateHistory(loaded.rateHistory ?? []);
     setCashPayments(loaded.cashPayments);
     setOtherPending(loaded.otherPending);
     setCarExpenses(loaded.carExpenses);
@@ -310,6 +321,7 @@ export function useLedgerLocalState() {
         end: dateRange.end.toISOString(),
       },
       ratePerTrip,
+      rateHistory,
       cashPayments,
       otherPending,
       carExpenses,
@@ -330,6 +342,7 @@ export function useLedgerLocalState() {
     dailyData,
     dateRange,
     ratePerTrip,
+    rateHistory,
     cashPayments,
     otherPending,
     carExpenses,
@@ -535,6 +548,15 @@ export function useLedgerLocalState() {
     setCoTravellerIncomes((prev) => prev.filter((income) => income.id !== id));
   };
 
+  const addRateHistoryEntry = (entry: Omit<RateHistoryEntry, "id">) => {
+    const newEntry: RateHistoryEntry = { ...entry, id: generateId() };
+    setRateHistory((prev) => [...prev, newEntry]);
+  };
+
+  const removeRateHistoryEntry = (id: string) => {
+    setRateHistory((prev) => prev.filter((e) => e.id !== id));
+  };
+
   const togglePerDayAutoToll = (dateKey: string) => {
     setPerDayAutoTollSelection((prev) => ({
       ...prev,
@@ -550,6 +572,7 @@ export function useLedgerLocalState() {
     setDraftDailyData({});
     setDateRange(defaultRange);
     setRatePerTrip(50);
+    setRateHistory([]);
     setCashPayments([]);
     setOtherPending([]);
     setCarExpenses([]);
@@ -586,6 +609,7 @@ export function useLedgerLocalState() {
         end: dateRange.end.toISOString(),
       },
       ratePerTrip,
+      rateHistory,
       cashPayments,
       otherPending,
       carExpenses,
@@ -611,6 +635,7 @@ export function useLedgerLocalState() {
       end: new Date(merged.dateRange.end),
     });
     setRatePerTrip(merged.ratePerTrip);
+    setRateHistory(merged.rateHistory ?? []);
     setCashPayments(merged.cashPayments);
     setOtherPending(merged.otherPending);
     setCarExpenses(merged.carExpenses);
@@ -644,6 +669,9 @@ export function useLedgerLocalState() {
     setDateRange,
     ratePerTrip,
     setRatePerTrip,
+    rateHistory,
+    addRateHistoryEntry,
+    removeRateHistoryEntry,
     cashPayments,
     otherPending,
     carExpenses,

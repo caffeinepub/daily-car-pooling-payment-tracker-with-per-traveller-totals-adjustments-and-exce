@@ -6,6 +6,7 @@ import type {
   DateRange,
 } from "../hooks/useLedgerLocalState";
 import { formatDateKey, getDaysInRange } from "./dateRange";
+import { type RateHistoryEntry, getRateForDate } from "./rateHistory";
 import { isDateIncludedForCalculation } from "./weekendInclusion";
 
 export interface MonthlyReportData {
@@ -56,6 +57,7 @@ export function generateMonthlyReport(
   includeSunday: boolean,
   carExpenses: CarExpense[],
   coTravellerIncomes: CoTravellerIncome[],
+  rateHistory?: RateHistoryEntry[],
 ): MonthlyReportData {
   const monthlyData = new Map<string, { income: number; expenses: number }>();
   const days = getDaysInRange(dateRange.start, dateRange.end);
@@ -74,13 +76,14 @@ export function generateMonthlyReport(
     const dayData = dailyData[dateKey];
     if (!dayData) continue;
 
+    const rateForDay = getRateForDate(day, rateHistory ?? [], ratePerTrip);
     let dayIncome = 0;
     for (const travellerId of Object.keys(dayData)) {
       const tripData = dayData[travellerId];
       if (tripData) {
         dayIncome +=
           ((tripData.morning ? 1 : 0) + (tripData.evening ? 1 : 0)) *
-          ratePerTrip;
+          rateForDay;
       }
     }
     const existing = monthlyData.get(monthKey) || { income: 0, expenses: 0 };
@@ -164,6 +167,7 @@ export function generateProfitLossStatement(
   includeSunday: boolean,
   carExpenses: CarExpense[],
   coTravellerIncomes: CoTravellerIncome[],
+  rateHistory?: RateHistoryEntry[],
 ): ProfitLossStatement {
   const days = getDaysInRange(dateRange.start, dateRange.end);
 
@@ -180,12 +184,13 @@ export function generateProfitLossStatement(
     if (!isIncluded) continue;
     const dayData = dailyData[dateKey];
     if (!dayData) continue;
+    const rateForDay = getRateForDate(day, rateHistory ?? [], ratePerTrip);
     for (const travellerId of Object.keys(dayData)) {
       const tripData = dayData[travellerId];
       if (tripData) {
         tripIncome +=
           ((tripData.morning ? 1 : 0) + (tripData.evening ? 1 : 0)) *
-          ratePerTrip;
+          rateForDay;
       }
     }
   }
@@ -239,6 +244,7 @@ export function generateIncomeStatement(
   includeSaturday: boolean,
   includeSunday: boolean,
   coTravellerIncomes: CoTravellerIncome[],
+  rateHistory?: RateHistoryEntry[],
 ): IncomeStatement {
   const days = getDaysInRange(dateRange.start, dateRange.end);
 
@@ -255,12 +261,13 @@ export function generateIncomeStatement(
     if (!isIncluded) continue;
     const dayData = dailyData[dateKey];
     if (!dayData) continue;
+    const rateForDay = getRateForDate(day, rateHistory ?? [], ratePerTrip);
     for (const travellerId of Object.keys(dayData)) {
       const tripData = dayData[travellerId];
       if (tripData) {
         tripIncome +=
           ((tripData.morning ? 1 : 0) + (tripData.evening ? 1 : 0)) *
-          ratePerTrip;
+          rateForDay;
       }
     }
   }

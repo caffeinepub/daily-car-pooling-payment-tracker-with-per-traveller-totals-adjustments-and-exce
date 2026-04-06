@@ -17,14 +17,17 @@ import { formatDateKey, formatDisplayDate, getDaysInRange } from "./dateRange";
 import type { ExportFilters } from "./exportReport";
 import { calculateTravellerBalance } from "./ledgerBalances";
 import { formatCurrency } from "./money";
+import type { RateHistoryEntry } from "./rateHistory";
+import { getRateForDate } from "./rateHistory";
 import { isDateIncludedForCalculation } from "./weekendInclusion";
 
 interface LedgerState {
   travellers: Traveller[];
-  allTravellers?: Traveller[]; // unfiltered — used for name lookups in payment history
+  allTravellers?: Traveller[];
   dailyData: DailyData;
   dateRange: DateRange;
   ratePerTrip: number;
+  rateHistory?: RateHistoryEntry[];
   cashPayments: CashPayment[];
   carExpenses: CarExpense[];
   includeSaturday: boolean;
@@ -64,6 +67,7 @@ function generateStandardReportPDF(
       : state.travellers;
 
   const days = getDaysInRange(state.dateRange.start, state.dateRange.end);
+  const rateHistory = state.rateHistory ?? [];
 
   let html = `
     <!DOCTYPE html>
@@ -152,6 +156,7 @@ function generateStandardReportPDF(
           state.includeSaturday,
           state.includeSunday,
           state.otherPending,
+          rateHistory,
         );
         const stateStatus =
           balance.balance > 0
@@ -243,12 +248,13 @@ function generateStandardReportPDF(
         state.dailyData,
       );
       if (isIncluded) {
+        const rateForDay = getRateForDate(day, rateHistory, state.ratePerTrip);
         for (const t of filteredTravellers) {
           const tripData = state.dailyData[dateKey]?.[t.id];
           if (tripData) {
             totalIncome +=
               ((tripData.morning ? 1 : 0) + (tripData.evening ? 1 : 0)) *
-              state.ratePerTrip;
+              rateForDay;
           }
         }
       }
@@ -281,6 +287,7 @@ function generateMonthlyReportPDF(state: LedgerState): void {
     state.includeSunday,
     state.carExpenses,
     state.coTravellerIncomes,
+    state.rateHistory,
   );
 
   let html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Monthly Report</title><style>${getCommonStyles()}</style></head><body>
@@ -309,6 +316,7 @@ function generateProfitLossPDF(state: LedgerState): void {
     state.includeSunday,
     state.carExpenses,
     state.coTravellerIncomes,
+    state.rateHistory,
   );
 
   let html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Profit & Loss Statement</title><style>${getCommonStyles()}</style></head><body>
@@ -344,6 +352,7 @@ function generateIncomeStatementPDF(state: LedgerState): void {
     state.includeSaturday,
     state.includeSunday,
     state.coTravellerIncomes,
+    state.rateHistory,
   );
 
   const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Income Statement</title><style>${getCommonStyles()}</style></head><body>

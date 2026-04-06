@@ -8,12 +8,14 @@ import type {
   Traveller,
 } from "../hooks/useLedgerLocalState";
 import type { UserProfileExtended } from "../hooks/useUserProfileExtended";
+import type { RateHistoryEntry } from "./rateHistory";
 
 export interface LocalLedgerState {
   travellers: Traveller[];
   dailyData: DailyData;
   dateRange: { start: string; end: string };
   ratePerTrip: number;
+  rateHistory?: RateHistoryEntry[];
   cashPayments: CashPayment[];
   otherPending: OtherPending[];
   carExpenses: CarExpense[];
@@ -181,6 +183,15 @@ export function mergeLocalStates(
       coTravellerIncomeMap.set(income.id, income);
   }
 
+  // Merge rateHistory by ID (union)
+  const rateHistoryMap = new Map<string, RateHistoryEntry>();
+  for (const e of [
+    ...(local.rateHistory || []),
+    ...(remote.rateHistory || []),
+  ]) {
+    if (!rateHistoryMap.has(e.id)) rateHistoryMap.set(e.id, e);
+  }
+
   // Merge perDayAutoTollSelection with OR logic
   const mergedPerDayAutoTollSelection: PerDayAutoTollSelection = {};
   const localSelection = local.perDayAutoTollSelection || {};
@@ -202,6 +213,7 @@ export function mergeLocalStates(
     dailyData: mergedDailyData,
     dateRange: remote.dateRange,
     ratePerTrip: remote.ratePerTrip,
+    rateHistory: Array.from(rateHistoryMap.values()),
     cashPayments: Array.from(paymentMap.values()),
     otherPending: Array.from(otherPendingMap.values()),
     carExpenses: Array.from(expenseMap.values()),

@@ -12,6 +12,7 @@ import EmptyState from "../../components/EmptyState";
 import { useReadOnly } from "../../context/ReadOnlyContext";
 import { formatDateKey, getDaysInRange } from "../../utils/dateRange";
 import { formatCurrency } from "../../utils/money";
+import { getRateForDate } from "../../utils/rateHistory";
 import {
   isDateIncludedForCalculation,
   isWeekendDay,
@@ -26,6 +27,7 @@ export default function SummaryPanel() {
     dateRange,
     dailyData,
     ratePerTrip,
+    rateHistory,
     cashPayments,
     otherPending,
     addCashPayment,
@@ -41,6 +43,7 @@ export default function SummaryPanel() {
   const summaries = travellers.map((traveller) => {
     let weekdayTrips = 0;
     let weekendTrips = 0;
+    let totalCharge = 0;
 
     for (const day of days) {
       const dateKey = formatDateKey(day);
@@ -63,11 +66,12 @@ export default function SummaryPanel() {
         } else {
           weekdayTrips += tripCount;
         }
+        const rateForDay = getRateForDate(day, rateHistory, ratePerTrip);
+        totalCharge += tripCount * rateForDay;
       }
     }
 
     const totalTrips = weekdayTrips + weekendTrips;
-    const totalCharge = totalTrips * ratePerTrip;
 
     // Calculate payments in range
     const paymentsInRange = cashPayments

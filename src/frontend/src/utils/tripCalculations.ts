@@ -5,6 +5,7 @@ import type {
   DateRange,
 } from "../hooks/useLedgerLocalState";
 import { formatDateKey, getDaysInRange } from "./dateRange";
+import { type RateHistoryEntry, getRateForDate } from "./rateHistory";
 import { isDateIncludedForCalculation } from "./weekendInclusion";
 
 export function calculateIncomeFromDailyData(
@@ -14,6 +15,7 @@ export function calculateIncomeFromDailyData(
   includeSaturday: boolean,
   includeSunday: boolean,
   coTravellerIncomes?: CoTravellerIncome[],
+  rateHistory?: RateHistoryEntry[],
 ): number {
   const days = getDaysInRange(dateRange.start, dateRange.end);
   let totalIncome = 0;
@@ -32,12 +34,13 @@ export function calculateIncomeFromDailyData(
     const dayData = dailyData[dateKey];
     if (!dayData) continue;
 
+    const rateForDay = getRateForDate(day, rateHistory ?? [], ratePerTrip);
     for (const travellerId of Object.keys(dayData)) {
       const tripData = dayData[travellerId];
       if (tripData) {
         const tripCount =
           (tripData.morning ? 1 : 0) + (tripData.evening ? 1 : 0);
-        totalIncome += tripCount * ratePerTrip;
+        totalIncome += tripCount * rateForDay;
       }
     }
   }
@@ -65,6 +68,7 @@ export function calculateMonthlyIncomeFromDailyData(
   includeSaturday: boolean,
   includeSunday: boolean,
   coTravellerIncomes?: CoTravellerIncome[],
+  rateHistory?: RateHistoryEntry[],
 ): Map<string, number> {
   const days = getDaysInRange(dateRange.start, dateRange.end);
   const monthlyIncome = new Map<string, number>();
@@ -85,13 +89,14 @@ export function calculateMonthlyIncomeFromDailyData(
     const dayData = dailyData[dateKey];
     if (!dayData) continue;
 
+    const rateForDay = getRateForDate(day, rateHistory ?? [], ratePerTrip);
     let dayIncome = 0;
     for (const travellerId of Object.keys(dayData)) {
       const tripData = dayData[travellerId];
       if (tripData) {
         const tripCount =
           (tripData.morning ? 1 : 0) + (tripData.evening ? 1 : 0);
-        dayIncome += tripCount * ratePerTrip;
+        dayIncome += tripCount * rateForDay;
       }
     }
 

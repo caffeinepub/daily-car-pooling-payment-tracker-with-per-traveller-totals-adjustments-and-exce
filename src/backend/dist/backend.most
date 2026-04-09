@@ -1,0 +1,147 @@
+// Version: 1.0.0
+type AppData__1001046069 =
+  {
+    lastUpdated : Time__900049286;
+    ledgerState : ?Text;
+    otherPendingAmounts : [OtherPendingAmount__213234534];
+    userProfile : ?UserProfile__491224006;
+    version : Nat
+  };
+type Category__164941945 =
+  {
+    #accomodation;
+    #activity;
+    #cashWithdrawal;
+    #entryFee;
+    #food;
+    #other;
+    #shopping;
+    #tips;
+    #transport
+  };
+type CoTravellerIncome__988484214 =
+  {
+    amount : Nat;
+    date : Date__496841781;
+    note : ?Text;
+    tripTime : ?TripTime__569408819
+  };
+type Data__791452850<K, V> =
+  {var count : Nat__490723111; kvs : [var ?(K, V)]};
+type Date__496841781 = {day : Nat; month : Nat; year : Nat};
+type Expense__25862281 =
+  {
+    amount : Nat;
+    category : Category__164941945;
+    date : Date__496841781;
+    note : ?Text;
+    tripTime : ?TripTime__569408819
+  };
+type Int__270357528 = Int__616954475;
+type Int__616954475 = Int;
+type Internal__8484328<K, V> =
+  {children : [var ?Node__46230540<K, V>]; data : Data__791452850<K, V>};
+type Leaf__809889148<K, V> = {data : Data__791452850<K, V>};
+type List__415060402<T> = List__790383201<T>;
+type List__790383201<T> =
+  {
+    var blockIndex : Nat__490723111;
+    var blocks : [var [var ?T]];
+    var elementIndex : Nat__490723111
+  };
+type Map__158565046<K, V> = Map__297112838<K, V>;
+type Map__297112838<K, V> =
+  {var root : Node__46230540<K, V>; var size : Nat__490723111};
+type Map__605269027<K, V> = Map__158565046<K, V>;
+type MonetaryEvent__68112747 =
+  {
+    amount : Nat;
+    description : Text;
+    participants : [Principal];
+    payments : List__415060402<Payment__159206904>;
+    timestamp : Time__900049286
+  };
+type Nat__490723111 = Nat__920180692;
+type Nat__920180692 = Nat;
+type Node__46230540<K, V> =
+  {#internal : Internal__8484328<K, V>; #leaf : Leaf__809889148<K, V>};
+type OtherPendingAmount__213234534 =
+  {
+    amount : Nat;
+    comment : ?Text;
+    date : Date__496841781;
+    id : Text;
+    traveller : Text
+  };
+type Payment__159206904 =
+  {amount : Nat; date : Date__496841781; note : ?Text};
+type ShareAccessEntry__863056240 =
+  {email : Text; permissions : [TabPermission__249250641]};
+type TabPermission__249250641 = {access : Text; tabKey : Text};
+type Time__796480547 = Int__270357528;
+type Time__900049286 = Time__796480547;
+type TravelEntry__277704344 =
+  {date : Date__496841781; events : List__415060402<MonetaryEvent__68112747>};
+type Traveller__959907612 = {principal : Principal; pseudo : Text};
+type TripTime__569408819 = {#evening; #morning};
+type UserProfileExtended__604068481 =
+  {
+    firstName : ?Text;
+    lastName : ?Text;
+    phone : ?Text;
+    profilePicture : ?Text;
+    sex : ?Text;
+    vehicleNumber : ?Text
+  };
+type UserProfile__491224006 = {name : Text};
+type UserRole__1054455867 = {#admin; #guest; #user};
+actor {
+  stable accessControlState :
+    {
+      var adminAssigned : Bool;
+      userRoles : Map__605269027<Principal, UserRole__1054455867>
+    };
+  stable adminShareConfigs :
+    {
+      var root : Node__46230540<Principal, [ShareAccessEntry__863056240]>;
+      var size : Nat__490723111
+    };
+  stable coTravellerIncomes :
+    {
+      var root :
+        Node__46230540<Principal,
+                        List__415060402<CoTravellerIncome__988484214>>;
+      var size : Nat__490723111
+    };
+  stable entries :
+    {
+      var root : Node__46230540<Text, TravelEntry__277704344>;
+      var size : Nat__490723111
+    };
+  stable expenseLists :
+    {
+      var root : Node__46230540<Principal, List__415060402<Expense__25862281>>;
+      var size : Nat__490723111
+    };
+  stable pendingBalances :
+    {var root : Node__46230540<Principal, Nat>; var size : Nat__490723111};
+  stable sharedUserEmails :
+    {var root : Node__46230540<Principal, Text>; var size : Nat__490723111};
+  stable sharedVisitCounts :
+    {var root : Node__46230540<Text, Nat>; var size : Nat__490723111};
+  stable travellers :
+    {
+      var root : Node__46230540<Principal, Traveller__959907612>;
+      var size : Nat__490723111
+    };
+  stable userAppData :
+    {
+      var root : Node__46230540<Principal, AppData__1001046069>;
+      var size : Nat__490723111
+    };
+  stable userProfileExtendedMap :
+    {
+      var root : Node__46230540<Principal, UserProfileExtended__604068481>;
+      var size : Nat__490723111
+    }
+};

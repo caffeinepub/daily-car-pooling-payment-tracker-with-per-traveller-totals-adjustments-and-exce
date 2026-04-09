@@ -72,7 +72,7 @@ export type UserRole = { 'admin' : null } |
   { 'user' : null } |
   { 'guest' : null };
 export interface _SERVICE {
-  '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
+  '_initializeAccessControl' : ActorMethod<[], undefined>,
   'addCoTravellerIncome' : ActorMethod<[CoTravellerIncome], undefined>,
   'addExpense' : ActorMethod<[Expense], undefined>,
   'addExpenses' : ActorMethod<[Array<Expense>], undefined>,
@@ -84,9 +84,10 @@ export interface _SERVICE {
   'deleteOtherPendingAmount' : ActorMethod<[string], undefined>,
   'fetchAppData' : ActorMethod<[], [] | [AppData]>,
   'getAdminSharedData' : ActorMethod<[Principal], [] | [SharedDataResult]>,
-  'getAdminSharedDataByEmail' : ActorMethod<[Principal, string], [] | [SharedDataResult]>,
-  'getShareAccessVisitCounts' : ActorMethod<[], Array<[string, bigint]>>,
-  'recordSharedUserVisit' : ActorMethod<[Principal, string], undefined>,
+  'getAdminSharedDataByEmail' : ActorMethod<
+    [Principal, string],
+    [] | [SharedDataResult]
+  >,
   'getAllBalances' : ActorMethod<[], Array<[Principal, bigint]>>,
   'getBalance' : ActorMethod<[], bigint>,
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
@@ -96,8 +97,10 @@ export interface _SERVICE {
   'getExpenses' : ActorMethod<[Principal], Array<Expense>>,
   'getOtherPendingAmounts' : ActorMethod<[], Array<OtherPendingAmount>>,
   'getShareAccessConfig' : ActorMethod<[], Array<ShareAccessEntry>>,
+  'getShareAccessVisitCounts' : ActorMethod<[], Array<[string, bigint]>>,
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
+  'recordSharedUserVisit' : ActorMethod<[Principal, string], undefined>,
   'registerSharedUserEmail' : ActorMethod<[string], undefined>,
   'saveAppData' : ActorMethod<[AppData], undefined>,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,

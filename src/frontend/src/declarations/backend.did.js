@@ -84,7 +84,7 @@ export const ShareAccessEntry = IDL.Record({
 });
 
 export const idlService = IDL.Service({
-  '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
+  '_initializeAccessControl' : IDL.Func([], [], []),
   'addCoTravellerIncome' : IDL.Func([CoTravellerIncome], [], []),
   'addExpense' : IDL.Func([Expense], [], []),
   'addExpenses' : IDL.Func([IDL.Vec(Expense)], [], []),
@@ -102,12 +102,6 @@ export const idlService = IDL.Service({
       [IDL.Opt(SharedDataResult)],
       ['query'],
     ),
-  'getShareAccessVisitCounts' : IDL.Func(
-      [],
-      [IDL.Vec(IDL.Tuple(IDL.Text, IDL.Nat))],
-      ['query'],
-    ),
-  'recordSharedUserVisit' : IDL.Func([IDL.Principal, IDL.Text], [], []),
   'getAllBalances' : IDL.Func(
       [],
       [IDL.Vec(IDL.Tuple(IDL.Principal, IDL.Nat))],
@@ -133,12 +127,18 @@ export const idlService = IDL.Service({
       ['query'],
     ),
   'getShareAccessConfig' : IDL.Func([], [IDL.Vec(ShareAccessEntry)], ['query']),
+  'getShareAccessVisitCounts' : IDL.Func(
+      [],
+      [IDL.Vec(IDL.Tuple(IDL.Text, IDL.Nat))],
+      ['query'],
+    ),
   'getUserProfile' : IDL.Func(
       [IDL.Principal],
       [IDL.Opt(UserProfile)],
       ['query'],
     ),
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
+  'recordSharedUserVisit' : IDL.Func([IDL.Principal, IDL.Text], [], []),
   'registerSharedUserEmail' : IDL.Func([IDL.Text], [], []),
   'saveAppData' : IDL.Func([AppData], [], []),
   'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
@@ -223,7 +223,7 @@ export const idlFactory = ({ IDL }) => {
   });
   
   return IDL.Service({
-    '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
+    '_initializeAccessControl' : IDL.Func([], [], []),
     'addCoTravellerIncome' : IDL.Func([CoTravellerIncome], [], []),
     'addExpense' : IDL.Func([Expense], [], []),
     'addExpenses' : IDL.Func([IDL.Vec(Expense)], [], []),
@@ -241,12 +241,6 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Opt(SharedDataResult)],
         ['query'],
       ),
-    'getShareAccessVisitCounts' : IDL.Func(
-        [],
-        [IDL.Vec(IDL.Tuple(IDL.Text, IDL.Nat))],
-        ['query'],
-      ),
-    'recordSharedUserVisit' : IDL.Func([IDL.Principal, IDL.Text], [], []),
     'getAllBalances' : IDL.Func(
         [],
         [IDL.Vec(IDL.Tuple(IDL.Principal, IDL.Nat))],
@@ -276,12 +270,18 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Vec(ShareAccessEntry)],
         ['query'],
       ),
+    'getShareAccessVisitCounts' : IDL.Func(
+        [],
+        [IDL.Vec(IDL.Tuple(IDL.Text, IDL.Nat))],
+        ['query'],
+      ),
     'getUserProfile' : IDL.Func(
         [IDL.Principal],
         [IDL.Opt(UserProfile)],
         ['query'],
       ),
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
+    'recordSharedUserVisit' : IDL.Func([IDL.Principal, IDL.Text], [], []),
     'registerSharedUserEmail' : IDL.Func([IDL.Text], [], []),
     'saveAppData' : IDL.Func([AppData], [], []),
     'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),

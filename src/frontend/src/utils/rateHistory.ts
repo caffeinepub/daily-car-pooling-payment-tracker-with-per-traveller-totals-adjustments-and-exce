@@ -24,6 +24,6 @@ export function getRateForDate(
   );
   const match = sorted.find((e) => e.effectiveFrom <= dateKey);
 
-  // If no entry applies (all entries are in the future), use the oldest (earliest) entry
-  return match ? match.rate : (sorted[sorted.length - 1]?.rate ?? fallbackRate);
+  // If no entry applies (all entries are in the future relative to dateKey), use fallbackRate
+  return match ? match.rate : fallbackRate;
 }

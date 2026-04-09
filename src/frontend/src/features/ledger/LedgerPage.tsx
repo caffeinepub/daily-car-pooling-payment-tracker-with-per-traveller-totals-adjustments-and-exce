@@ -26,8 +26,8 @@ import {
   UserPlus,
   Users,
 } from "lucide-react";
+import { Coffee } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { SiCaffeine } from "react-icons/si";
 import type { TabPermission } from "../../backend";
 import AppHeader from "../../components/AppHeader";
 import { ReadOnlyProvider } from "../../context/ReadOnlyContext";
@@ -645,7 +645,7 @@ export function LedgerPageContent({
               © {new Date().getFullYear()} Carpool Ledger. All rights reserved.
             </p>
             <p className="flex items-center gap-1.5">
-              Built with <SiCaffeine className="h-4 w-4 text-primary" /> using{" "}
+              Built with <Coffee className="h-4 w-4 text-primary" /> using{" "}
               <a
                 href={`https://caffeine.ai/?utm_source=Caffeine-footer&utm_medium=referral&utm_content=${encodeURIComponent(
                   typeof window !== "undefined"

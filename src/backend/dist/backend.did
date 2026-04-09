@@ -1,0 +1,125 @@
+type UserRole = 
+ variant {
+   admin;
+   guest;
+   user;
+ };
+type UserProfileExtended = 
+ record {
+   firstName: opt text;
+   lastName: opt text;
+   phone: opt text;
+   profilePicture: opt text;
+   sex: opt text;
+   vehicleNumber: opt text;
+ };
+type UserProfile = record {name: text;};
+type TripTime = 
+ variant {
+   evening;
+   morning;
+ };
+type Time = int;
+type TabPermission = 
+ record {
+   access: text;
+   tabKey: text;
+ };
+type SharedDataResult = 
+ record {
+   ledgerState: opt text;
+   permissions: vec TabPermission;
+ };
+type ShareAccessEntry = 
+ record {
+   email: text;
+   permissions: vec TabPermission;
+ };
+type OtherPendingAmount = 
+ record {
+   amount: nat;
+   comment: opt text;
+   date: Date;
+   id: text;
+   traveller: text;
+ };
+type Expense = 
+ record {
+   amount: nat;
+   category: Category;
+   date: Date;
+   note: opt text;
+   tripTime: opt TripTime;
+ };
+type Date = 
+ record {
+   day: nat;
+   month: nat;
+   year: nat;
+ };
+type CoTravellerIncome = 
+ record {
+   amount: nat;
+   date: Date;
+   note: opt text;
+   tripTime: opt TripTime;
+ };
+type Category = 
+ variant {
+   accomodation;
+   activity;
+   cashWithdrawal;
+   entryFee;
+   food;
+   other;
+   shopping;
+   tips;
+   transport;
+ };
+type AppData = 
+ record {
+   lastUpdated: Time;
+   ledgerState: opt text;
+   otherPendingAmounts: vec OtherPendingAmount;
+   userProfile: opt UserProfile;
+   version: nat;
+ };
+service : {
+  _initializeAccessControl: () -> ();
+  addCoTravellerIncome: (income: CoTravellerIncome) -> ();
+  addExpense: (expense: Expense) -> ();
+  addExpenses: (expenses: vec Expense) -> ();
+  addOrUpdateOtherPendingAmount: (amount: OtherPendingAmount) -> ();
+  assignCallerUserRole: (user: principal, role: UserRole) -> ();
+  deleteOtherPendingAmount: (id: text) -> ();
+  fetchAppData: () -> (opt AppData) query;
+  getAdminSharedData: (admin: principal) -> (opt SharedDataResult) query;
+  getAdminSharedDataByEmail: (admin: principal, email: text) ->
+   (opt SharedDataResult) query;
+  getAllBalances: () -> (vec record {
+                               principal;
+                               nat;
+                             }) query;
+  getBalance: () -> (nat) query;
+  getCallerUserProfile: () -> (opt UserProfile) query;
+  getCallerUserProfileExtended: () -> (opt UserProfileExtended) query;
+  getCallerUserRole: () -> (UserRole) query;
+  getCoTravellerIncomes: (user: principal) -> (vec CoTravellerIncome) query;
+  getExpenses: (user: principal) -> (vec Expense) query;
+  getOtherPendingAmounts: () -> (vec OtherPendingAmount) query;
+  getShareAccessConfig: () -> (vec ShareAccessEntry) query;
+  getShareAccessVisitCounts: () -> (vec record {
+                                          text;
+                                          nat;
+                                        }) query;
+  getUserProfile: (user: principal) -> (opt UserProfile) query;
+  isCallerAdmin: () -> (bool) query;
+  recordSharedUserVisit: (admin: principal, email: text) -> ();
+  registerSharedUserEmail: (email: text) -> ();
+  saveAppData: (newAppData: AppData) -> ();
+  saveCallerUserProfile: (profile: UserProfile) -> ();
+  saveCallerUserProfileExtended: (profile: UserProfileExtended) -> ();
+  saveShareAccessConfig: (configs: vec ShareAccessEntry) -> ();
+  startCharge: (description: text, amount: nat, participants:
+   vec principal) -> ();
+}

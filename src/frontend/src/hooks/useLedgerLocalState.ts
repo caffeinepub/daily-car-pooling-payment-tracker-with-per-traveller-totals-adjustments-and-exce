@@ -578,31 +578,45 @@ export function useLedgerLocalState() {
         ratePerTripRef.current,
       );
 
-      // Ensure there is a baseline entry that covers all dates before effectiveFrom.
-      // We do this by checking if any entry exists with effectiveFrom strictly
-      // before the new effectiveFrom. If not, anchor the pre-change rate at
-      // "0000-01-01" so getRateForDate always finds a match for past dates.
-      const hasEntryBeforeNewDate = prev.some(
-        (e) => e.effectiveFrom < effectiveFrom,
+      // Always upsert a baseline entry at "0000-01-01" with the old rate.
+      // This guarantees that getRateForDate will always find a match for any
+      // date before the new effectiveFrom, regardless of what's already in history.
+      const withoutNewEntry = prev.filter(
+        (e) => e.effectiveFrom !== effectiveFrom,
+      );
+      const existingBaseline = withoutNewEntry.find(
+        (e) => e.effectiveFrom === "0000-01-01",
       );
 
-      const next: RateHistoryEntry[] = [...prev];
-      if (!hasEntryBeforeNewDate) {
-        next.push({
-          id: Math.random().toString(36).slice(2),
-          rate: rateBeforeChange,
-          effectiveFrom: "0000-01-01",
-        });
+      let updated: RateHistoryEntry[];
+      if (existingBaseline) {
+        // Update the baseline rate to reflect what the rate was before this new entry
+        updated = withoutNewEntry.map((e) =>
+          e.effectiveFrom === "0000-01-01"
+            ? { ...e, rate: rateBeforeChange }
+            : e,
+        );
+      } else {
+        // Add a new baseline entry anchoring the old rate from the beginning of time
+        updated = [
+          ...withoutNewEntry,
+          {
+            id: Math.random().toString(36).slice(2),
+            rate: rateBeforeChange,
+            effectiveFrom: "0000-01-01",
+          },
+        ];
       }
 
-      // Remove any existing entry for exactly this effectiveFrom date to avoid duplicates
-      const filtered = next.filter((e) => e.effectiveFrom !== effectiveFrom);
-      filtered.push({
-        id: Math.random().toString(36).slice(2),
-        rate: newRate,
-        effectiveFrom,
-      });
-      return filtered;
+      // Add the new rate entry
+      return [
+        ...updated,
+        {
+          id: Math.random().toString(36).slice(2),
+          rate: newRate,
+          effectiveFrom,
+        },
+      ];
     });
     // Keep ratePerTrip in sync so legacy code / fallback stays accurate
     setRatePerTrip(newRate);

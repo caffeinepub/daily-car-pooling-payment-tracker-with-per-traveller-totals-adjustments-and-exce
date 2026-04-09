@@ -166,7 +166,7 @@ export enum UserRole {
     guest = "guest"
 }
 export interface backendInterface {
-    _initializeAccessControlWithSecret(userSecret: string): Promise<void>;
+    _initializeAccessControl(): Promise<void>;
     addCoTravellerIncome(income: CoTravellerIncome): Promise<void>;
     addExpense(expense: Expense): Promise<void>;
     addExpenses(expenses: Array<Expense>): Promise<void>;
@@ -176,8 +176,6 @@ export interface backendInterface {
     fetchAppData(): Promise<AppData | null>;
     getAdminSharedData(admin: Principal): Promise<SharedDataResult | null>;
     getAdminSharedDataByEmail(admin: Principal, email: string): Promise<SharedDataResult | null>;
-    recordSharedUserVisit(admin: Principal, email: string): Promise<void>;
-    getShareAccessVisitCounts(): Promise<Array<[string, bigint]>>;
     getAllBalances(): Promise<Array<[Principal, bigint]>>;
     getBalance(): Promise<bigint>;
     getCallerUserProfile(): Promise<UserProfile | null>;
@@ -187,8 +185,10 @@ export interface backendInterface {
     getExpenses(user: Principal): Promise<Array<Expense>>;
     getOtherPendingAmounts(): Promise<Array<OtherPendingAmount>>;
     getShareAccessConfig(): Promise<Array<ShareAccessEntry>>;
+    getShareAccessVisitCounts(): Promise<Array<[string, bigint]>>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     isCallerAdmin(): Promise<boolean>;
+    recordSharedUserVisit(admin: Principal, email: string): Promise<void>;
     registerSharedUserEmail(email: string): Promise<void>;
     saveAppData(newAppData: AppData): Promise<void>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
@@ -199,17 +199,17 @@ export interface backendInterface {
 import type { AppData as _AppData, Category as _Category, CoTravellerIncome as _CoTravellerIncome, Date as _Date, Expense as _Expense, OtherPendingAmount as _OtherPendingAmount, SharedDataResult as _SharedDataResult, TabPermission as _TabPermission, Time as _Time, TripTime as _TripTime, UserProfile as _UserProfile, UserProfileExtended as _UserProfileExtended, UserRole as _UserRole } from "./declarations/backend.did.d.ts";
 export class Backend implements backendInterface {
     constructor(private actor: ActorSubclass<_SERVICE>, private _uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, private _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, private processError?: (error: unknown) => never){}
-    async _initializeAccessControlWithSecret(arg0: string): Promise<void> {
+    async _initializeAccessControl(): Promise<void> {
         if (this.processError) {
             try {
-                const result = await this.actor._initializeAccessControlWithSecret(arg0);
+                const result = await this.actor._initializeAccessControl();
                 return result;
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
-            const result = await this.actor._initializeAccessControlWithSecret(arg0);
+            const result = await this.actor._initializeAccessControl();
             return result;
         }
     }
@@ -339,34 +339,6 @@ export class Backend implements backendInterface {
             return from_candid_opt_n22(this._uploadFile, this._downloadFile, result);
         }
     }
-    async recordSharedUserVisit(arg0: Principal, arg1: string): Promise<void> {
-        if (this.processError) {
-            try {
-                const result = await this.actor.recordSharedUserVisit(arg0, arg1);
-                return result;
-            } catch (e) {
-                this.processError(e);
-                throw new Error("unreachable");
-            }
-        } else {
-            const result = await this.actor.recordSharedUserVisit(arg0, arg1);
-            return result;
-        }
-    }
-    async getShareAccessVisitCounts(): Promise<Array<[string, bigint]>> {
-        if (this.processError) {
-            try {
-                const result = await this.actor.getShareAccessVisitCounts();
-                return result;
-            } catch (e) {
-                this.processError(e);
-                throw new Error("unreachable");
-            }
-        } else {
-            const result = await this.actor.getShareAccessVisitCounts();
-            return result;
-        }
-    }
     async getAllBalances(): Promise<Array<[Principal, bigint]>> {
         if (this.processError) {
             try {
@@ -493,6 +465,20 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async getShareAccessVisitCounts(): Promise<Array<[string, bigint]>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getShareAccessVisitCounts();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getShareAccessVisitCounts();
+            return result;
+        }
+    }
     async getUserProfile(arg0: Principal): Promise<UserProfile | null> {
         if (this.processError) {
             try {
@@ -518,6 +504,20 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.isCallerAdmin();
+            return result;
+        }
+    }
+    async recordSharedUserVisit(arg0: Principal, arg1: string): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.recordSharedUserVisit(arg0, arg1);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.recordSharedUserVisit(arg0, arg1);
             return result;
         }
     }
